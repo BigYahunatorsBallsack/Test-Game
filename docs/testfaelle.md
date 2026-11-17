@@ -56,17 +56,20 @@ Jedes Arbeitspaket bekommt hier im Plan-Modus seinen Abschnitt, bevor Code entst
 
 Die Ladelogik steht in einem reinen Modul (`src/shared/Logic/PlayerSession.luau`), das den Speicher über einen Adapter bekommt. Lune testet es mit einem Fake-Speicher, im Spiel steckt ProfileStore dahinter.
 
-- [ ] [Lune] Neuer Spieler: Es entsteht ein Standardprofil mit aktueller Version, der Spieler gilt erst danach als geladen.
-- [ ] [Lune] Vorhandenes Profil: Münzen, Gems, Inventar, Knoten und Zonen kommen nach Speichern und erneutem Laden (Neustart) unverändert zurück, Münzen als Zahlentyp `{m, e}`.
-- [ ] [Lune] Altes Profil (Version 1) mit Beispielmigration wird beim Laden migriert, und die neue Version wird gespeichert.
-- [ ] [Lune] Profil mit höherer Version: Der Spieler wird mit einer Meldung entfernt, und der Speicher schreibt keine geänderten Daten zurück.
-- [ ] [Lune] Laden schlägt fehl oder der Speicher liefert nichts: Der Spieler wird mit einer Meldung entfernt, es entsteht kein leeres Profil, das alte Daten überschreiben könnte.
-- [ ] [Lune] Der Spieler verlässt das Spiel während des Ladens: Die Sitzung wird beendet, es bleibt kein Profil im Speicher und keine Sitzung offen.
-- [ ] [Lune] Server-Wechsel: Solange Server A die Sitzung hält, wartet Server B. Nach dem Verlassen auf A gibt A die Sitzung frei, und B lädt den zuletzt gespeicherten Stand.
-- [ ] [Lune] Beim Speichern und Verlassen wird `lastSeen` auf die aktuelle Zeit gesetzt (Grundlage für den Offline-Ertrag in 5.3).
-- [ ] [Lune] Vor dem Laden und nach dem Verlassen lehnt die Profil-Prüfung von `Net` jeden Remote-Aufruf ab, danach lässt sie ihn durch.
-- [ ] [Shell] `rojo build` baut mit ProfileStore aus Wally ohne Fehler.
-- [ ] [Studio] Mit API-Zugriff: Münzen per Studio-Befehlszeile ändern, Playtest beenden, neu starten: Der Wert ist noch da.
+- [x] [Lune] Neuer Spieler: Es entsteht ein Standardprofil mit aktueller Version, der Spieler gilt erst danach als geladen.
+- [x] [Lune] Vorhandenes Profil: Münzen, Gems, Inventar, Knoten und Zonen kommen nach Speichern und erneutem Laden (Neustart) unverändert zurück, Münzen als Zahlentyp `{m, e}`.
+- [x] [Lune] Altes Profil (Version 1) mit Beispielmigration wird beim Laden migriert, und die neue Version wird gespeichert.
+- [x] [Lune] Profil mit höherer Version: Der Spieler wird mit einer Meldung entfernt, und der Speicher schreibt keine geänderten Daten zurück.
+- [x] [Lune] Laden schlägt fehl oder der Speicher liefert nichts: Der Spieler wird mit einer Meldung entfernt, es entsteht kein leeres Profil, das alte Daten überschreiben könnte.
+- [x] [Lune] Der Spieler verlässt das Spiel während des Ladens: Die Sitzung wird beendet, es bleibt kein Profil im Speicher und keine Sitzung offen.
+- [x] [Lune] Schneller Rejoin, während das alte Laden noch läuft: Der neue Ladevorgang wartet, bis der alte abgebrochen ist, und lädt dann normal.
+- [x] [Lune] Vor jedem Speichern werden NaN, unendlich und nicht speicherbare Werte aus dem Profil entfernt oder auf Standard gesetzt.
+- [x] [Lune] Server-Wechsel: Solange Server A die Sitzung hält, wartet Server B. Nach dem Verlassen auf A gibt A die Sitzung frei, und B lädt den zuletzt gespeicherten Stand.
+- [x] [Lune] Kaputtes Feld (zum Beispiel Münzen als Text oder Gems als NaN): Nur dieses Feld wird auf den Standardwert gesetzt und eine Warnung ausgegeben, der Rest bleibt.
+- [x] [Lune] Beim Speichern und Verlassen wird `lastSeen` auf die aktuelle Zeit gesetzt (Grundlage für den Offline-Ertrag in 5.3).
+- [x] [Lune] Vor dem Laden und nach dem Verlassen lehnt die Profil-Prüfung von `Net` jeden Remote-Aufruf ab, danach lässt sie ihn durch.
+- [x] [Shell] `rojo build` baut mit ProfileStore aus Wally ohne Fehler.
+- [ ] [Studio] Mit API-Zugriff (Studio nutzt den eigenen Store `PlayerData_Studio_v1`): Münzen per Studio-Befehlszeile ändern, Playtest beenden, neu starten: Der Wert ist noch da.
 - [ ] [Studio] Ohne API-Zugriff läuft der Playtest mit einem Test-Speicher (Mock) und warnt im Output, dass nichts dauerhaft gespeichert wird.
 - [ ] [Studio] Veröffentlichtes Spiel, zwei Server: Wert auf Server A ändern, auf Server B wechseln, der Wert ist da.
 

@@ -7,10 +7,12 @@ Stand Paket 0.3. Grundlage: `docs/konzept.md`, `docs/umsetzungsplan.md`. Testfä
 ```
 default.project.json     Rojo: Shared -> ReplicatedStorage, Server -> ServerScriptService, Client -> StarterPlayerScripts
 src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindOdds, Finds, Crates, GemPacks, Products, Economy, UpgradeTree)
-src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum)
+src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
 src/client/              init.client.luau (Bootstrap), Controllers/ (Input, State)
+ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
+wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
 ```
 
@@ -46,7 +48,7 @@ Client -> Server: nur Absichten, nie Mengen oder Preise. Der Server berechnet al
 
 Jede Client->Server-Remote durchläuft in `Net.on` vor dem Handler:
 
-1. Profil geladen? (Rückruf, vorerst immer wahr, `TODO(1.1)`)
+1. Profil geladen? (`PlayerData.isLoaded`, gesetzt in `PlayerData.Init`; vorher wird alles abgelehnt)
 2. `Validate.check` gegen das Schema aus `RemoteSpec`: genaue Argumentzahl, Typ, NaN und Unendlich abgelehnt, Bereich, Länge, bekannte IDs.
 3. `RateLimiter` (Token-Bucket pro Spieler und Remote).
 
@@ -79,6 +81,22 @@ Das Profil ist ein versionierter Datensatz (`Profile.luau`, aktuelle Version in 
 
 Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert und werden ignoriert (`Profile.ownedKnownNodes` filtert auf bekannte Knoten). Die Migration arbeitet auf einer Kopie. Fehlt ein Schritt, wirft sie einen Fehler, damit nichts Falsches gespeichert wird. Zu jedem Versionssprung gehört ein Schritt in `Migrations.steps` und ein Lune-Test.
 
+## Laden und Speichern (Paket 1.1)
+
+- Speicher: ProfileStore 1.0.3 (loleris) über Wally, DataStore `PlayerData_v1` (in Studio `PlayerData_Studio_v1`), Schlüssel `Player_<UserId>`. Laden gibt nach 120 s auf. ProfileStore übernimmt Sitzungssperre, Autosave und das Speichern beim Herunterfahren.
+- Ablauf in `Logic/PlayerSession.luau` (rein, Lune-Tests mit Fake-Speicher in `tests/lib/fakestore.luau`): Sitzung öffnen, `Profile.migrate`, `Profile.sanitize`, dann gilt der Spieler als geladen.
+- Profil zu neu, Öffnen fehlgeschlagen oder Migration mit Fehler: Spieler wird mit Meldung entfernt, die gespeicherten Daten bleiben unverändert.
+- `Profile.sanitize` läuft beim Laden und vor jedem Speichern: Ein Feld mit falschem Typ oder einer Zahl NaN/unendlich wird einzeln auf den Standard gesetzt, Münzen/Tank ganz auf 0, ungültige Einträge in ID-Listen werden entfernt. Jede Reparatur erscheint als Warnung im Output.
+- Schneller Rejoin auf denselben Server: Der neue Ladevorgang wartet, bis der alte abgebrochen ist (`isBusy`).
+- Für Paket 4.1 (Käufe): Der Adapter braucht dann `Save` und `OnAfterSave`, damit `PurchaseGranted` erst nach dem Speichern kommt. Remote-Handler dürfen sich nicht auf Zustand verlassen, den `onLoaded`-Rückrufe erst nach einer Wartezeit setzen.
+- Bekannte Grenze: Kommt ein Spieler zurück, während das letzte Speichern nach einem DataStore-Fehler noch wiederholt wird, können Änderungen seit dem letzten Autosave verloren gehen (selten, Prüfung in 6.1).
+- Verlässt der Spieler das Spiel während des Ladens, wird die Sitzung sofort beendet. Übernimmt ein anderer Server die Sitzung, wird der Spieler hier entfernt.
+- Vor jedem Speichern setzt der Server `lastSeen` (Grundlage für den Offline-Ertrag).
+- Andere Services nutzen `PlayerData.get(player)`, `PlayerData.isLoaded(player)` und `PlayerData.onLoaded(fn)`.
+- Ohne API-Zugriff in Studio nutzt ProfileStore einen Test-Speicher, der Server warnt dann im Output.
+- Studio-Hilfe (nur in Studio): In der Befehlszeile (Ansicht Server) `game.Players.<Name>:SetAttribute("DebugCoins", 12345)` bzw. `"DebugGems"` setzt Münzen oder Gems im Profil.
+- Wally-Pakete: `ServerPackages/` ist eingecheckt, damit `rojo serve` ohne Wally läuft. Nach einer Änderung an `wally.toml` einmal `wally install` ausführen.
+
 ## Zahlentyp
 
 `BigNum = { m: number, e: number }` (Wert = m * 10^e, Mantisse in [1, 10)). Paket 0.3 liefert nur die Schnittstelle sowie `new`, `zero`, `serialize` und `deserialize`. Rechnen und Anzeige folgen in Paket 1.3. Anzeige: deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc (Konstante `BigNum.SUFFIXES`), ab 10^36 wissenschaftlich (`1,23e36`).
@@ -87,7 +105,7 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 
 - Meilensteine: `collect_tool_3` (Eimerkette) = Meilenstein 1 schaltet die Oase frei, `collect_tool_4` (Mini-Bagger) den Canyon, `collect_tool_5` (Saugroboter) den Salzsee. Werkzeugknoten heißen `collect_tool_2` bis `collect_tool_6`. Die Ruinenstadt verlangt `sandstorm_1`, den der erste Sandsturm vergibt. Zonen verweisen direkt auf diese IDs.
 - Die Hand (Stufe 1) ist Startausrüstung ohne Knoten (`nodeId = "start"`).
-- Spielstand später mit ProfileStore (Paket 1.1). Es ist keine Wally-Abhängigkeit installiert.
+- Spielstand mit ProfileStore (Paket 1.1), siehe oben.
 - Remote-Verstöße: verwerfen und zählen, kein Kick.
 - Unbekannte Knoten-IDs im Profil bleiben gespeichert und werden ignoriert.
 
