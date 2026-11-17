@@ -1,6 +1,6 @@
 # Relic Hunters (Arbeitstitel): Roblox-Schatzsuche-Sim
 
-Casual-Sim: Mit dem Metalldetektor Signale suchen, graben, Relikte mit Seltenheit finden, im Museum sammeln. Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md.
+Casual-Sim: Mit dem Metalldetektor Signale suchen, graben, Relikte mit Seltenheit finden, im Museum sammeln. Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md. Testfälle: docs/testfaelle.md.
 
 ## Technik-Regeln
 
@@ -12,6 +12,7 @@ Casual-Sim: Mit dem Metalldetektor Signale suchen, graben, Relikte mit Seltenhei
 - Kisten: Anzeige und Auswurf lesen dieselbe Quotentabelle. Pity liegt auf dem Server.
 - Policy: Quoten vor dem Kauf anzeigen, `ArePaidRandomItemsRestricted` beachten, keine Tausch- oder Verkaufsfunktion für Kisten-Items.
 - Konstanten für Animationen (Dauer, Easing, Anzahl) stehen oben im Script.
+- Logik ohne Roblox-API (Quoten, Pity, Kaufabwicklung, Baum-Kauf) steht in reinen Modulen und wird mit Lune in der Shell getestet.
 
 ## Arbeitsweise und Modelle (bitte selbst einhalten)
 
@@ -22,5 +23,5 @@ Casual-Sim: Mit dem Metalldetektor Signale suchen, graben, Relikte mit Seltenhei
   - Prüfung von Remotes, Käufen, Speichern, Exploits: `security-reviewer` (Opus, xhigh, nur lesen).
   - Preise, Verdienstkurven, Quoten-Simulation: `balance-analyst` (Opus, high).
 - Alles andere (UI, Animationen, Spielschleife, Events) macht die Hauptsitzung.
-- Ein Arbeitspaket gilt als fertig, wenn die Testfälle aus docs/konzept.md laufen und committed ist. Vor Käufen und Kisten läuft immer der `security-reviewer`.
-- Beschreibe am Ende kurz, was geändert wurde und was ich im Studio testen soll.
+- Im Plan-Modus schlägst du die Testfälle des Pakets vor und legst sie in docs/testfaelle.md ab. Ein Arbeitspaket gilt als fertig, wenn diese Testfälle laufen und committed ist. Vor Käufen und Kisten läuft immer der `security-reviewer`.
+- Beschreibe am Ende kurz, was geändert wurde, und gib eine kurze Studio-Checkliste entlang der Spalte "Fertig, wenn" im Umsetzungsplan.

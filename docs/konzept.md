@@ -36,10 +36,12 @@ Zum Launch gibt es 5 Zonen mit je 30 Funden (150 Relikte), die in Sets von je 5 
 | Zone | Freischaltung | Besonderheit |
 | --- | --- | --- |
 | Strand | Start | Einfache Funde, Ebbe zeigt neue Signale |
-| Felder und Hügel | Detektor Stufe 3 | Regen verstärkt Signale |
-| Ruinenwald | Detektor Stufe 6 | Nebel erhöht die Chance auf Seltenes |
-| Wüstengrabung | Detektor Stufe 10 | Sandsturm versteckt Signale, tiefe Schichten |
+| Felder und Hügel | Meilenstein-Knoten `det_milestone_1` | Regen verstärkt Signale |
+| Ruinenwald | Meilenstein-Knoten `det_milestone_2` | Nebel erhöht die Chance auf Seltenes |
+| Wüstengrabung | Meilenstein-Knoten `det_milestone_3` | Sandsturm versteckt Signale, tiefe Schichten |
 | Vulkaninsel | Nach dem ersten Neustart | Hier gibt es die mythischen Relikte |
+
+Es gibt keine eigene Detektor-Stufe. Eine Zone verlangt die ID eines Meilenstein-Knotens im Detektor-Ast (zum Beispiel `requires = "det_milestone_1"`), keine Zahl. So bricht ein Umbau des Baums die Freischaltung nicht.
 
 **Seltenheit beim normalen Graben** (kostenlos, ohne Kisten):
 
@@ -65,11 +67,11 @@ Die Ausrüstung bestimmt, wie schnell und wie tief man findet. Alles ist erspiel
 | Detektor | Reichweite, Signalstärke, Fundglück | Upgrades mit Münzen, stärkere Varianten aus Kisten |
 | Schaufel | Grabtempo, erreichbare Tiefe | Upgrades mit Münzen, Varianten aus Kisten |
 | Rucksack | Platz für Funde vor dem Verkauf | Upgrades mit Münzen, Erweiterung per Gamepass |
-| Begleiter (Hund, Maulwurf, Rabe) | Findet Signale, gräbt auch offline | Kisten und Events |
+| Begleiter (Hund, Maulwurf, Rabe) | Findet Signale, sammelt offline Münzen (siehe Offline-Ertrag) | Kisten und Events |
 
 - **Verschmelzen:** Drei gleiche Ausrüstungsstücke werden zur nächsten Stufe. Doppelte Kisten-Drops sind so nie wertlos.
 - **Neustart (Rebirth):** Nach Zone 5 setzt man Münzen und Zonen zurück, behält Ausrüstung und Museum und bekommt einen dauerhaften Münzbonus plus Prestige-Marken für Spezial-Upgrades.
-- **Freischaltungen:** Zonen hängen an der Detektor-Stufe, nicht an Robux-Käufen. So bleibt jeder Fortschritt erspielbar.
+- **Freischaltungen:** Zonen hängen an Meilenstein-Knoten im Detektor-Ast, nicht an Robux-Käufen. So bleibt jeder Fortschritt erspielbar.
 
 ## Kisten und Quoten
 
@@ -80,7 +82,7 @@ Drei Dauer-Kisten und eine Event-Kiste liefern Ausrüstung und Skins. Es gibt zw
 | Holzkiste | 2.500 Münzen | Einfache Detektoren, Schaufeln, Begleiter |
 | Eisenkiste | 100 Gems | Bessere Ausrüstung und Skins |
 | Goldkiste | 400 Gems | Hochwertige Ausrüstung, Legendäres und Mythisches |
-| Event-Kiste | 250 Gems | Gleiche Quoten wie die Goldkiste, Pool mit exklusiven Event-Items, nur für die Saison |
+| Event-Kiste | 400 Gems | Gleicher Preis und gleiche Quoten wie die Goldkiste, Pool mit exklusiven Event-Items, nur für die Saison. Der Anreiz ist die Exklusivität, nicht der Preis |
 
 **Quoten pro Öffnung** (diese Werte müssen vor dem Kauf im Spiel stehen):
 
@@ -95,7 +97,7 @@ Drei Dauer-Kisten und eine Event-Kiste liefern Ausrüstung und Skins. Es gibt zw
 
 - **Pity-System:** Die Goldkiste garantiert Episch oder besser spätestens bei der 15. Öffnung und Legendär oder besser spätestens bei der 60. Der Zähler ist sichtbar. Das schafft Vertrauen und gibt Spielern ein Ziel.
 - **Erwartungswert:** Ein Legendär-oder-besser-Treffer kommt im Schnitt nach etwa 20 Goldkisten, also rund 8.000 Gems.
-- **10er-Paket:** Zehn kaufen, elf bekommen, mit denselben Quoten.
+- **10er-Paket:** Zehn kaufen, elf bekommen, mit denselben Quoten. Die Gratis-Kiste zählt für Pity mit: Jede Öffnung zählt, egal wie sie bezahlt wurde, damit der angezeigte Zähler zu dem passt, was passiert.
 - **Doppelte:** Gehen ins Verschmelzen (siehe Ausrüstung), nicht in den Müll.
 
 ## Monetarisierung
@@ -118,7 +120,7 @@ Der Hauptumsatz kommt aus Gems für Kisten, dazu kommen Gamepasses für Tempo, e
 | --- | --- | --- | --- |
 | Starterpaket | Einmalkauf, 24 Stunden nach dem ersten "Selten"-Fund | 149 Robux | 300 Gems, ein fester seltener Detektor, Begleiter Rabe |
 | 2x Münzen | Gamepass | 399 Robux | Doppelte Münzen aus allen Verkäufen |
-| Auto-Dig | Gamepass | 499 Robux | Begleiter gräbt automatisch, auch offline |
+| Auto-Dig | Gamepass | 499 Robux | Graben läuft automatisch, solange man im Spiel ist, mit festem mittlerem Fundwert. Verlängert die Offline-Grenze (zum Beispiel auf 12 Stunden) |
 | Großer Rucksack | Gamepass | 199 Robux | Mehr Platz, seltener Verkaufspausen |
 | Saison-Pass | Developer Product, 4 Wochen | 399 Robux | Premium-Spur mit Gems, Skins und festen Event-Items |
 | Münz-Boost | Verbrauchsprodukt | 49 Robux | 30 Minuten 2x Münzen |
@@ -149,18 +151,18 @@ Das Spiel läuft in vierwöchigen Saisons, jede mit eigener Event-Zone, Event-Ki
 | 3 | Neue Event-Items im Direktshop, Set-Aufgaben | Direktkäufe |
 | 4 | Finale: letzte Chance auf die Event-Kiste, Leaderboard-Preise | Dringlichkeit, Rückkehrer |
 
-- **Daily Reward:** 7-Tage-Serie, an Tag 7 gibt es eine Eisenkiste gratis. Das erzeugt die tägliche Wiederkehr.
+- **Daily Reward:** 7-Tage-Serie, an Tag 7 gibt es eine Eisenkiste gratis. Das erzeugt die tägliche Wiederkehr. In Regionen mit `ArePaidRandomItemsRestricted` gibt es statt der Kiste einen festen Ersatz (zum Beispiel ein bestimmtes Ausrüstungsstück), solange nicht geklärt ist, ob Gratis-Kisten dort erlaubt sind.
 - **Codes:** Gems und Boosts bei Meilensteinen wie Likes und Favoriten. Das sind Hebel für YouTuber und Social Media.
 - **Freunde-Bonus:** 10 % mehr Münzen pro Freund im Server, bis maximal 50 %. Das bringt Spieler dazu, Freunde einzuladen.
 - **Leaderboard:** Wertvollste Sammlung pro Woche. Jeder kann das Museum eines Freundes besuchen.
-- **Offline-Ertrag:** Der Begleiter sammelt Münzen, solange man weg ist, und gibt beim nächsten Start einen Grund zurückzukehren.
+- **Offline-Ertrag:** Der Begleiter sammelt passiv Münzen, solange man weg ist, begrenzt auf etwa 4 Stunden und ohne Funde ab "Selten". Der Auto-Dig-Pass verlängert die Grenze. Die genauen Zahlen setzt der `balance-analyst`.
 
 ## Roblox-Policy
 
 Bezahlte Zufallsitems sind erlaubt, wenn du die Quoten offenlegst und die regionalen Sperren einhaltest. Daraus folgt eine feste Checkliste, die vor dem Launch erfüllt sein muss.
 
 - **Quoten anzeigen:** Wer zufällige virtuelle Items gegen Robux oder Ingame-Währung verkauft, muss [die tatsächlichen Zahlenwerte angeben](https://create.roblox.com/docs/production/monetization/virtual-items), was man bekommen kann. Das gilt auch für Gems.
-- **Regionale Sperre:** Die Eigenschaft `ArePaidRandomItemsRestricted` abfragen. Ist sie wahr, dürfen Spieler nicht mit den Kisten interagieren. Statt der Kisten braucht es dann einen [Shop mit Direktkäufen](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items).
+- **Regionale Sperre:** Die Eigenschaft `ArePaidRandomItemsRestricted` abfragen. Ist sie wahr, dürfen Spieler nicht mit den Kisten interagieren, und die Gratis-Kiste von Tag 7 wird durch einen festen Gegenstand ersetzt. Statt der Kisten braucht es dann einen [Shop mit Direktkäufen](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items).
 - **Boosts, die Quoten verändern:** Wer die Quoten beeinflusst, muss das vor dem Kauf erklären, und die angezeigten Quoten müssen live den echten Stand zeigen. Deshalb gibt es in diesem Konzept keine Glücks-Boosts für Kisten.
 - **Fragebogen:** Paid Random Items müssen im [Maturity-&-Compliance-Fragebogen](https://devforum.roblox.com/t/question-about-the-paid-random-items-policy/3495508) angegeben werden.
 - **Kein Trading:** Items aus Kisten lassen sich weder tauschen noch verkaufen, und es gibt keine Auszahlung. Laut zitierten Nutzungsbedingungen dürfen Items aus bezahlten Zufallsboxen nicht gegen Robux oder etwas von Wert getauscht werden ([Forum-Zitat](https://devforum.roblox.com/t/dices-integration-does-this-infringe-the-gambling-tos/2980663)). Die aktuellen Terms of Use solltest du vor dem Launch selbst gegenlesen.
