@@ -40,7 +40,7 @@ Regeln:
 
 ### Controllers (Client)
 
-`Input` übersetzt Eingaben in Absichten für den Server, `State` hält den vom Server gesendeten Zustand. Beide sind vorerst leer.
+`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket).
 
 ## Datenfluss
 
@@ -97,9 +97,21 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - Studio-Hilfe (nur in Studio): In der Befehlszeile (Ansicht Server) `game.Players.<Name>:SetAttribute("DebugCoins", 12345)` bzw. `"DebugGems"` setzt Münzen oder Gems im Profil.
 - Wally-Pakete: `ServerPackages/` ist eingecheckt, damit `rojo serve` ohne Wally läuft. Nach einer Änderung an `wally.toml` einmal `wally install` ausführen.
 
+## Sammeln, Tank, Verkaufen (Paket 1.2)
+
+- Regeln in `Logic/Collecting.luau` (rein, Lune-Tests mit simulierter Uhr), der Service `Sand` schließt Remotes, Server-Uhr (`os.clock`), Händlerstand und `StateSync` an.
+- Rate: Sand pro Sekunde des höchsten gekauften Werkzeugs (`Tools`, Knoten aus `UpgradeTree`; die Hand ist Start). Tank: `Economy.startTankCapacity` (Tank-Knoten in 2.1, Gamepass-Faktor in 4.4 über `capacityMultiplier`). Preis: `Economy.baseCoinsPerSand` mal Preisfaktor der Sandsorte der aktuellen Zone (unbekannte Zone: Dünenmeer). Boni folgen mit ihren Paketen.
+- Der Client schickt `SetCollecting(true)` beim Drücken und danach alle `Economy.collecting.holdRefreshSeconds`, beim Loslassen `SetCollecting(false)`. Der Server rechnet nur Zeit bis `holdTimeoutSeconds` nach der letzten Auffrischung ab. Spam erzeugt keinen zusätzlichen Sand, weil nur Server-Zeit zählt.
+- Der Tank enthält nur ganze Körner, Bruchteile bleiben im Speicher des Servers (`carry`). Ein voller Tank stoppt das Sammeln, `Notify { kind = "tankFull" }`.
+- Laufendes Sammeln rechnet der Server alle 0,25 s ab und schickt bei Änderungen `StateSync { coins, tank, capacity, rate, toolId, collecting, zoneId, pricePerSand }`.
+- Verkaufen: `Sell` geht nur im Abstand `World.sellStand.rangeStuds` zur Mitte eines Teils mit dem Tag `World.sellStand.tag`. Fehlt ein solcher Stand im Workspace, legt der Server einen Platzhalter mit Prompt "Verkaufen" an (bis Phase 3). Meldungen: `sold`, `tankEmpty`, `sellTooFar`.
+- Eingabe: linke Maustaste, Gamepad R2 oder Bildschirmknopf "Graben" (Handy). Die Taste E bleibt für Prompts frei.
+- Sammeln nur mit lebendem Charakter und außerhalb der Reichweite eines Händlerstands (kein Sammeln direkt am Stand). Verkaufen verlangt, dass der Charakter auch bei der letzten Positionsprobe des Servers (alle 0,25 s) in Reichweite war, damit ein Teleport zum Stand für einen Aufruf nicht reicht.
+- Noch offen: ob der Spieler beim Sammeln auf Sand der Zone steht (mit der Welt, Phase 3). In Paket 2.5 (Reisen) muss der Preis an die Zone gebunden werden, in der der Sand gesammelt wurde (oder an die Zone des Stands), sonst lässt sich billiger Sand in teuren Zonen verkaufen. Beim Verlassen können bis zu `holdTimeoutSeconds` Sand fehlen.
+
 ## Zahlentyp
 
-`BigNum = { m: number, e: number }` (Wert = m * 10^e, Mantisse in [1, 10)). Paket 0.3 liefert nur die Schnittstelle sowie `new`, `zero`, `serialize` und `deserialize`. Rechnen und Anzeige folgen in Paket 1.3. Anzeige: deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc (Konstante `BigNum.SUFFIXES`), ab 10^36 wissenschaftlich (`1,23e36`).
+`BigNum = { m: number, e: number }` (Wert = m * 10^e, Mantisse in [1, 10)). Paket 0.3 lieferte `new`, `zero`, `serialize` und `deserialize`, Paket 1.2 `add`, `sub`, `mul`, `mulNumber`, `div`, `compare`, `lt`, `eq`, `max`, `min`, `floor` und `toNumber`. Die Mantisse wird auf 14 Nachkommastellen gerundet, damit ganze Zahlen ganz bleiben; `toNumber` gibt ganze Zahlen unter 10^15 exakt zurück. Die Anzeige (`format`) und Grenzwert-Tests folgen in Paket 1.3. Anzeige: deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc (Konstante `BigNum.SUFFIXES`), ab 10^36 wissenschaftlich (`1,23e36`).
 
 ## Entscheidungen
 

@@ -26,6 +26,7 @@ export type DataSet = {
     Products: any,
     Economy: any,
     UpgradeTree: any,
+    World: any,
 }
 
 local DataCheck = {}
@@ -44,6 +45,7 @@ function DataCheck.defaults(): DataSet
         Products = require("../Data/Products"),
         Economy = require("../Data/Economy"),
         UpgradeTree = require("../Data/UpgradeTree"),
+        World = require("../Data/World"),
     }
 end
 
@@ -528,6 +530,10 @@ local function checkEconomy(errors: { string }, data: DataSet)
             table.insert(errors, `Economy.{key} muss gesetzt und größer als 0 sein`)
         end
     end
+    local collecting = economy.collecting
+    if type(collecting) ~= "table" or not isFinite(collecting.holdRefreshSeconds) or not isFinite(collecting.holdTimeoutSeconds) or collecting.holdRefreshSeconds <= 0 or collecting.holdTimeoutSeconds <= collecting.holdRefreshSeconds then
+        table.insert(errors, "Economy.collecting: holdTimeoutSeconds muss größer als holdRefreshSeconds (> 0) sein")
+    end
     if not isFinite(economy.bigTankMultiplier) or economy.bigTankMultiplier <= 1 then
         table.insert(errors, "Economy.bigTankMultiplier muss größer als 1 sein")
     end
@@ -580,6 +586,28 @@ local function checkEconomy(errors: { string }, data: DataSet)
     end
 end
 
+local function checkWorld(errors: { string }, data: DataSet)
+    local world = data.World
+    local stand = if type(world) == "table" then world.sellStand else nil
+    if type(stand) ~= "table" then
+        table.insert(errors, "World.sellStand fehlt")
+        return
+    end
+    if type(stand.tag) ~= "string" or stand.tag == "" then
+        table.insert(errors, "World.sellStand.tag fehlt")
+    end
+    local pos = stand.placeholderPosition
+    if type(pos) ~= "table" or not isFinite(pos.x) or not isFinite(pos.y) or not isFinite(pos.z) then
+        table.insert(errors, "World.sellStand.placeholderPosition braucht x, y und z")
+    end
+    if not isFinite(stand.rangeStuds) or stand.rangeStuds <= 0 then
+        table.insert(errors, "World.sellStand.rangeStuds muss größer als 0 sein")
+    end
+    if not isFinite(stand.promptDistanceStuds) or stand.promptDistanceStuds <= 0 or (isFinite(stand.rangeStuds) and stand.promptDistanceStuds > stand.rangeStuds) then
+        table.insert(errors, "World.sellStand.promptDistanceStuds muss größer als 0 und höchstens rangeStuds sein")
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -595,6 +623,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkProducts(errors, data)
     checkFinds(errors, data)
     checkEconomy(errors, data)
+    checkWorld(errors, data)
     return errors
 end
 
