@@ -27,6 +27,7 @@ export type DataSet = {
     Economy: any,
     UpgradeTree: any,
     World: any,
+    Terrain: any,
 }
 
 local DataCheck = {}
@@ -46,6 +47,7 @@ function DataCheck.defaults(): DataSet
         Economy = require("../Data/Economy"),
         UpgradeTree = require("../Data/UpgradeTree"),
         World = require("../Data/World"),
+        Terrain = require("../Data/Terrain"),
     }
 end
 
@@ -608,6 +610,118 @@ local function checkWorld(errors: { string }, data: DataSet)
     end
 end
 
+local function positive(errors: { string }, label: string, value: any)
+    if not isFinite(value) or value <= 0 then
+        table.insert(errors, `{label} muss eine Zahl größer als 0 sein`)
+    end
+end
+
+local function checkTerrain(errors: { string }, data: DataSet)
+    local terrain = data.Terrain
+    if type(terrain) ~= "table" then
+        table.insert(errors, "Terrain fehlt")
+        return
+    end
+    if terrain.voxelSize ~= 4 then
+        table.insert(errors, "Terrain.voxelSize muss 4 sein (Auflösung des Roblox-Terrains)")
+    end
+    if not isInt(terrain.chunkSize) or terrain.chunkSize <= 0 or terrain.chunkSize % 4 ~= 0 then
+        table.insert(errors, "Terrain.chunkSize muss ein Vielfaches von 4 sein")
+    end
+    if not isList(terrain.diggableMaterials) or #terrain.diggableMaterials == 0 then
+        table.insert(errors, "Terrain.diggableMaterials braucht mindestens ein Material")
+    else
+        for i, name in terrain.diggableMaterials do
+            if type(name) ~= "string" or name == "" or name == "Air" then
+                table.insert(errors, `Terrain.diggableMaterials[{i}] muss ein Materialname sein (nicht Air)`)
+            end
+        end
+    end
+    local dig = terrain.dig
+    if type(dig) ~= "table" then
+        table.insert(errors, "Terrain.dig fehlt")
+    else
+        for _, field in { "intervalSeconds", "forwardStuds", "rayUpStuds", "rayLengthStuds", "maxDepthStuds", "surfaceCellStuds" } do
+            positive(errors, `Terrain.dig.{field}`, dig[field])
+        end
+    end
+    local holes = terrain.holeByTool
+    if type(holes) ~= "table" then
+        table.insert(errors, "Terrain.holeByTool fehlt")
+    else
+        local tools = if type(data.Tools) == "table" and type(data.Tools.list) == "table" then data.Tools.list else {}
+        for _, tool in tools do
+            if type(tool) == "table" and type(tool.id) == "string" and holes[tool.id] == nil then
+                table.insert(errors, `Terrain.holeByTool: Werkzeug {tool.id} hat keine Lochgröße`)
+            end
+        end
+        for toolId, hole in holes do
+            local label = `Terrain.holeByTool.{tostring(toolId)}`
+            if type(hole) ~= "table" then
+                table.insert(errors, `{label} muss eine Tabelle sein`)
+            else
+                positive(errors, `{label}.radius`, hole.radius)
+                positive(errors, `{label}.depth`, hole.depth)
+                if isFinite(hole.radius) and isFinite(hole.depth) and hole.depth > hole.radius then
+                    table.insert(errors, `{label}.depth darf nicht größer als radius sein`)
+                end
+            end
+        end
+        if type(terrain.defaultToolId) ~= "string" or holes[terrain.defaultToolId] == nil then
+            table.insert(errors, "Terrain.defaultToolId muss in holeByTool stehen")
+        end
+    end
+    local regrow = terrain.regrow
+    if type(regrow) ~= "table" then
+        table.insert(errors, "Terrain.regrow fehlt")
+    else
+        for _, field in { "delaySeconds", "seconds", "blockRadiusStuds" } do
+            positive(errors, `Terrain.regrow.{field}`, regrow[field])
+        end
+        for _, field in { "steps", "maxDirtyChunks", "maxWritesPerUpdate" } do
+            if not isInt(regrow[field]) or regrow[field] <= 0 then
+                table.insert(errors, `Terrain.regrow.{field} muss eine ganze Zahl größer als 0 sein`)
+            end
+        end
+    end
+    local perf = terrain.perf
+    if type(perf) ~= "table" then
+        table.insert(errors, "Terrain.perf fehlt")
+    else
+        for _, field in { "warmupSeconds", "windowSeconds", "lowFps", "highFps", "downAfterSeconds", "upAfterSeconds" } do
+            positive(errors, `Terrain.perf.{field}`, perf[field])
+        end
+        if isFinite(perf.lowFps) and isFinite(perf.highFps) and perf.highFps <= perf.lowFps then
+            table.insert(errors, "Terrain.perf.highFps muss über lowFps liegen")
+        end
+        if not isInt(perf.maxSwitches) or perf.maxSwitches < 0 then
+            table.insert(errors, "Terrain.perf.maxSwitches muss eine ganze Zahl ab 0 sein")
+        end
+    end
+    local field = terrain.placeholderField
+    if type(field) ~= "table" then
+        table.insert(errors, "Terrain.placeholderField fehlt")
+    else
+        if type(field.enabled) ~= "boolean" then
+            table.insert(errors, "Terrain.placeholderField.enabled muss true oder false sein")
+        end
+        local c, sz = field.center, field.size
+        if type(c) ~= "table" or not isFinite(c.x) or not isFinite(c.y) or not isFinite(c.z) then
+            table.insert(errors, "Terrain.placeholderField.center braucht x, y und z")
+        end
+        if type(sz) ~= "table" or not isFinite(sz.x) or not isFinite(sz.y) or not isFinite(sz.z) or sz.x <= 0 or sz.y <= 0 or sz.z <= 0 then
+            table.insert(errors, "Terrain.placeholderField.size braucht x, y und z größer als 0")
+        end
+        if type(field.material) ~= "string" or field.material == "" then
+            table.insert(errors, "Terrain.placeholderField.material muss ein Materialname sein")
+        end
+        local sandTypes = if type(data.SandTypes) == "table" then data.SandTypes.byId else nil
+        if type(sandTypes) == "table" and sandTypes[field.sandTypeId] == nil then
+            table.insert(errors, "Terrain.placeholderField.sandTypeId muss in SandTypes stehen")
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -624,6 +738,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkFinds(errors, data)
     checkEconomy(errors, data)
     checkWorld(errors, data)
+    checkTerrain(errors, data)
     return errors
 end
 

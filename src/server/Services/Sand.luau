@@ -30,6 +30,8 @@ end
 local Collecting = loadShared("Logic", "Collecting")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
+local TerrainData = loadShared("Data", "Terrain")
+local SandTypes = loadShared("Data", "SandTypes")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -200,6 +202,46 @@ local function setupSellStands()
     end)
 end
 
+-- Platzhalter-Sandfeld (Paket 1.4), bis die Zone Dünenmeer steht (Paket 1.5). Nur wenn es in
+-- den Daten eingeschaltet ist und an der Mitte der Oberseite noch kein Terrain liegt. Löcher
+-- gräbt später nur der Client, der Server ändert dieses Terrain danach nicht mehr.
+local function setupPlaceholderSand()
+    local field = TerrainData.placeholderField
+    if not field.enabled then
+        return
+    end
+    local terrain = workspace.Terrain
+    local voxel = TerrainData.voxelSize
+    local center = Vector3.new(field.center.x, field.center.y, field.center.z)
+    local size = Vector3.new(field.size.x, field.size.y, field.size.z)
+    -- Probe: der Voxel direkt unter der Mitte der Oberseite.
+    local probeTop = center + Vector3.new(0, size.Y / 2, 0)
+    local probe = Region3.new(probeTop - Vector3.new(voxel, voxel, voxel), probeTop):ExpandToGrid(voxel)
+    local _materials, occupancies = terrain:ReadVoxels(probe, voxel)
+    local grid = occupancies :: any
+    local size3 = grid.Size :: Vector3
+    local occupied = false
+    for x = 1, size3.X do
+        for y = 1, size3.Y do
+            for z = 1, size3.Z do
+                if grid[x][y][z] > 0 then
+                    occupied = true
+                end
+            end
+        end
+    end
+    if occupied then
+        return
+    end
+    local material = (Enum.Material :: any)[field.material]
+    terrain:FillBlock(CFrame.new(center), size, material)
+    local sandType = SandTypes.byId[field.sandTypeId]
+    if sandType ~= nil then
+        terrain:SetMaterialColor(material, Color3.fromHex(sandType.colorHex))
+    end
+    warn("[Sand] Kein Sandterrain am Platzhalter-Feld: Platzhalter-Sandfeld angelegt (bis Paket 1.5)")
+end
+
 -- Ein Spieler pro Tick: Position proben, laufendes Sammeln abrechnen, Änderungen senden.
 local function tickPlayer(player: Player, state: any, t: number)
     wasNearStand[player] = nearSellStand(player)
@@ -243,6 +285,7 @@ end
 
 function Sand.Start()
     setupSellStands()
+    setupPlaceholderSand()
     Net.on("SetCollecting", onSetCollecting)
     Net.on("Sell", onSell)
 

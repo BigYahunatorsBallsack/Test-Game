@@ -320,4 +320,40 @@ T.describe("Datentabellen (0.1)", function()
     end)
 end)
 
+T.describe("Terrain-Daten (1.4)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("jede Werkzeugstufe hat eine Lochgröße, Materialien sind Text", function()
+        local Terrain = require("../src/shared/Data/Terrain")
+        for _, tool in Tools.list do
+            T.expect(Terrain.holeByTool[tool.id] ~= nil).toBe(true)
+        end
+        for _, name in Terrain.diggableMaterials do
+            T.expect(type(name)).toBe("string")
+        end
+        T.expect(Terrain.chunkSize % Terrain.voxelSize).toBe(0)
+    end)
+
+    T.it("eine kaputte Fassung schlägt fehl", function()
+        expectError(broken(function(d) d.Terrain.chunkSize = 10 end), "chunkSize")
+        expectError(broken(function(d) d.Terrain.holeByTool.mega_machine = nil end), "mega_machine")
+        expectError(broken(function(d) d.Terrain.holeByTool.hand.radius = 0 end), "hand.radius")
+        expectError(broken(function(d) d.Terrain.holeByTool.hand.depth = 99 end), "depth")
+        expectError(broken(function(d) d.Terrain.defaultToolId = "bagger" end), "defaultToolId")
+        expectError(broken(function(d) d.Terrain.dig.intervalSeconds = 0 end), "intervalSeconds")
+        expectError(broken(function(d) d.Terrain.dig.maxDepthStuds = 0 / 0 end), "maxDepthStuds")
+        expectError(broken(function(d) d.Terrain.regrow.steps = 1.5 end), "steps")
+        expectError(broken(function(d) d.Terrain.regrow.maxWritesPerUpdate = 0 end), "maxWritesPerUpdate")
+        expectError(broken(function(d) d.Terrain.perf.highFps = d.Terrain.perf.lowFps end), "highFps")
+        expectError(broken(function(d) d.Terrain.diggableMaterials = { 5 } end), "diggableMaterials")
+        expectError(broken(function(d) d.Terrain.placeholderField.material = nil end), "material")
+        expectError(broken(function(d) d.Terrain.placeholderField.sandTypeId = "pink" end), "sandTypeId")
+        expectError(broken(function(d) d.Terrain = nil end), "Terrain fehlt")
+    end)
+end)
+
 T.finish()

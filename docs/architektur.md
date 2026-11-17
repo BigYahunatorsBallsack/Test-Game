@@ -6,11 +6,11 @@ Stand Paket 0.3. Grundlage: `docs/konzept.md`, `docs/umsetzungsplan.md`. Testfä
 
 ```
 default.project.json     Rojo: Shared -> ReplicatedStorage, Server -> ServerScriptService, Client -> StarterPlayerScripts
-src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindOdds, Finds, Crates, GemPacks, Products, Economy, UpgradeTree)
-src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession)
+src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindOdds, Finds, Crates, GemPacks, Products, Economy, UpgradeTree, World, Terrain)
+src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (Input, State)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -40,7 +40,7 @@ Regeln:
 
 ### Controllers (Client)
 
-`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket).
+`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4).
 
 ## Datenfluss
 
@@ -108,6 +108,17 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - Eingabe: linke Maustaste, Gamepad R2 oder Bildschirmknopf "Graben" (Handy). Die Taste E bleibt für Prompts frei.
 - Sammeln nur mit lebendem Charakter und außerhalb der Reichweite eines Händlerstands (kein Sammeln direkt am Stand). Verkaufen verlangt, dass der Charakter auch bei der letzten Positionsprobe des Servers (alle 0,25 s) in Reichweite war, damit ein Teleport zum Stand für einen Aufruf nicht reicht.
 - Noch offen: ob der Spieler beim Sammeln auf Sand der Zone steht (mit der Welt, Phase 3). In Paket 2.5 (Reisen) muss der Preis an die Zone gebunden werden, in der der Sand gesammelt wurde (oder an die Zone des Stands), sonst lässt sich billiger Sand in teuren Zonen verkaufen. Beim Verlassen können bis zu `holdTimeoutSeconds` Sand fehlen.
+
+## Terrain-Verformung (Paket 1.4)
+
+- Nur auf dem Client: Der Controller `Dig` gräbt, solange der Spieler hält und der Server das Sammeln bestätigt (`StateSync.collecting`, Tank nicht voll). Terrain-Änderungen eines Clients erreichen weder Server noch andere Spieler. Der Server zählt den Sand unabhängig davon wie in 1.2.
+- Zahlen in `Data/Terrain.luau`, Regeln in `Logic/SandDig.luau` (Lune-Tests mit Fake-Welt), Bildraten-Wächter in `Logic/PerfGuard.luau`. Der Controller liest und schreibt nur Voxel (`ReadVoxels`/`WriteVoxels`), zeigt Partikel und die Rückfallvariante.
+- Loch: Strahl nach unten `dig.forwardStuds` vor dem Charakter. Nur Terrain aus `diggableMaterials` (Sand). Alle `dig.intervalSeconds` schneidet eine Kugel (`holeByTool[toolId].radius`) die Oberfläche `depth` tief an. Das Terrain wird als Höhenfeld behandelt, weil Voxel 4 Studs groß sind. Fels und Wasser bleiben. Tiefengrenze: `dig.maxDepthStuds` unter der Oberfläche, die beim ersten Graben an der Stelle gemessen wurde.
+- Blöcke: Terrain wird in Würfeln von `chunkSize` (16) Studs verwaltet. Vor dem ersten Graben merkt sich der Client den Originalzustand des Blocks. Nach `regrow.delaySeconds` ohne neues Graben blendet er den Block in `regrow.steps` Schritten über `regrow.seconds` zurück und vergisst ihn. Höchstens `regrow.maxWritesPerUpdate` Blöcke pro Bild, höchstens `regrow.maxDirtyChunks` offene Blöcke (darüber wird der älteste sofort zurückgesetzt). Ein Block näher als `regrow.blockRadiusStuds` am Charakter wartet, damit niemand im Sand stecken bleibt.
+- Rückfallvariante: Liegt die Bildrate `perf.downAfterSeconds` lang unter `perf.lowFps`, schreibt der Client kein Terrain mehr, sondern zeigt eine sinkende Sandscheibe und Partikel. Zurück bei über `perf.highFps` für `perf.upAfterSeconds`, höchstens `perf.maxSwitches` Wechsel. Zum Testen: `game.Players.LocalPlayer:SetAttribute("DigMode", "fallback")` (oder `"full"`, `nil` = automatisch) in der Client-Befehlszeile.
+- Anzeige für den Handy-Test (`debug.showOverlay`): Modus, FPS und offene Blöcke oben links unter dem HUD. Vor dem Launch abschalten.
+- Platzhalter-Sandfeld: Liegt am Feld `placeholderField` noch kein Terrain, legt der Server beim Start ein Sandfeld an (Warnung im Output) und färbt das Material nach der Sandsorte. Mit der echten Zone (Paket 1.5) `enabled = false` setzen.
+- Bekannte Grenzen: Mit StreamingEnabled kann ein Block, der aus- und wieder eingeblendet wird, vor dem Nachwachsen schon im Originalzustand sein (harmlos). Ändert der Server später Terrain in einem offenen Block, überschreibt das Nachwachsen diese Änderung bei diesem Spieler bis zum nächsten Laden. Das Koloss-Event (5.6) braucht deshalb eine eigene Lösung. Die Sandfarbe ist global pro Material (`SetMaterialColor`), Zonen mit anderen Sandsorten brauchen in 2.5 eigene Materialien oder Material-Varianten.
 
 ## Zahlentyp
 

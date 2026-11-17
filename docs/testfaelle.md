@@ -117,9 +117,27 @@ Rechnen und Vergleichen stehen seit 1.2 in `src/shared/Logic/BigNum.luau`, Paket
 
 ## 1.4 Terrain-Verformung auf dem Client
 
-- [ ] [Studio] Löcher erscheinen nur beim eigenen Spieler. Ein zweiter Spieler im selben Server sieht sie nicht.
-- [ ] [Studio] Der Sand wächst nach, und die Fläche bleibt über lange Sitzungen stabil.
-- [ ] [Studio] Auf einem schwachen Handy bleibt die Bildrate flüssig. Fällt sie darunter, greift die Rückfallvariante (sinkende Fläche, Partikel).
+Die Regeln stehen in zwei reinen Modulen: `src/shared/Logic/SandDig.luau` (welche Terrain-Blöcke ein Loch berührt, Aushöhlen auf Voxel-Rastern, Tiefengrenze, Nachwachsen mit Zeitplan und Budget) und `src/shared/Logic/PerfGuard.luau` (Bildrate beobachten, auf die Rückfallvariante wechseln). Alle Zahlen stehen in `src/shared/Data/Terrain.luau`. Der Client-Controller `Dig` liest und schreibt nur Voxel und zeigt Partikel, der Server zählt Sand wie bisher unabhängig davon. Terrain wird in Blöcken von 16 Studs verwaltet: Vor dem ersten Graben merkt sich der Client den Originalzustand des Blocks, beim Nachwachsen blendet er schrittweise dorthin zurück.
+
+- [x] [Lune] Blöcke eines Lochs: Eine Kugel liefert genau die Blöcke, die sie schneidet, am Raster ausgerichtet, auch über Blockgrenzen und bei negativen Koordinaten.
+- [x] [Lune] Aushöhlen: Voxel in der Kugel verlieren Füllung, Voxel außerhalb bleiben unverändert, Füllung wird nie negativ, ein leerer Voxel wird zu Luft.
+- [x] [Lune] Tiefengrenze: Wiederholtes Graben an derselben Stelle wird tiefer, aber nie tiefer als `maxDepthStuds` unter der zuerst gemessenen Oberfläche. Liegt der Treffer schon an der Grenze, gibt es kein neues Loch ("zu tief").
+- [x] [Lune] Graben-Takt: Ein zweites Loch innerhalb von `digIntervalSeconds` wird abgelehnt, danach geht es wieder.
+- [x] [Lune] Lochgröße folgt dem Werkzeug aus den Daten (Hand klein, Großmaschine groß), ein unbekanntes Werkzeug bekommt die Größe der Hand.
+- [x] [Lune] Nachwachsen: Vor `regrowDelaySeconds` wächst nichts nach. Danach kehrt der Block in `regrowSteps` Schritten über `regrowSeconds` genau zum Originalzustand zurück (Füllung und Material), dann wird er vergessen.
+- [x] [Lune] Erneutes Graben in einem nachwachsenden Block setzt dessen Zeitplan zurück.
+- [x] [Lune] Budget: Pro Bildaufruf schreibt der Client höchstens `maxWritesPerUpdate` Blöcke, der Rest folgt in späteren Aufrufen.
+- [x] [Lune] Ein Block unter dem eigenen Charakter (Abstand kleiner als `regrowBlockRadiusStuds`) wächst erst nach, wenn der Spieler weggeht.
+- [x] [Lune] Lange Sitzung mit simulierter Uhr (2 Stunden Dauergraben an zufälligen Stellen): Es sind nie mehr als `maxDirtyChunks` Blöcke offen, und nach dem Aufhören ist nach Verzögerung plus Nachwachszeit kein Block mehr offen.
+- [x] [Lune] Bildraten-Wächter: In der Aufwärmzeit wird nichts entschieden. Ein kurzer Einbruch wechselt nicht. Liegt der Schnitt `downAfterSeconds` lang unter `lowFps`, wird auf "fallback" gewechselt, über `highFps` für `upAfterSeconds` zurück. Nach `maxSwitches` Wechseln bleibt es bei "fallback". Ein erzwungener Modus gilt immer.
+- [x] [Lune] `DataCheck` prüft `Terrain`: Blockgröße ein Vielfaches von 4, jede Werkzeugstufe hat eine Lochgröße, Zeiten und Budgets größer als 0, `highFps` über `lowFps`, Material als Text. Eine kaputte Fassung schlägt fehl.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Ohne eigenes Sandterrain legt der Server ein Platzhalter-Sandfeld vor dem Spawn an (Warnung im Output). Halten auf Sand gräbt sichtbare Mulden vor dem Charakter, mit Sandpartikeln.
+- [ ] [Studio] Löcher erscheinen nur beim eigenen Spieler. Ein zweiter Spieler im selben Server (Test mit 2 Spielern) sieht sie nicht.
+- [ ] [Studio] Der Sand wächst nach etwa `regrowDelaySeconds` sanft nach. Man bleibt nicht im nachwachsenden Sand stecken.
+- [ ] [Studio] Lange Sitzung (10 Minuten Dauergraben): Die Fläche bleibt stabil, keine bleibenden Löcher, keine Ruckler.
+- [ ] [Studio] Rückfallvariante zum Ausprobieren: In der Client-Befehlszeile `game.Players.LocalPlayer:SetAttribute("DigMode", "fallback")`. Dann sinkt eine Sandscheibe ein, und Partikel fliegen, das Terrain bleibt unverändert. `"full"` schaltet zurück, `nil` gibt die Wahl an den Wächter.
+- [ ] [Studio] Auf einem schwachen Handy (veröffentlichtes Spiel, Anzeige oben links mit FPS und Modus) bleibt die Bildrate flüssig. Fällt sie darunter, schaltet der Wächter auf die Rückfallvariante.
 
 ## 2.1 Skilltree-Daten und Kauf-Server
 
