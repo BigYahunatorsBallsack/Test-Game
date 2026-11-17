@@ -141,6 +141,97 @@ function Profile.migrate(
     return profile :: Profile, "ok"
 end
 
+local function isBadNumber(value: number): boolean
+    return value ~= value or value == math.huge or value == -math.huge
+end
+
+-- Felder, deren Standardtabelle zwar Einträge hat, deren Schlüssel aber beliebige IDs sind.
+-- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
+local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true }
+-- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
+local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true }
+
+local function warn(warnings: { string }, path: string, text: string)
+    warnings[#warnings + 1] = `{path}: {text}`
+end
+
+-- Säubert eine Tabelle mit beliebigen Schlüsseln (Funde, Inventar, Knoten, Belege, Pity):
+-- Schlüssel müssen Text sein, Werte Zahl (endlich), Text, Wahrheitswert oder Tabelle.
+-- Alles andere wird entfernt, damit es den DataStore nicht stört.
+local function scrubFree(data: any, path: string, warnings: { string })
+    local toRemove = {}
+    for key, value in data do
+        local valueType = type(value)
+        if type(key) ~= "string" then
+            table.insert(toRemove, key)
+            warn(warnings, `{path}[{tostring(key)}]`, "Schlüssel ist kein Text, entfernt")
+        elseif valueType == "number" then
+            if isBadNumber(value) then
+                table.insert(toRemove, key)
+                warn(warnings, `{path}.{key}`, "Zahl ist NaN oder unendlich, entfernt")
+            end
+        elseif valueType == "table" then
+            scrubFree(value, `{path}.{key}`, warnings)
+        elseif valueType ~= "string" and valueType ~= "boolean" then
+            table.insert(toRemove, key)
+            warn(warnings, `{path}.{key}`, `{valueType} kann nicht gespeichert werden, entfernt`)
+        end
+    end
+    for _, key in toRemove do
+        data[key] = nil
+    end
+end
+
+local function isValidBigNum(value: any): boolean
+    return type(value) == "table"
+        and type(value.m) == "number"
+        and type(value.e) == "number"
+        and not isBadNumber(value.m)
+        and not isBadNumber(value.e)
+end
+
+local function sanitizeInto(data: any, defaults: any, path: string, warnings: { string })
+    for key, defaultValue in defaults do
+        local current = data[key]
+        local fieldPath = if path == "" then tostring(key) else `{path}.{key}`
+        if current == nil then
+            continue -- fehlende Felder füllt Profile.migrate
+        end
+        if path == "" and BIGNUM_FIELDS[key] then
+            if not isValidBigNum(current) then
+                warn(warnings, fieldPath, "ungültiger Zahlentyp, auf 0 gesetzt")
+                data[key] = deepCopy(defaultValue)
+            end
+            continue
+        end
+        local broken = type(current) ~= type(defaultValue)
+            or (type(current) == "number" and isBadNumber(current))
+        if broken then
+            warn(warnings, fieldPath, `{type(current)} statt {type(defaultValue)}, auf Standard gesetzt`)
+            data[key] = deepCopy(defaultValue)
+        elseif type(defaultValue) == "table" then
+            if next(defaultValue) == nil or (path == "" and FREE_KEY_FIELDS[key]) then
+                scrubFree(current, fieldPath, warnings) -- Liste beliebiger IDs
+            else
+                sanitizeInto(current, defaultValue, fieldPath, warnings) -- feste Struktur
+            end
+        end
+    end
+end
+
+-- Repariert kaputte Felder eines migrierten Profils, beim Laden und vor jedem Speichern:
+--  * Feld mit falschem Typ oder Zahl NaN/unendlich: nur dieses Feld auf den Standard setzen.
+--  * Münzen und Tank ({m, e}): ist ein Teil kaputt, wird das ganze Feld 0.
+--  * Listen mit beliebigen IDs (Funde, Inventar, Knoten, Belege, Pity): ungültige Einträge
+--    (NaN, unendlich, Nicht-Text-Schlüssel, nicht speicherbare Typen) werden entfernt.
+-- Unbekannte Felder oben im Profil bleiben unberührt. Gibt eine Liste mit Warntexten zurück
+-- (leer, wenn alles stimmt). Ändert `profile`. Nie auf Profile mit Status "too_new" anwenden.
+function Profile.sanitize(profile: Profile, now: number?): { string }
+    local warnings: { string } = {}
+    sanitizeInto(profile, Profile.default(now), "", warnings)
+    return warnings
+end
+
 -- Gibt die gekauften Knoten zurück, die der Baum kennt (sortiert). Unbekannte Knoten-IDs
 -- im Profil bleiben gespeichert, werden hier aber ignoriert. `known` ist z. B. UpgradeTree.byId.
 function Profile.ownedKnownNodes(profile: Profile, known: { [string]: any }): { string }

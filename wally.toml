@@ -1,0 +1,10 @@
+# Abhängigkeiten über Wally. Installieren mit `wally install` (legt ServerPackages/ an).
+# ServerPackages/ ist eingecheckt, damit `rojo serve` auch ohne Wally funktioniert.
+[package]
+name = "bigyahunatorsballsack/dune-baron"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[server-dependencies]
+ProfileStore = "lm-loleris/profilestore@1.0.3"

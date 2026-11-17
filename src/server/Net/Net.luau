@@ -31,10 +31,10 @@ local violations: { [number]: number } = {}
 local handlers: { [string]: (player: Player, ...any) -> any } = {}
 local limiter = RateLimiter.new(os.clock)
 
--- Prüft, ob das Profil des Spielers geladen ist. Paket 1.1 ersetzt das durch die echte Prüfung.
--- TODO(1.1): Net.setProfileCheck mit der PlayerData-Abfrage belegen.
+-- Prüft, ob das Profil des Spielers geladen ist. PlayerData.Init setzt die echte Prüfung
+-- (Net.setProfileCheck). Bis dahin wird jeder Aufruf abgelehnt.
 local profileLoaded: (Player) -> boolean = function(_player: Player): boolean
-    return true
+    return false
 end
 
 function Net.setProfileCheck(check: (Player) -> boolean)
