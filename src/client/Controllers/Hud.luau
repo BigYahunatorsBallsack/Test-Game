@@ -1,8 +1,7 @@
 --!strict
 -- Hud-Controller (Paket 1.2, schlichte Fassung bis zum UI-Paket)
 -- Zeigt Münzen, Tank (Balken und Zahl) und kurze Meldungen (Verkauft, Tank voll, zu weit).
--- Alle Werte kommen vom Server (State). Die Zahlen-Anzeige mit K, M, B, T kommt in
--- Paket 1.3 (BigNum.format); bis dahin ganze Zahlen.
+-- Alle Werte kommen vom Server (State). Zahlen erscheinen über BigNum.format (K, M, B, T ...).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,8 +31,14 @@ local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: an
 
 local Hud = {}
 
+-- Gespeicherte Zahl {m, e} als Anzeigetext (K, M, B, T, deutsches Komma).
 local function display(value: any): string
-    return tostring(math.floor(BigNum.toNumber(BigNum.deserialize(value))))
+    return BigNum.format(BigNum.deserialize(value))
+end
+
+-- Gewöhnliche Zahl (zum Beispiel die Tank-Kapazität) als Anzeigetext.
+local function displayNumber(value: number): string
+    return BigNum.format(BigNum.new(value))
 end
 
 local function label(parent: Instance, name: string, position: UDim2, size: UDim2): TextLabel
@@ -104,7 +109,7 @@ function Hud.Start()
         local tank = BigNum.toNumber(BigNum.deserialize(snapshot.tank))
         local capacity = math.max(snapshot.capacity, 1)
         local ratio = math.clamp(tank / capacity, 0, 1)
-        tankLabel.Text = `Tank {display(snapshot.tank)} / {snapshot.capacity}`
+        tankLabel.Text = `Tank {display(snapshot.tank)} / {displayNumber(snapshot.capacity)}`
         fill.BackgroundColor3 = if ratio >= 1 then TANK_FULL_COLOR else TANK_FILL_COLOR
         TweenService:Create(fill, barTween, { Size = UDim2.new(ratio, 0, 1, 0) }):Play()
     end)
