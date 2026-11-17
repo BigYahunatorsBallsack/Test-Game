@@ -1,18 +1,20 @@
-# Relic Hunters (Arbeitstitel): Roblox-Schatzsuche-Sim
+# Dune Baron (Arbeitstitel): Roblox-Sand-Inkremental-Spiel
 
-Casual-Sim: Mit dem Metalldetektor Signale suchen, graben, Relikte mit Seltenheit finden, im Museum sammeln. Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md. Testfälle: docs/testfaelle.md.
+Inkremental-Sim in dritter Person: Sand sammeln, verkaufen, mit immer größeren Werkzeugen aufrüsten, Fundstücke mit Seltenheit sammeln, Sandsturm (Prestige). Weich-realistische Optik, Sand als verformbares Terrain (nur auf dem Client). Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md. Testfälle: docs/testfaelle.md.
 
 ## Technik-Regeln
 
 - Luau mit `--!strict`. Rojo-Projekt, Code unter `src/` (server, client, shared, shared/Data).
 - Der Server entscheidet alles. Der Client sendet nur Absichten, nie Werte. Jede Remote validiert Typ und Bereich und hat ein Rate-Limit.
-- Datengetrieben: Preise, Quoten, Funde, Skilltree-Knoten stehen in Datenmodulen, nie im Logik-Code.
+- Datengetrieben: Preise, Quoten, Raten, Zonen, Fundstücke, Skilltree-Knoten stehen in Datenmodulen, nie im Logik-Code. Zonen verlangen Knoten-IDs, keine festen Zahlen.
+- Große Zahlen: Sand und Münzen laufen über den Zahlentyp (Mantisse und Exponent), Anzeige mit K, M, B, T.
+- Terrain-Verformung nur auf dem Client. Der Server zählt Sand und Münzen unabhängig davon.
 - Spielstand: versioniertes Profil mit Migrationsfunktion, damit Updates alte Spielstände nicht brechen.
 - Käufe: ProcessReceipt idempotent (PurchaseId speichern, erst nach dem Speichern PurchaseGranted).
 - Kisten: Anzeige und Auswurf lesen dieselbe Quotentabelle. Pity liegt auf dem Server.
 - Policy: Quoten vor dem Kauf anzeigen, `ArePaidRandomItemsRestricted` beachten, keine Tausch- oder Verkaufsfunktion für Kisten-Items.
 - Konstanten für Animationen (Dauer, Easing, Anzahl) stehen oben im Script.
-- Logik ohne Roblox-API (Quoten, Pity, Kaufabwicklung, Baum-Kauf) steht in reinen Modulen und wird mit Lune in der Shell getestet.
+- Logik ohne Roblox-API (Zahlentyp, Quoten, Pity, Kaufabwicklung, Baum-Kauf, Offline-Ertrag) steht in reinen Modulen und wird mit Lune in der Shell getestet.
 
 ## Arbeitsweise und Modelle (bitte selbst einhalten)
 

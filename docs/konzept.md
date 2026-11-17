@@ -1,49 +1,70 @@
-# Schatzsuche-Sim: Konzept & Monetarisierung
+# Dune Baron: Konzept und Monetarisierung
 
-Nov 17, 2026 · @Waltuh
+Arbeitstitel, Stand 17.11.2026. Die Markenprüfung vor dem Launch steht noch aus. Die Fassung im Claude-Dokument "Sand-Inkremental (Roblox): Konzept & Monetarisierung" ist die Quelle. Diese Datei ist die Arbeitskopie für das Repo.
 
 ## Überblick
 
-Das Spiel ist ein Sammel-Simulator: Man sucht mit dem Metalldetektor, gräbt Relikte aus, jagt Seltenheiten und füllt ein Museum. Der Umsatz kommt aus Kisten, Zeitersparnis und limitierten Event-Items. Trading gibt es nicht.
+Ein Roblox-Inkremental-Spiel: Du sammelst Sand in einer endlosen Wüste, verkaufst ihn und rüstest von der bloßen Hand bis zur Riesenmaschine auf. Der Umsatz kommt aus Kisten mit offenen Quoten, Gamepasses, einem Saison-Pass und Zeitersparnis-Produkten. Trading gibt es nicht. Dieses Konzept ersetzt die frühere Schatzsuche.
 
-Arbeitstitel: *Relic Hunters* (Platzhalter, vor dem Launch Namen und Marken prüfen).
+- **Spielgefühl:** Man sieht sofort, dass jede Stufe größer ist als die vorige. Aus einer Handvoll Körner wird ein Eimer, dann ein Bagger, dann eine Maschine, die ganze Dünen frisst.
+- **Zielgruppe:** Casual-Spieler, vor allem auf dem Handy, Sitzungen von 5 bis 10 Minuten, tägliche Rückkehr.
+- **Abgrenzung:** Das Prinzip (sammeln, verkaufen, aufrüsten) ist frei, wird aber nicht 1:1 kopiert. Dune Baron bekommt eigene Welt, Namen, Figuren und Look. Es übernimmt weder Titel noch Texte noch den Sandwurm aus dem Teaser, den wir als eigenes Event neu gestalten.
+- **Eigener Reiz:** Zusätzlich zum Sand gibt es Fundstücke mit Seltenheit und eine Sammlung. So hat das Spiel ein Ziel jenseits von "mehr Zahlen".
 
-- **Spielgefühl:** Ein Signal piept, man läuft hin, gräbt, und ein Reveal zeigt die Seltenheit des Fundes.
-- **Zielgruppe:** Casual-Spieler, vor allem auf dem Handy, Sessions von 5 bis 10 Minuten.
-- **Abgrenzung:** Angel- und Garten-Sims haben eine Handlung. Hier gibt es zwei (suchen, dann graben), Tiefenschichten und Wetter verändern die Funde, und das Museum gibt Sammlern ein Ziel jenseits des Geldes.
-- **Geld verdienen:** Kisten mit Gems (Quoten sichtbar), Gamepasses für Tempo, Battle Pass und limitierte Event-Kisten für die Wiederkehr.
+Alle Zahlen sind Startwerte zum Testen, keine Marktdaten.
 
-Alle Zahlen im Dokument sind Startwerte zum Testen, keine Marktdaten.
+## Kernschleife und Incremental-Mechanik
 
-## Kernschleife
+Ein Durchlauf dauert 20 bis 40 Sekunden und endet immer mit einer Belohnung: sammeln, verkaufen, aufrüsten.
 
-Ein Durchlauf dauert etwa 30 bis 45 Sekunden und endet immer mit einem Reveal. Das macht die Schleife kurz genug für das Handy und liefert alle paar Sekunden einen Belohnungsmoment.
+1. **Sammeln:** Du hältst die Taste (am Handy: Daumen auf die Fläche) und der Sandzähler im Tank steigt. Die Rate hängt vom Werkzeug ab.
+2. **Verkaufen:** Am Händlerstand wird der Tank zu Münzen. Die Sandsorte der Zone bestimmt den Preis.
+3. **Aufrüsten:** Münzen gehen in den Skilltree (Rate, Tank, Verkaufspreis, Glück). Es sind immer nur die nächsten Knoten sichtbar.
+4. **Fundstücke:** Beim Graben tauchen gelegentlich Fundstücke auf, mit Reveal und Seltenheit. Sie füllen die Sammlung.
+5. **Sandsturm (Prestige):** Ab Zone 3 setzt du Münzen und Werkzeug zurück und bekommst Windkristalle für einen dauerhaften Bonus.
 
-1. **Scannen:** Der Detektor piept schneller, je näher ein Fund liegt. Man läuft dem Signal nach (10 bis 20 Sekunden).
-2. **Graben:** Ein Timing-Minispiel (3 bis 5 Sekunden). Ein perfekter Treffer erhöht den Fundwert.
-3. **Reveal:** Der Fund taucht mit Seltenheitsfarbe, Sound und Kamerawackeln auf. Das ist der Moment, den Spieler weitererzählen.
-4. **Entscheiden:** Neue Funde kommen ins Museumsbuch, Doppelte werden verkauft.
-5. **Aufrüsten:** Münzen gehen in Detektor-, Schaufel- und Rucksack-Upgrades oder in Kisten.
+**Die ersten 2 Minuten:** Das erste Upgrade ist nach etwa 20 Sekunden bezahlbar, die Schaufel nach etwa 2 Minuten. Das zählt mehr als jede Feinheit der Balance.
 
-**Erste 60 Sekunden:** Der erste Fund ist garantiert "Selten" und zeigt das volle Reveal. Danach folgt direkt das erste Upgrade, damit die Spieler sehen, dass Münzen etwas bringen.
+- **Große Zahlen:** Sand und Münzen wachsen schnell in die Millionen und weiter. Die Anzeige nutzt K, M, B, T. Der Server rechnet mit Mantisse und Exponent, damit Anzeige und Rechnung auch jenseits von 10^15 stimmen.
+- **Sandsturm-Bonus (Startwert):** Jeder Windkristall gibt +2 % auf alle Münzen. Der Wert wird im Balancing angepasst.
+- **Offline:** Ein Begleiter sammelt weiter, wenn du weg bist (siehe Events und Retention).
+- **Der Server entscheidet:** Der Client meldet nur "ich halte", "ich verkaufe" und "ich kaufe Knoten X". Mengen und Preise berechnet der Server aus Zeit und Stufen.
 
-**Wiederkehr-Gründe:** tägliche Belohnung, ein unvollständiges Museumsbuch und die aktuelle Event-Zone.
+## Werkzeuge und Skilltree
 
-## Zonen und Fundsystem
+Sechs Werkzeugstufen machen den Fortschritt sichtbar: Jede Stufe ist deutlich größer als die vorige und verändert, wie der Sand aussieht und sich bewegt.
 
-Zum Launch gibt es 5 Zonen mit je 30 Funden (150 Relikte), die in Sets von je 5 zusammengefasst sind. Jede Zone verändert, was und wo man findet.
+| Stufe | Werkzeug | Sand pro Sekunde | Preis in Münzen | Sichtbarer Sprung |
+| --- | --- | --- | --- | --- |
+| 1 | Hand | 1 | 0 | Eine Handvoll Körner |
+| 2 | Schaufel | 5 | 50 | Gräbt eine Mulde |
+| 3 | Eimerkette | 25 | 600 | Band trägt Sand zum Tank |
+| 4 | Mini-Bagger | 150 | 7.500 | Fahrzeug mit Staubwolke |
+| 5 | Saugroboter | 900 | 90.000 | Rüssel saugt die Fläche leer |
+| 6 | Großmaschine | 6.000 | 1.100.000 | Frisst ganze Dünen |
 
-| Zone | Freischaltung | Besonderheit |
-| --- | --- | --- |
-| Strand | Start | Einfache Funde, Ebbe zeigt neue Signale |
-| Felder und Hügel | Meilenstein-Knoten `det_milestone_1` | Regen verstärkt Signale |
-| Ruinenwald | Meilenstein-Knoten `det_milestone_2` | Nebel erhöht die Chance auf Seltenes |
-| Wüstengrabung | Meilenstein-Knoten `det_milestone_3` | Sandsturm versteckt Signale, tiefe Schichten |
-| Vulkaninsel | Nach dem ersten Neustart | Hier gibt es die mythischen Relikte |
+Alle Werte sind Startwerte für den ersten Test.
 
-Es gibt keine eigene Detektor-Stufe. Eine Zone verlangt die ID eines Meilenstein-Knotens im Detektor-Ast (zum Beispiel `requires = "det_milestone_1"`), keine Zahl. So bricht ein Umbau des Baums die Freischaltung nicht.
+Die Werkzeugstufen sind Meilenstein-Knoten im Ast "Sammeln" des Skilltrees. Der Baum folgt diesen Regeln:
 
-**Seltenheit beim normalen Graben** (kostenlos, ohne Kisten):
+- **Sichtbarkeit:** Nur gekaufte und direkt erreichbare Knoten sind sichtbar. Alles dahinter bleibt im Nebel.
+- **Äste:** Sammeln (Rate), Tank (Kapazität), Verkauf (Preisfaktor), Glück (Fundchance). Später kommt ein Ast für Begleiter.
+- **Freischalt-Animation (etwa 1,2 Sekunden):** Der Knoten drückt sich ein, ein Ring bricht aus, ein Lichtimpuls läuft zu den Folgeknoten, die neuen Knoten blenden aus dem Nebel ein, die Kamera gleitet hin. Bei Meilensteinen kommt ein Aufhell-Puls dazu. Nach etwa zehn Käufen in einer Sitzung läuft eine kürzere Variante.
+- **Daten:** Der Baum ist eine Tabelle (`UpgradeTree`). Der Client sendet nur `PurchaseNode(id)`, der Server prüft und bucht.
+
+## Welt und Zonen
+
+Fünf Zonen mit je eigener Sandsorte: Je weiter du kommst, desto mehr bringt jedes Korn. Eine Zone verlangt immer eine Knoten-ID aus dem Skilltree und nie eine feste Zahl, damit Baum-Updates die Freischaltung nicht brechen.
+
+| Zone | Sandsorte (Preisfaktor) | Freischaltung | Besonderheit |
+| --- | --- | --- | --- |
+| Dünenmeer | Gelber Sand (x1) | Start | Einfache Funde, Tutorial |
+| Oase | Roter Sand (x3) | Meilenstein Sammeln 1 | Regen erhöht die Fundchance |
+| Canyon | Weißer Sand (x10) | Meilenstein Sammeln 2 | Tiefe Schichten mit seltenen Funden |
+| Salzsee | Kristallsand (x40) | Meilenstein Sammeln 3 | Nebel versteckt Fundstellen |
+| Ruinenstadt | Schwarzer Sand (x150) | Nach dem ersten Sandsturm | Mythische Funde |
+
+**Fundstücke:** Beim Graben taucht gelegentlich ein Fundstück auf, mit Reveal. Jede Zone hat 30 Fundstücke in Sets zu je 5.
 
 | Stufe | Farbe | Wertfaktor | Anteil |
 | --- | --- | --- | --- |
@@ -54,37 +75,24 @@ Es gibt keine eigene Detektor-Stufe. Eine Zone verlangt die ID eines Meilenstein
 | Legendär | Orange | x300 | 0,35 % |
 | Mythisch | Rot | x1500 | 0,05 % |
 
-- **Tiefenschichten:** Oberfläche, Mitte, Tief. Seltene Funde liegen eher tief, dafür braucht man eine bessere Schaufel.
-- **Wetter:** Pro Zone wechselt es alle paar Minuten und ist im Interface sichtbar, damit Spieler ihren Besuch planen.
-- **Museumsbuch:** Jeder neue Fund füllt einen Slot. Ein komplettes Set gibt einen dauerhaften Münzbonus, ein komplettes Zonenbuch einen Titel und einen Detektor-Skin.
+- **Sammlung:** Jedes neue Fundstück füllt einen Slot. Ein komplettes Set gibt einen dauerhaften Münzbonus, ein komplettes Zonenbuch einen Titel und einen Werkzeug-Skin.
+- **Doppelte Funde:** Sie werden verkauft oder zum nächsten Set-Fortschritt verschmolzen.
+- **Kein Zufall gegen Geld:** Fundstücke kommen nur durchs Spielen. Kein Kauf verändert ihre Quoten.
 
-## Ausrüstung und Fortschritt
+## Kisten, Quoten und Monetarisierung
 
-Die Ausrüstung bestimmt, wie schnell und wie tief man findet. Alles ist erspielbar, Kisten und Plässe verkürzen nur den Weg. Das hält das Spiel fair und die Kisten attraktiv.
+Der Hauptumsatz kommt aus Gems für Kisten. Dazu kommen Gamepasses für Tempo, ein Saison-Pass und günstige Einstiegsprodukte. Alle Preise sind Startwerte und werden nach dem Soft-Launch getestet.
 
-| Slot | Wirkung | Woher |
-| --- | --- | --- |
-| Detektor | Reichweite, Signalstärke, Fundglück | Upgrades mit Münzen, stärkere Varianten aus Kisten |
-| Schaufel | Grabtempo, erreichbare Tiefe | Upgrades mit Münzen, Varianten aus Kisten |
-| Rucksack | Platz für Funde vor dem Verkauf | Upgrades mit Münzen, Erweiterung per Gamepass |
-| Begleiter (Hund, Maulwurf, Rabe) | Findet Signale, sammelt offline Münzen (siehe Offline-Ertrag) | Kisten und Events |
-
-- **Verschmelzen:** Drei gleiche Ausrüstungsstücke werden zur nächsten Stufe. Doppelte Kisten-Drops sind so nie wertlos.
-- **Neustart (Rebirth):** Nach Zone 5 setzt man Münzen und Zonen zurück, behält Ausrüstung und Museum und bekommt einen dauerhaften Münzbonus plus Prestige-Marken für Spezial-Upgrades.
-- **Freischaltungen:** Zonen hängen an Meilenstein-Knoten im Detektor-Ast, nicht an Robux-Käufen. So bleibt jeder Fortschritt erspielbar.
-
-## Kisten und Quoten
-
-Drei Dauer-Kisten und eine Event-Kiste liefern Ausrüstung und Skins. Es gibt zwei Währungen: Münzen (nur durch Spielen) und Gems (in kleinen Mengen durch Daily Rewards und Meilensteine, in großen per Robux). Alle Kisten werden wie bezahlte Zufallsitems behandelt, auch die Münz-Kiste, weil Boosts Münzen indirekt beschleunigen.
+Kisten enthalten Skins, Begleiter und Werkzeug-Varianten mit kleinem Bonus (etwa +5 bis +25 % Sammelrate). Sie verändern weder die Quoten der Kisten noch die der Fundstücke. Alle Kisten, auch die Holzkiste für Münzen, gelten als bezahlte Zufallsitems, weil Boosts Münzen indirekt beschleunigen.
 
 | Kiste | Preis | Inhalt |
 | --- | --- | --- |
-| Holzkiste | 2.500 Münzen | Einfache Detektoren, Schaufeln, Begleiter |
-| Eisenkiste | 100 Gems | Bessere Ausrüstung und Skins |
-| Goldkiste | 400 Gems | Hochwertige Ausrüstung, Legendäres und Mythisches |
-| Event-Kiste | 400 Gems | Gleicher Preis und gleiche Quoten wie die Goldkiste, Pool mit exklusiven Event-Items, nur für die Saison. Der Anreiz ist die Exklusivität, nicht der Preis |
+| Holzkiste | 25.000 Münzen | Einfache Skins und Begleiter |
+| Eisenkiste | 100 Gems | Bessere Skins, Begleiter, Werkzeug-Varianten |
+| Goldkiste | 400 Gems | Hochwertige Varianten, Legendäres und Mythisches |
+| Event-Kiste | 400 Gems | Gleiche Quoten wie die Goldkiste, exklusiver Pool, nur in der Saison |
 
-**Quoten pro Öffnung** (diese Werte müssen vor dem Kauf im Spiel stehen):
+**Quoten pro Öffnung** (müssen vor dem Kauf im Spiel stehen):
 
 | Seltenheit | Holzkiste | Eisenkiste | Goldkiste |
 | --- | --- | --- | --- |
@@ -95,16 +103,11 @@ Drei Dauer-Kisten und eine Event-Kiste liefern Ausrüstung und Skins. Es gibt zw
 | Legendär | 0 % | 0 % | 4,5 % |
 | Mythisch | 0 % | 0 % | 0,5 % |
 
-- **Pity-System:** Die Goldkiste garantiert Episch oder besser spätestens bei der 15. Öffnung und Legendär oder besser spätestens bei der 60. Der Zähler ist sichtbar. Das schafft Vertrauen und gibt Spielern ein Ziel.
+- **Pity:** Die Goldkiste garantiert Episch oder besser spätestens bei der 15. Öffnung und Legendär oder besser spätestens bei der 60. Der Zähler ist sichtbar und liegt auf dem Server. Jede Öffnung zählt, auch die Gratis-Kiste aus dem 10er-Paket.
 - **Erwartungswert:** Ein Legendär-oder-besser-Treffer kommt im Schnitt nach etwa 20 Goldkisten, also rund 8.000 Gems.
-- **10er-Paket:** Zehn kaufen, elf bekommen, mit denselben Quoten. Die Gratis-Kiste zählt für Pity mit: Jede Öffnung zählt, egal wie sie bezahlt wurde, damit der angezeigte Zähler zu dem passt, was passiert.
-- **Doppelte:** Gehen ins Verschmelzen (siehe Ausrüstung), nicht in den Müll.
+- **10er-Paket:** Zehn kaufen, elf bekommen, mit denselben Quoten.
 
-## Monetarisierung
-
-Der Hauptumsatz kommt aus Gems für Kisten, dazu kommen Gamepasses für Tempo, ein Saison-Pass mit Event-Kisten für die Wiederkehr und günstige Einstiegsprodukte. Alle Preise sind Startwerte und werden nach dem Soft-Launch getestet.
-
-**Gem-Pakete** (Developer Products, beliebig oft kaufbar):
+**Gem-Pakete** (Developer Products):
 
 | Paket | Preis | Bonus gegenüber dem kleinsten Paket |
 | --- | --- | --- |
@@ -118,89 +121,67 @@ Der Hauptumsatz kommt aus Gems für Kisten, dazu kommen Gamepasses für Tempo, e
 
 | Produkt | Art | Preis | Wirkung |
 | --- | --- | --- | --- |
-| Starterpaket | Einmalkauf, 24 Stunden nach dem ersten "Selten"-Fund | 149 Robux | 300 Gems, ein fester seltener Detektor, Begleiter Rabe |
+| Starterpaket | Einmalkauf, 24 Stunden nach dem ersten Selten-Fund | 149 Robux | 300 Gems, eine seltene Werkzeug-Variante, ein Begleiter |
 | 2x Münzen | Gamepass | 399 Robux | Doppelte Münzen aus allen Verkäufen |
-| Auto-Dig | Gamepass | 499 Robux | Graben läuft automatisch, solange man im Spiel ist, mit festem mittlerem Fundwert. Verlängert die Offline-Grenze (zum Beispiel auf 12 Stunden) |
-| Großer Rucksack | Gamepass | 199 Robux | Mehr Platz, seltener Verkaufspausen |
+| Auto-Dig | Gamepass | 499 Robux | Das Werkzeug sammelt automatisch, solange du im Spiel bist. Die Offline-Grenze steigt von 4 auf 12 Stunden |
+| Großer Tank | Gamepass | 199 Robux | Mehr Platz, seltener zum Händler laufen |
 | Saison-Pass | Developer Product, 4 Wochen | 399 Robux | Premium-Spur mit Gems, Skins und festen Event-Items |
-| Münz-Boost | Verbrauchsprodukt | 49 Robux | 30 Minuten 2x Münzen |
-| Wetter rufen | Verbrauchsprodukt | 29 Robux | Gewünschtes Wetter für 10 Minuten |
-| Detektor-Skins und Event-Shop | Direktkauf, feste Inhalte | 99 bis 799 Robux | Reine Optik und limitierte Sammelstücke |
+| Münz-Boost | Verbrauchsprodukt | 49 Robux | 30 Minuten doppelte Münzen |
+| Skins und Event-Shop | Direktkauf | 99 bis 799 Robux | Reine Optik und limitierte Sammelstücke |
 
-**Erwartete Umsatztreiber** (meine Einschätzung, mit echten Zahlen zu prüfen): 1. Gem-Pakete für Kisten, 2. Event-Kisten und Saison-Pass, 3. Starterpaket, 4. Gamepasses, 5. Boosts.
-
-**Reihenfolge der Angebote:**
-
-1. Nach dem ersten "Selten"-Fund: Starterpaket, 24 Stunden gültig.
-2. Wenn der Rucksack zum ersten Mal voll ist: Großer Rucksack.
-3. Beim ersten Upgrade-Engpass: 2x Münzen.
-4. Ab Tag 2: Kisten-Angebote und die laufende Saison.
-
-**Regeln für Angebote:** Sie erscheinen nach dem Reveal, nie davor, und blockieren das Spiel nicht. Der Shop zeigt immer die Quoten und die Kosten bis zur Pity-Garantie. Das hält das Vertrauen hoch, was bei einem jüngeren Publikum wichtig ist.
-
-Zusätzlich kommen Premium-Payouts von Roblox, abhängig von der Spielzeit der Premium-Spieler.
+**Regeln für Angebote:** Sie erscheinen nach dem Reveal und nie davor, und sie blockieren das Spiel nicht. Der Shop zeigt immer Quoten und Kosten bis zur Pity-Garantie.
 
 ## Events und Retention
 
-Das Spiel läuft in vierwöchigen Saisons, jede mit eigener Event-Zone, Event-Kiste und Pass. Das gibt dir einen festen Update-Rhythmus und jede Saison einen neuen Kaufanlass.
+Das Spiel läuft in vierwöchigen Saisons mit eigener Event-Zone, Event-Kiste und Pass. Das gibt einen festen Update-Rhythmus und jede Saison einen neuen Kaufanlass.
 
-| Woche | Inhalt | Wirkung auf Umsatz und Spielzeit |
+| Woche | Inhalt | Wirkung |
 | --- | --- | --- |
 | 1 | Saisonstart: Event-Zone öffnet, Event-Kiste und Saison-Pass starten | Kisten- und Pass-Käufe |
-| 2 | Doppel-Fund-Wochenende und Server-Event "Weltfund": Alle graben gemeinsam ein Boss-Relikt aus | Spielzeit, Social |
+| 2 | Server-Event "Der Koloss" am Wochenende | Spielzeit, Social |
 | 3 | Neue Event-Items im Direktshop, Set-Aufgaben | Direktkäufe |
-| 4 | Finale: letzte Chance auf die Event-Kiste, Leaderboard-Preise | Dringlichkeit, Rückkehrer |
+| 4 | Finale: letzte Chance auf die Event-Kiste, Leaderboard-Preise | Dringlichkeit, Rückkehr |
 
-- **Daily Reward:** 7-Tage-Serie, an Tag 7 gibt es eine Eisenkiste gratis. Das erzeugt die tägliche Wiederkehr. In Regionen mit `ArePaidRandomItemsRestricted` gibt es statt der Kiste einen festen Ersatz (zum Beispiel ein bestimmtes Ausrüstungsstück), solange nicht geklärt ist, ob Gratis-Kisten dort erlaubt sind.
-- **Codes:** Gems und Boosts bei Meilensteinen wie Likes und Favoriten. Das sind Hebel für YouTuber und Social Media.
-- **Freunde-Bonus:** 10 % mehr Münzen pro Freund im Server, bis maximal 50 %. Das bringt Spieler dazu, Freunde einzuladen.
-- **Leaderboard:** Wertvollste Sammlung pro Woche. Jeder kann das Museum eines Freundes besuchen.
-- **Offline-Ertrag:** Der Begleiter sammelt passiv Münzen, solange man weg ist, begrenzt auf etwa 4 Stunden und ohne Funde ab "Selten". Der Auto-Dig-Pass verlängert die Grenze. Die genauen Zahlen setzt der `balance-analyst`.
+**Server-Event "Der Koloss":** Unter dem Sand liegt ein riesiger Steinkoloss. Alle Spieler eines Servers graben ihn gemeinsam aus, jedes gesammelte Korn in der Event-Zone füllt den Fortschrittsbalken. Bei 100 % bekommen alle im Server eine Belohnung, gestaffelt nach Beitrag. Das ist unser Gegenstück zum Sandwurm im Teaser: eigene Figur, gleicher Wow-Moment, gut für Trailer.
 
-## Roblox-Policy
+- **Begleiter und Offline:** Der Begleiter sammelt bis zu 4 Stunden Münzen, wenn du weg bist, aber keine Fundstücke ab Selten. Der Auto-Dig-Pass ergänzt ihn: automatisches Sammeln im Spiel und eine Offline-Grenze von 12 Stunden.
+- **Daily Reward:** 7-Tage-Serie, an Tag 7 gibt es eine Eisenkiste gratis. In Regionen mit gesperrten Zufallsitems gibt es stattdessen ein festes Ausrüstungsstück.
+- **Codes:** Gems und Boosts bei Meilensteinen wie Likes und Favoriten, als Hebel für YouTuber.
+- **Freunde-Bonus:** 10 % mehr Münzen pro Freund im Server, höchstens 50 %.
+- **Leaderboard:** Wertvollste Sammlung pro Woche, jeder kann die Sammlung eines Freundes besuchen.
 
-Bezahlte Zufallsitems sind erlaubt, wenn du die Quoten offenlegst und die regionalen Sperren einhaltest. Daraus folgt eine feste Checkliste, die vor dem Launch erfüllt sein muss.
+## Policy, Technik, Risiken und Entscheidungen
 
-- **Quoten anzeigen:** Wer zufällige virtuelle Items gegen Robux oder Ingame-Währung verkauft, muss [die tatsächlichen Zahlenwerte angeben](https://create.roblox.com/docs/production/monetization/virtual-items), was man bekommen kann. Das gilt auch für Gems.
-- **Regionale Sperre:** Die Eigenschaft `ArePaidRandomItemsRestricted` abfragen. Ist sie wahr, dürfen Spieler nicht mit den Kisten interagieren, und die Gratis-Kiste von Tag 7 wird durch einen festen Gegenstand ersetzt. Statt der Kisten braucht es dann einen [Shop mit Direktkäufen](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items).
-- **Boosts, die Quoten verändern:** Wer die Quoten beeinflusst, muss das vor dem Kauf erklären, und die angezeigten Quoten müssen live den echten Stand zeigen. Deshalb gibt es in diesem Konzept keine Glücks-Boosts für Kisten.
-- **Fragebogen:** Paid Random Items müssen im [Maturity-&-Compliance-Fragebogen](https://devforum.roblox.com/t/question-about-the-paid-random-items-policy/3495508) angegeben werden.
-- **Kein Trading:** Items aus Kisten lassen sich weder tauschen noch verkaufen, und es gibt keine Auszahlung. Laut zitierten Nutzungsbedingungen dürfen Items aus bezahlten Zufallsboxen nicht gegen Robux oder etwas von Wert getauscht werden ([Forum-Zitat](https://devforum.roblox.com/t/dices-integration-does-this-infringe-the-gambling-tos/2980663)). Die aktuellen Terms of Use solltest du vor dem Launch selbst gegenlesen.
-- **Keine Drittanbieter-Verkäufe:** Webshops, die Spielitems für echtes Geld ausliefern, sind verboten und kein Vorbild.
+Bezahlte Zufallsitems sind erlaubt, wenn die Quoten offengelegt und regionale Sperren eingehalten werden. Das gilt auch für Währung, die mit Robux gekauft wird. Die aktuellen Regeln vor dem Launch selbst nachlesen.
 
-## Roadmap und Aufwand
+**Policy-Checkliste:**
 
-_(Diagramm: Roadmap · 4 Phasen, 3 Prüfstellen – nur in der Claude-Version des Dokuments)_
+- [ ] Quoten pro Kiste vor dem Kauf im Spiel anzeigen: [Roblox: Virtual Items](https://create.roblox.com/docs/production/monetization/virtual-items)
+- [ ] `ArePaidRandomItemsRestricted` abfragen. Ist sie wahr, ohne Kisten spielen und einen Direktkauf-Shop anbieten: [Roblox: Paid Random Items](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items)
+- [ ] Keine Boosts, die Kistenquoten verändern
+- [ ] Fragebogen zu Reife und Compliance ausfüllen
+- [ ] Kein Tauschen oder Verkaufen von Kisten-Items und keine Auszahlung
+- [ ] Keine Drittanbieter-Shops, die Items gegen echtes Geld ausliefern
 
-Grobe Schätzung bei einem Einzelentwickler mit KI-Unterstützung: Phase 1 braucht 3 bis 4 Wochen, Phase 2 und 3 je etwa 2. Danach folgt der Soft-Launch. Das hängt stark von deinem Zeitbudget ab. Der Mindestumfang (MVP) ist Phase 1 plus eine Kiste mit sichtbaren Quoten.
+**Technik (Kurzfassung):**
 
-## Risiken und offene Entscheidungen
+- Server entscheidet alles, der Client sendet nur Absichten. Jede Remote prüft Typ und Bereich und hat ein Rate-Limit.
+- Spielstand als versioniertes Profil mit Migration. Käufe über `ProcessReceipt`, idempotent: erst speichern, dann `PurchaseGranted`.
+- Offline-Ertrag wird beim Laden aus Zeitstempel und Obergrenze berechnet, nie vom Client gemeldet.
+- Sandverformung: Der Sand ist echtes Terrain, und Löcher entstehen mit Terrain-Funktionen wie `FillBall`. Das passiert nur auf dem Client des Spielers, der Server zählt den Sand unabhängig davon. So belastet die Verformung weder Server noch andere Spieler, und der Sand wächst nach. Meines Wissens replizieren Terrain-Änderungen vom Client nicht. Das testen wir als erstes Risikopaket (1.4) am Handy. Das geteilte Event "Der Koloss" bekommt eine eigene, serverseitige Lösung.
 
-Das größte Risiko ist nicht die Technik, sondern dass das Spiel in einem vollen Markt nicht gefunden wird oder in den ersten Minuten nicht trägt.
+**Risiken:**
 
-| Risiko | Warum | Gegenmaßnahme |
-| --- | --- | --- |
-| Policy-Auslegung bei Kisten und Robux | Regeln ändern sich, Regionen sperren Kisten | Quoten live anzeigen, Direktkauf-Shop als Fallback, Terms vor dem Launch lesen |
-| Gesättigter Sim-Markt | Im vierten Quartal 2025 kamen 189 neue Simulatoren, die durchschnittliche CCU pro Spiel sank Anfang 2026 um 20 % | Eigener Dreh (zwei Handlungen, Wetter, Museum) und starke erste 60 Sekunden |
-| Schwache Retention | Ohne Wiederkehr-Gründe läuft der Kistenumsatz nicht | Daily Rewards, Museum, Soft-Launch-Zahlen auswerten |
-| Wirtschaft kippt | Zu viele Münzen oder zu seltene Drops zerstören die Motivation | Wirtschaftstabelle in einem Spreadsheet, Preise nach dem Soft-Launch anpassen |
-| Zu wenig Reichweite | Ohne Ads und Creator findet niemand das Spiel | Roblox-Ads-Budget einplanen, Codes für YouTuber |
+- **Markt:** Sim-Spiele sind dicht besetzt. Eigener Look und starker erster Eindruck sind Pflicht.
+- **Nähe zum Vorbild:** Eigene Namen, Figuren und Texte, kein Nachbau des Teasers.
+- **Wirtschaft:** Ein zu schneller oder zu zäher Fortschritt zerstört die Motivation. Balancing ist ein eigenes Paket.
+- **Retention:** Ohne Sammlung, Events und Daily Reward bleibt es bei "mehr Zahlen".
 
-**Offene Entscheidungen:**
+**Entscheidungen:**
 
-- [ ] Optik: Cartoon, Low-Poly oder realistisch?
-- [ ] Name und Markenprüfung statt "Relic Hunters"
-- [ ] Budget für Roblox Ads vor und nach dem Launch
-- [ ] Handy-Steuerung: Was erreicht man mit einer Hand?
-- [ ] Trading später nachrüsten? Nur nach Klärung der Policy
-
-## Quellen
-
-Aus Suchergebnissen, die Seiten selbst wurden nicht vollständig gelesen. Stand: 17.11.2026.
-
-- [Virtual items, Roblox](https://create.roblox.com/docs/production/monetization/virtual-items)
-- [Paid random items policy guidelines, Roblox](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items)
-- [Question about the Paid Random Items policy, Roblox DevForum](https://devforum.roblox.com/t/question-about-the-paid-random-items-policy/3495508)
-- [Dices integration, Roblox DevForum](https://devforum.roblox.com/t/dices-integration-does-this-infringe-the-gambling-tos/2980663)
-- [Genre shift 2026 predictions, rolearn.dev](https://rolearn.dev/trend-reports/genre-shift-2026-predictions)
-- [The Simulation Takeover, RoWatcher](https://rowatcher.com/news/the-simulation-takeover-why-casual-sims-rule-roblox-in-2026)
+- [x] Name: Dune Baron (Markenprüfung vor dem Launch noch offen)
+- [x] Perspektive: dritte Person, wie in Roblox üblich. Sie zeigt Werkzeug und Größe der Maschinen gut, und Avatar-Skins sind ein Kaufanreiz
+- [x] Optik: weich-realistisch wie im Teaser, mit Future-Beleuchtung, weichen Schatten, Bloom und Farbkorrektur. Am Handy läuft eine schlankere Stufe
+- [x] Terrain-Verformung: ja, auf dem Client (siehe Technik)
+- [x] Ads-Budget: kein Blocker, wird nach dem Soft-Launch festgelegt
+- [ ] Prestige-Formel (Windkristalle) nach dem ersten Balancing
