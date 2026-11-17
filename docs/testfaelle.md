@@ -75,10 +75,26 @@ Die Ladelogik steht in einem reinen Modul (`src/shared/Logic/PlayerSession.luau`
 
 ## 1.2 Sammeln, Tank, Verkaufen
 
-- [ ] [Lune] Der Server berechnet den Sand aus Zeit und Rate. Ein Client, der große Mengen meldet, hat keine Wirkung.
-- [ ] [Lune] Verkaufen leert den Tank und bucht Münzen nach Sandsorte der Zone.
-- [ ] [Lune] Ein voller Tank stoppt das Sammeln, mehr Sand entsteht nicht.
-- [ ] [Studio] Halten sammelt, Loslassen stoppt, der Händlerstand zeigt die richtigen Münzen.
+Die Regeln stehen im reinen Modul `src/shared/Logic/Collecting.luau` (Lune-Tests mit simulierter Uhr), der Service `Sand` schließt nur Remotes, Uhr und Händlerstand an. Werte kommen aus `Tools`, `Zones`, `SandTypes`, `Economy` und `World`.
+
+- [x] [Lune] Der Server berechnet den Sand aus Zeit und Rate: Hand 3 s halten ergibt 3 Sand, mit gekauftem `collect_tool_2` (Schaufel) 5 Sand pro Sekunde.
+- [x] [Lune] Ein Client, der große Mengen meldet, hat keine Wirkung: `SetCollecting` nimmt nur einen Wahrheitswert, eine Zahl wie 1e9 oder ein zweites Argument wird abgelehnt, und die Sammel-Logik hat keinen Mengen-Parameter.
+- [x] [Lune] Ohne Halten entsteht kein Sand. Nach dem Loslassen zählt die Zeit nicht mehr, nach erneutem Halten zählt sie wieder.
+- [x] [Lune] Bruchteile gehen nicht verloren: zweimal 0,5 s mit der Hand ergeben 1 Sand, der Tank enthält immer ganze Körner.
+- [x] [Lune] Ein voller Tank stoppt das Sammeln: Bei 15 Sand Kapazität ergeben 100 s Halten genau 15, weitere Zeit fügt nichts hinzu, und das Ergebnis meldet "voll".
+- [x] [Lune] Halten ohne Auffrischung: Schickt der Client länger als `holdTimeoutSeconds` kein `SetCollecting(true)`, zählt nur die Zeit bis zur Frist.
+- [x] [Lune] Eine Uhr, die rückwärts springt, erzeugt keinen und keinen negativen Sand.
+- [x] [Lune] Werkzeug: Es zählt das höchste gekaufte Werkzeug-Knoten-Werkzeug, unbekannte Knoten-IDs im Profil werden ignoriert.
+- [x] [Lune] Verkaufen leert den Tank und bucht Münzen nach Sandsorte der Zone: 10 Sand im Dünenmeer geben 10 Münzen, in der Oase 30. Ein leerer Tank bucht nichts.
+- [x] [Lune] Verkaufen addiert über den Zahlentyp: 10 Sand auf 1,5e20 Münzen ergibt 1,5e20 + 10 ohne Fehler, auch große Tankwerte.
+- [x] [Lune] Verkaufen nur in Reichweite des Händlerstands (`World.sellStand.rangeStuds`), außerhalb wird abgelehnt.
+- [x] [Lune] Eine ungültige Zone im Profil fällt auf das Dünenmeer zurück statt einen Fehler zu werfen.
+- [x] [Lune] BigNum: `add`, `sub`, `mulNumber`, `compare`, `floor` und `toNumber` stimmen für kleine Werte und für Werte über 10^15.
+- [x] [Shell] `rojo build` baut ohne Fehler.
+- [ ] [Studio] Halten (linke Maustaste, Gamepad R2 oder Bildschirmknopf "Graben" am Handy) sammelt, Loslassen stoppt, der Tankzähler steigt bis zur Kapazität.
+- [ ] [Studio] Am Händlerstand (Prompt "Verkaufen", Taste E) wird der Tank leer und die Münzen steigen um Sand mal Preisfaktor. Weit weg vom Stand passiert nichts.
+- [ ] [Studio] Direkt am Händlerstand und mit totem Charakter wird nicht gesammelt.
+- [ ] [Studio] Nach Rejoin sind Münzen und Tankinhalt noch da.
 
 ## 1.3 Zahlentyp und Anzeige
 

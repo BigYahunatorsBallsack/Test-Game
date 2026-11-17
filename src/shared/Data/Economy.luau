@@ -21,6 +21,14 @@ local Economy = {
     -- Tankgröße am Anfang (Sand).
     startTankCapacity = 15,
 
+    -- Sammeln (Paket 1.2): Der Client schickt SetCollecting(true) alle `holdRefreshSeconds`,
+    -- solange die Taste gehalten wird. Kommt länger als `holdTimeoutSeconds` nichts, zählt
+    -- der Server nur die Zeit bis zur Frist (verlorene Verbindung, hängender Client).
+    collecting = {
+        holdRefreshSeconds = 1,
+        holdTimeoutSeconds = 2.5,
+    },
+
     -- Faktor auf die Tankgröße durch den Gamepass "Großer Tank".
     bigTankMultiplier = 2,
 
