@@ -1,0 +1,408 @@
+--!strict
+-- Dig-Controller (Paket 1.4)
+-- Gräbt Mulden ins Terrain, solange der Spieler sammelt, nur auf diesem Client. Terrain-
+-- Änderungen eines Clients erreichen weder den Server noch andere Spieler, der Server zählt
+-- den Sand unabhängig davon (Sand-Service). Die Regeln (welche Blöcke, wie tief, wann
+-- nachwachsen) stehen in Logic/SandDig, die Zahlen in Data/Terrain. Hier werden nur Voxel
+-- gelesen und geschrieben, Partikel gezeigt und die Rückfallvariante gezeichnet.
+--
+-- Modi: "full" verformt das Terrain. "fallback" (schwaches Gerät, Logic/PerfGuard) lässt das
+-- Terrain in Ruhe und zeigt nur eine sinkende Sandscheibe und Partikel.
+-- Zum Testen in der Client-Befehlszeile:
+--   game.Players.LocalPlayer:SetAttribute("DigMode", "fallback")  -- oder "full", nil = automatisch
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+-- Partikel
+local PARTICLE_COUNT_FULL = 10
+local PARTICLE_COUNT_FALLBACK = 14
+local PARTICLE_LIFETIME = NumberRange.new(0.35, 0.7)
+local PARTICLE_SPEED = NumberRange.new(5, 11)
+local PARTICLE_SPREAD_DEGREES = 55
+local PARTICLE_SIZE = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.45),
+    NumberSequenceKeypoint.new(1, 0.15),
+})
+local PARTICLE_TRANSPARENCY = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.1),
+    NumberSequenceKeypoint.new(1, 1),
+})
+local PARTICLE_GRAVITY_FACTOR = 0.6
+local PARTICLE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
+
+-- Rückfallvariante: sinkende Sandscheibe
+local DISC_THICKNESS = 0.2
+local DISC_START_DIAMETER = 0.4
+local DISC_GROW_SECONDS = 0.25
+local DISC_GROW_EASING = Enum.EasingStyle.Quad
+local DISC_SINK_STUDS = 0.12
+local DISC_DARKEN = 0.25 -- Anteil Schwarz in der Farbe der Scheibe
+local DISC_FADE_SECONDS = 1.2
+local DISC_FADE_EASING = Enum.EasingStyle.Sine
+local MAX_DISCS = 24
+
+-- Anzeige für den Handy-Test
+local OVERLAY_REFRESH_SECONDS = 0.5
+local OVERLAY_POSITION = UDim2.new(0, 16, 0, 108)
+local OVERLAY_SIZE = UDim2.new(0, 240, 0, 22)
+local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
+
+local DIG_MODE_ATTRIBUTE = "DigMode"
+local DEFAULT_SAND_COLOR = Color3.fromRGB(230, 200, 117)
+
+local shared = ReplicatedStorage:WaitForChild("Shared")
+local function loadShared(folder: string, name: string): any
+    return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
+end
+local TerrainData = loadShared("Data", "Terrain")
+local Zones = loadShared("Data", "Zones")
+local SandTypes = loadShared("Data", "SandTypes")
+local SandDig = loadShared("Logic", "SandDig")
+local PerfGuard = loadShared("Logic", "PerfGuard")
+local BigNum = loadShared("Logic", "BigNum")
+local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
+
+local VOXEL = TerrainData.voxelSize
+local CHUNK = TerrainData.chunkSize
+local AIR = Enum.Material.Air
+
+local Dig = {}
+
+local player = Players.LocalPlayer
+local terrain = workspace.Terrain
+local digState: any = nil
+local perf: any = nil
+-- Originalzustand je Block (Schlüssel aus SandDig.chunkKey).
+local baselines: { [string]: any } = {}
+local diggable: { [any]: boolean } = {}
+local discs: { BasePart } = {}
+local discFolder: Folder? = nil
+local emitter: ParticleEmitter? = nil
+local emitterAttachment: Attachment? = nil
+local lastMode = "full"
+local errorsShown = 0
+local MAX_ERRORS_SHOWN = 5
+
+local function vec(v: Vector3): any
+    return { x = v.X, y = v.Y, z = v.Z }
+end
+
+local function regionOf(cx: number, cy: number, cz: number): Region3
+    local o = SandDig.chunkOrigin(TerrainData, cx, cy, cz)
+    local min = Vector3.new(o.x, o.y, o.z)
+    return Region3.new(min, min + Vector3.new(CHUNK, CHUNK, CHUNK))
+end
+
+local function readGrid(cx: number, cy: number, cz: number): any
+    local materials, occupancies = terrain:ReadVoxels(regionOf(cx, cy, cz), VOXEL)
+    return {
+        origin = SandDig.chunkOrigin(TerrainData, cx, cy, cz),
+        n = CHUNK // VOXEL,
+        voxelSize = VOXEL,
+        occ = occupancies,
+        mat = materials,
+    }
+end
+
+local function writeGrid(cx: number, cy: number, cz: number, grid: any)
+    terrain:WriteVoxels(regionOf(cx, cy, cz), VOXEL, grid.mat, grid.occ)
+end
+
+local function sandColor(): Color3
+    local snapshot = State.get()
+    local zone = if snapshot ~= nil then Zones.byId[snapshot.zoneId] else nil
+    local sandType = if zone ~= nil then SandTypes.byId[zone.sandTypeId] else nil
+    if sandType == nil then
+        return DEFAULT_SAND_COLOR
+    end
+    return Color3.fromHex(sandType.colorHex)
+end
+
+local function aliveRoot(): BasePart?
+    local character = player.Character
+    if character == nil then
+        return nil
+    end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if humanoid == nil or humanoid.Health <= 0 or root == nil or not root:IsA("BasePart") then
+        return nil
+    end
+    return root
+end
+
+-- Gräbt der Spieler gerade? Nur wenn er hält und der Server das Sammeln bestätigt hat
+-- (nicht am Stand, nicht tot, Tank nicht voll).
+local function wantsDig(): boolean
+    if not Input.isHolding() then
+        return false
+    end
+    local snapshot = State.get()
+    if snapshot == nil or not snapshot.collecting then
+        return false
+    end
+    local tank = BigNum.deserialize(snapshot.tank)
+    return BigNum.lt(tank, BigNum.new(snapshot.capacity))
+end
+
+-- Trefferpunkt auf grabbarem Terrain vor dem Charakter, sonst nil.
+local function findGround(root: BasePart): RaycastResult?
+    local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+    if look.Magnitude < 1e-3 then
+        return nil
+    end
+    local dig = TerrainData.dig
+    local origin = root.Position + look.Unit * dig.forwardStuds + Vector3.new(0, dig.rayUpStuds, 0)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local exclude: { Instance } = {}
+    if player.Character ~= nil then
+        table.insert(exclude, player.Character)
+    end
+    if discFolder ~= nil then
+        table.insert(exclude, discFolder)
+    end
+    params.FilterDescendantsInstances = exclude
+    params.IgnoreWater = true
+    local result = workspace:Raycast(origin, Vector3.new(0, -dig.rayLengthStuds, 0), params)
+    if result == nil or result.Instance ~= terrain or not diggable[result.Material] then
+        return nil
+    end
+    return result
+end
+
+local function emitParticles(position: Vector3, count: number)
+    if emitter == nil or emitterAttachment == nil then
+        return
+    end
+    emitterAttachment.WorldPosition = position
+    emitter.Color = ColorSequence.new(sandColor())
+    emitter:Emit(count)
+end
+
+local function digTerrain(now: number, hit: RaycastResult, toolId: string?)
+    local result = SandDig.tryDig(digState, now, vec(hit.Position), toolId)
+    if result == nil then
+        return
+    end
+    for _, ref in result.chunks do
+        if ref.isNew then
+            baselines[ref.key] = readGrid(ref.cx, ref.cy, ref.cz)
+        end
+        local grid = readGrid(ref.cx, ref.cy, ref.cz)
+        if SandDig.carve(grid, result.center, result.radius, result.floorY, AIR, diggable) then
+            writeGrid(ref.cx, ref.cy, ref.cz, grid)
+        elseif ref.isNew then
+            -- Block lag nur in der Luft oder im Fels: nicht merken.
+            SandDig.forget(digState, ref.key)
+            baselines[ref.key] = nil
+        end
+    end
+    emitParticles(hit.Position, PARTICLE_COUNT_FULL)
+end
+
+local function regrowChunk(action: any)
+    local baseline = baselines[action.key]
+    if baseline == nil then
+        return
+    end
+    local grid = readGrid(action.cx, action.cy, action.cz)
+    SandDig.blend(grid, baseline, action.t, AIR)
+    writeGrid(action.cx, action.cy, action.cz, grid)
+    if action.final then
+        baselines[action.key] = nil
+    end
+end
+
+local function digFallback(now: number, hit: RaycastResult, toolId: string?)
+    if not SandDig.takeDigSlot(digState, now) or discFolder == nil then
+        return
+    end
+    local hole = SandDig.holeFor(TerrainData, toolId)
+    -- Breite der Mulde an der Oberfläche (Kugelkappe mit Tiefe hole.depth).
+    local r = hole.radius
+    local d = math.min(hole.depth, r)
+    local diameter = 2 * math.sqrt(r * r - (r - d) * (r - d))
+
+    if #discs >= MAX_DISCS then
+        local oldest = table.remove(discs, 1)
+        if oldest ~= nil then
+            oldest:Destroy()
+        end
+    end
+    local disc = Instance.new("Part")
+    disc.Name = "DigMark"
+    disc.Shape = Enum.PartType.Cylinder
+    disc.Anchored = true
+    disc.CanCollide = false
+    disc.CanQuery = false
+    disc.CanTouch = false
+    disc.CastShadow = false
+    disc.Material = Enum.Material.Sand
+    disc.Color = sandColor():Lerp(Color3.new(0, 0, 0), DISC_DARKEN)
+    disc.Size = Vector3.new(DISC_THICKNESS, DISC_START_DIAMETER, DISC_START_DIAMETER)
+    local flat = CFrame.Angles(0, 0, math.pi / 2) -- Zylinderachse nach oben
+    local top = hit.Position + Vector3.new(0, DISC_THICKNESS / 2 - 0.02, 0)
+    disc.CFrame = CFrame.new(top) * flat
+    disc.Parent = discFolder
+    table.insert(discs, disc)
+
+    TweenService:Create(disc, TweenInfo.new(DISC_GROW_SECONDS, DISC_GROW_EASING, Enum.EasingDirection.Out), {
+        Size = Vector3.new(DISC_THICKNESS, diameter, diameter),
+        CFrame = CFrame.new(top - Vector3.new(0, DISC_SINK_STUDS, 0)) * flat,
+    }):Play()
+    local regrow = TerrainData.regrow
+    task.delay(regrow.delaySeconds + regrow.seconds, function()
+        if disc.Parent == nil then
+            return
+        end
+        local fade = TweenService:Create(disc, TweenInfo.new(DISC_FADE_SECONDS, DISC_FADE_EASING), { Transparency = 1 })
+        fade.Completed:Connect(function()
+            local index = table.find(discs, disc)
+            if index ~= nil then
+                table.remove(discs, index)
+            end
+            disc:Destroy()
+        end)
+        fade:Play()
+    end)
+    emitParticles(hit.Position, PARTICLE_COUNT_FALLBACK)
+end
+
+local function readForcedMode()
+    local value = player:GetAttribute(DIG_MODE_ATTRIBUTE)
+    if value == "full" or value == "fallback" then
+        PerfGuard.setForced(perf, value)
+    elseif value == nil then
+        PerfGuard.setForced(perf, nil)
+    else
+        warn(`[Dig] DigMode muss "full", "fallback" oder nil sein, nicht {tostring(value)}`)
+    end
+end
+
+local function createEffects()
+    local folder = Instance.new("Folder")
+    folder.Name = "DigMarks"
+    folder.Parent = workspace
+    discFolder = folder
+
+    local attachment = Instance.new("Attachment")
+    attachment.Name = "DigParticles"
+    attachment.Parent = terrain
+    emitterAttachment = attachment
+
+    local e = Instance.new("ParticleEmitter")
+    e.Enabled = false
+    e.Rate = 0
+    e.Texture = PARTICLE_TEXTURE
+    e.Lifetime = PARTICLE_LIFETIME
+    e.Speed = PARTICLE_SPEED
+    e.SpreadAngle = Vector2.new(PARTICLE_SPREAD_DEGREES, PARTICLE_SPREAD_DEGREES)
+    e.EmissionDirection = Enum.NormalId.Top
+    e.Size = PARTICLE_SIZE
+    e.Transparency = PARTICLE_TRANSPARENCY
+    e.Acceleration = Vector3.new(0, -workspace.Gravity * PARTICLE_GRAVITY_FACTOR, 0)
+    e.LightInfluence = 1
+    e.Parent = attachment
+    emitter = e
+end
+
+local function createOverlay(): TextLabel
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "DuneBaronDigDebug"
+    gui.ResetOnSpawn = false
+    local label = Instance.new("TextLabel")
+    label.Name = "Info"
+    label.BackgroundTransparency = 0.5
+    label.BackgroundColor3 = Color3.new(0, 0, 0)
+    label.Position = OVERLAY_POSITION
+    label.Size = OVERLAY_SIZE
+    label.Font = Enum.Font.Gotham
+    label.TextScaled = true
+    label.TextColor3 = OVERLAY_TEXT_COLOR
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = "Graben: ..."
+    label.Parent = gui
+    gui.Parent = player:WaitForChild("PlayerGui")
+    return label
+end
+
+local function overlayText(): string
+    local mode = PerfGuard.mode(perf)
+    local modeText = if mode == "full" then "Terrain" else "Rückfall"
+    if perf.forced ~= nil then
+        modeText ..= " (erzwungen)"
+    end
+    local fps = PerfGuard.fps(perf)
+    local fpsText = if fps ~= nil then tostring(math.floor(fps + 0.5)) else "--"
+    return `Graben: {modeText} | {fpsText} FPS | Blöcke {SandDig.openCount(digState)}/{TerrainData.regrow.maxDirtyChunks}`
+end
+
+function Dig.Init()
+    for _, name in TerrainData.diggableMaterials do
+        local ok, material = pcall(function(): any
+            return (Enum.Material :: any)[name]
+        end)
+        if ok and material ~= nil then
+            diggable[material] = true
+        else
+            warn(`[Dig] Unbekanntes Material in Terrain.diggableMaterials: {name}`)
+        end
+    end
+end
+
+function Dig.Start()
+    local now = os.clock()
+    digState = SandDig.new(TerrainData)
+    perf = PerfGuard.new(TerrainData.perf, now)
+    readForcedMode()
+    player:GetAttributeChangedSignal(DIG_MODE_ATTRIBUTE):Connect(readForcedMode)
+    createEffects()
+
+    local overlay: TextLabel? = if TerrainData.debug.showOverlay then createOverlay() else nil
+    local nextOverlayAt = 0
+
+    RunService.Heartbeat:Connect(function(dt: number)
+        local t = os.clock()
+        local mode = PerfGuard.sample(perf, t, dt)
+        if mode ~= lastMode then
+            print(`[Dig] Modus: {mode}`)
+            lastMode = mode
+        end
+        local root = aliveRoot()
+
+        -- Nachwachsen läuft in beiden Modi weiter, damit offene Blöcke verschwinden.
+        local ok, err = pcall(function()
+            for _, action in SandDig.update(digState, t, if root ~= nil then vec(root.Position) else nil) do
+                regrowChunk(action)
+            end
+            if root ~= nil and wantsDig() then
+                local hit = findGround(root)
+                if hit ~= nil then
+                    local snapshot = State.get()
+                    local toolId = if snapshot ~= nil then snapshot.toolId else nil
+                    if mode == "full" then
+                        digTerrain(t, hit, toolId)
+                    else
+                        digFallback(t, hit, toolId)
+                    end
+                end
+            end
+        end)
+        if not ok and errorsShown < MAX_ERRORS_SHOWN then
+            errorsShown += 1
+            warn(`[Dig] Fehler: {tostring(err)}`)
+        end
+
+        if overlay ~= nil and t >= nextOverlayAt then
+            nextOverlayAt = t + OVERLAY_REFRESH_SECONDS
+            overlay.Text = overlayText()
+        end
+    end)
+end
+
+return Dig
