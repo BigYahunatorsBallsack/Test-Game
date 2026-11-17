@@ -30,6 +30,7 @@ end
 local Collecting = loadShared("Logic", "Collecting")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
+local Tutorial = loadShared("Logic", "Tutorial")
 local TerrainData = loadShared("Data", "Terrain")
 local SandTypes = loadShared("Data", "SandTypes")
 
@@ -73,6 +74,8 @@ function Sand.snapshot(player: Player): any?
         collecting = state.holding,
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile),
+        nodes = Collecting.ownedNodes(profile),
+        tutorialStep = Tutorial.stepOf(profile),
     }
 end
 
@@ -81,6 +84,16 @@ local function sync(player: Player)
     if snapshot ~= nil then
         Net.fire(player, "StateSync", snapshot)
     end
+end
+
+-- Tutorial neu bewerten (Tank, Käufe, Laden) und Zustand an den Client schicken. Andere
+-- Services rufen das nach Änderungen am Profil auf (zum Beispiel Upgrades nach einem Kauf).
+function Sand.refresh(player: Player)
+    local profile = PlayerData.get(player)
+    if profile ~= nil then
+        Tutorial.evaluate(profile)
+    end
+    sync(player)
 end
 
 local function notify(player: Player, payload: any)
@@ -135,7 +148,8 @@ local function onSetCollecting(player: Player, holding: boolean)
     if result.full and holding then
         notify(player, { kind = "tankFull" })
     end
-    if result.added > 0 or wasHolding ~= state.holding then
+    local tutorialChanged = result.added > 0 and Tutorial.evaluate(profile)
+    if result.added > 0 or tutorialChanged or wasHolding ~= state.holding then
         sync(player)
     end
 end
@@ -154,6 +168,7 @@ local function onSell(player: Player)
     if earned == nil then
         notify(player, { kind = "tankEmpty" })
     else
+        Tutorial.onSold(profile)
         notify(player, {
             kind = "sold",
             earned = BigNum.serialize(earned),
@@ -263,7 +278,8 @@ local function tickPlayer(player: Player, state: any, t: number)
     if result.full then
         notify(player, { kind = "tankFull" })
     end
-    if result.added > 0 or not state.holding then
+    local tutorialChanged = result.added > 0 and Tutorial.evaluate(profile)
+    if result.added > 0 or tutorialChanged or not state.holding then
         sync(player)
     end
 end
@@ -291,7 +307,7 @@ function Sand.Start()
 
     PlayerData.onLoaded(function(player: Player, _profile: any)
         states[player] = Collecting.newState(now())
-        sync(player)
+        Sand.refresh(player)
     end)
     Players.PlayerRemoving:Connect(function(player: Player)
         states[player] = nil

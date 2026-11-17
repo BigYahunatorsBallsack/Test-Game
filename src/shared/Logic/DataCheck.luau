@@ -10,6 +10,9 @@ local HEX_PATTERN = "^#%x%x%x%x%x%x$"
 local CURRENCIES = { coins = true, gems = true }
 local PRODUCT_KINDS = { gamepass = true, developerProduct = true, direct = true }
 local DAILY_KINDS = { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
+local EFFECT_KINDS = { setTool = true, rateBonus = true, setTank = true, grantedBySandstorm = true }
+local CONDITION_KINDS = { tankAtLeast = true, sold = true, node = true }
+local TUTORIAL_TARGETS = { sand = true, stand = true, list = true }
 local BRANCHES = { collect = true, tank = true, sell = true, luck = true, sandstorm = true }
 
 -- Alle Tabellen, die geprüft werden. Felder sind bewusst `any`, damit auch kaputte
@@ -28,6 +31,7 @@ export type DataSet = {
     UpgradeTree: any,
     World: any,
     Terrain: any,
+    Tutorial: any,
 }
 
 local DataCheck = {}
@@ -48,6 +52,7 @@ function DataCheck.defaults(): DataSet
         UpgradeTree = require("../Data/UpgradeTree"),
         World = require("../Data/World"),
         Terrain = require("../Data/Terrain"),
+        Tutorial = require("../Data/Tutorial"),
     }
 end
 
@@ -339,8 +344,26 @@ local function checkUpgradeTree(errors: { string }, data: DataSet)
         if not isFinite(node.cost) or node.cost < 0 then
             table.insert(errors, `{label}: cost muss eine Zahl ab 0 sein`)
         end
+        if type(node.effect) == "table" and (node.effect.kind == "grantedBySandstorm") ~= (node.granted == true) then
+            table.insert(errors, `{label}: "grantedBySandstorm" und granted = true gehören zusammen`)
+        end
+        if node.granted ~= true and isFinite(node.cost) and node.cost <= 0 then
+            table.insert(errors, `{label}: ein kaufbarer Knoten braucht einen Preis über 0`)
+        end
+        if type(node.name) ~= "string" or node.name == "" then
+            table.insert(errors, `{label}: name fehlt`)
+        end
+        if type(node.description) ~= "string" or node.description == "" then
+            table.insert(errors, `{label}: description fehlt`)
+        end
         if type(node.effect) ~= "table" then
             table.insert(errors, `{label}: effect fehlt`)
+        elseif EFFECT_KINDS[node.effect.kind] == nil then
+            table.insert(errors, `{label}: unbekannte Wirkung "{tostring(node.effect.kind)}"`)
+        elseif node.effect.kind == "rateBonus" and (not isInt(node.effect.bp) or node.effect.bp <= 0) then
+            table.insert(errors, `{label}: rateBonus braucht bp als ganze Zahl über 0`)
+        elseif node.effect.kind == "setTank" and (not isInt(node.effect.capacity) or node.effect.capacity <= 0) then
+            table.insert(errors, `{label}: setTank braucht capacity als ganze Zahl über 0`)
         end
         if type(node.requires) ~= "table" then
             table.insert(errors, `{label}: requires fehlt`)
@@ -605,6 +628,10 @@ local function checkWorld(errors: { string }, data: DataSet)
     if not isFinite(stand.rangeStuds) or stand.rangeStuds <= 0 then
         table.insert(errors, "World.sellStand.rangeStuds muss größer als 0 sein")
     end
+    local field = world.sandField
+    if type(field) ~= "table" or type(field.tag) ~= "string" or field.tag == "" then
+        table.insert(errors, "World.sandField.tag fehlt")
+    end
     if not isFinite(stand.promptDistanceStuds) or stand.promptDistanceStuds <= 0 or (isFinite(stand.rangeStuds) and stand.promptDistanceStuds > stand.rangeStuds) then
         table.insert(errors, "World.sellStand.promptDistanceStuds muss größer als 0 und höchstens rangeStuds sein")
     end
@@ -722,6 +749,81 @@ local function checkTerrain(errors: { string }, data: DataSet)
     end
 end
 
+-- Tank-Knoten sollen entlang der Voraussetzungen steigen: ein Knoten, der einen anderen
+-- verlangt, muss einen größeren Tank geben (sonst wäre der Kauf wertlos).
+local function checkTankChain(errors: { string }, data: DataSet)
+    local tree = data.UpgradeTree
+    if type(tree) ~= "table" or type(tree.byId) ~= "table" then
+        return
+    end
+    for _, node in tree.list do
+        if type(node.effect) == "table" and node.effect.kind == "setTank" and type(node.requires) == "table" then
+            for _, requiredId in node.requires do
+                local required = tree.byId[requiredId]
+                if
+                    required ~= nil
+                    and type(required.effect) == "table"
+                    and required.effect.kind == "setTank"
+                    and isFinite(required.effect.capacity)
+                    and isFinite(node.effect.capacity)
+                    and node.effect.capacity <= required.effect.capacity
+                then
+                    table.insert(errors, `UpgradeTree "{node.id}": Tank muss größer sein als bei "{requiredId}"`)
+                end
+            end
+        end
+    end
+end
+
+local function checkTutorial(errors: { string }, data: DataSet)
+    local tutorial = data.Tutorial
+    if type(tutorial) ~= "table" or type(tutorial.steps) ~= "table" or #tutorial.steps == 0 then
+        table.insert(errors, "Tutorial.steps fehlt oder ist leer")
+        return
+    end
+    if not isInt(tutorial.showUpgradesFromStep) or tutorial.showUpgradesFromStep < 1 or tutorial.showUpgradesFromStep > #tutorial.steps then
+        table.insert(errors, "Tutorial.showUpgradesFromStep muss ein Schritt der Liste sein")
+    end
+    local tree = if type(data.UpgradeTree) == "table" then data.UpgradeTree.byId else nil
+    local seen: { [string]: boolean } = {}
+    for index, step in tutorial.steps do
+        local label = `Tutorial Schritt {index}`
+        if type(step) ~= "table" then
+            table.insert(errors, `{label}: muss eine Tabelle sein`)
+            continue
+        end
+        if type(step.id) ~= "string" or step.id == "" or seen[step.id] then
+            table.insert(errors, `{label}: id fehlt oder ist doppelt`)
+        else
+            seen[step.id] = true
+        end
+        if type(step.text) ~= "string" or step.text == "" then
+            table.insert(errors, `{label}: text fehlt`)
+        end
+        if TUTORIAL_TARGETS[step.target] == nil then
+            table.insert(errors, `{label}: unbekanntes Ziel "{tostring(step.target)}"`)
+        end
+        local done = step.done
+        if type(done) ~= "table" or CONDITION_KINDS[done.kind] == nil then
+            table.insert(errors, `{label}: unbekannte Bedingung`)
+        elseif done.kind == "tankAtLeast" and (not isFinite(done.amount) or done.amount <= 0) then
+            table.insert(errors, `{label}: tankAtLeast braucht amount über 0`)
+        elseif
+            done.kind == "tankAtLeast"
+            and type(data.Economy) == "table"
+            and isFinite(data.Economy.startTankCapacity)
+            and done.amount > data.Economy.startTankCapacity
+        then
+            table.insert(errors, `{label}: amount darf nicht größer als Economy.startTankCapacity sein`)
+        elseif done.kind == "node" and (type(tree) ~= "table" or tree[done.nodeId] == nil) then
+            table.insert(errors, `{label}: Knoten "{tostring(done.nodeId)}" fehlt in UpgradeTree`)
+        end
+        if step.highlightNodeId ~= nil and (type(tree) ~= "table" or tree[step.highlightNodeId] == nil) then
+            table.insert(errors, `{label}: highlightNodeId "{tostring(step.highlightNodeId)}" fehlt in UpgradeTree`)
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -739,6 +841,8 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkEconomy(errors, data)
     checkWorld(errors, data)
     checkTerrain(errors, data)
+    checkTankChain(errors, data)
+    checkTutorial(errors, data)
     return errors
 end
 
