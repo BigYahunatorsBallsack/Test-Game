@@ -6,11 +6,11 @@ Stand Paket 0.3. Grundlage: `docs/konzept.md`, `docs/umsetzungsplan.md`. Testfä
 
 ```
 default.project.json     Rojo: Shared -> ReplicatedStorage, Server -> ServerScriptService, Client -> StarterPlayerScripts
-src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindOdds, Finds, Crates, GemPacks, Products, Economy, UpgradeTree, World, Terrain)
-src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard)
+src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindOdds, Finds, Crates, GemPacks, Products, Economy, UpgradeTree, World, Terrain, Tutorial)
+src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard, TreePurchase, Tutorial)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, UpgradeList, Tutorial)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -31,7 +31,7 @@ Regeln:
 | Economy | Münzen und Gems buchen, Verkaufspreis, Boni | 1.2, 1.3 |
 | Sand | Sammeln, Tank, Verkaufen | 1.2 |
 | Finds | Fundstücke, Sammlung, Sets | 2.6 |
-| Upgrades | Skilltree-Käufe, Zonen-Freischaltung, Sandsturm | 2.1, 2.5, 2.7 |
+| Upgrades | Skilltree-Käufe (Mini-Kauf seit 1.6), Zonen-Freischaltung, Sandsturm | 1.6, 2.1, 2.5, 2.7 |
 | Crates | Kisten öffnen, Quoten, Pity | 4.2, 4.3 |
 | Shop | Käufe, Gamepasses, Policy-Funktionen | 4.1, 4.4, 4.6 |
 | Events | Event-Kalender, Daily Reward, Koloss | 5.1, 5.4 bis 5.6 |
@@ -40,7 +40,7 @@ Regeln:
 
 ### Controllers (Client)
 
-`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4).
+`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4). `UpgradeList` zeigt die kaufbaren Knoten (Paket 1.6, schlichte Fassung bis zum Baum in 2.2), `Tutorial` zeigt Hinweistext, Strahl und Markierung der ersten 2 Minuten.
 
 ## Datenfluss
 
@@ -61,7 +61,7 @@ Jede Client->Server-Remote durchläuft in `Net.on` vor dem Handler:
 | SetCollecting | Event | Client -> Server | `holding: boolean` | 10 pro s |
 | Sell | Event | Client -> Server | keine | 2 pro s |
 | TravelZone | Function | Client -> Server | `zoneId: string` (höchstens 32 Zeichen, muss in `Zones` stehen) | 1 pro s |
-| PurchaseNode | Function | Client -> Server | `nodeId: string` (höchstens 64 Zeichen, muss in `UpgradeTree` stehen) | 5 pro s |
+| PurchaseNode | Function | Client -> Server | `nodeId: string` (höchstens 64 Zeichen, muss in `UpgradeTree` stehen). Antwort `{ ok, reason? }`, Gründe: unknown, granted, owned, requires, coins | 5 pro s |
 | OpenCrate | Function | Client -> Server | `crateId` (aus `Crates`), `count` (ganze Zahl 1 oder 10) | 1 pro s |
 | Prestige | Function | Client -> Server | keine | 1 pro 5 s |
 | StateSync | Event | Server -> Client | Zustand (Paket 1.2) | kein Limit |
@@ -119,6 +119,18 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - Anzeige für den Handy-Test (`debug.showOverlay`): Modus, FPS und offene Blöcke oben links unter dem HUD. Vor dem Launch abschalten.
 - Platzhalter-Sandfeld: Liegt am Feld `placeholderField` noch kein Terrain, legt der Server beim Start ein Sandfeld an (Warnung im Output) und färbt das Material nach der Sandsorte. Mit der echten Zone (Paket 1.5) `enabled = false` setzen.
 - Bekannte Grenzen: Mit StreamingEnabled kann ein Block, der aus- und wieder eingeblendet wird, vor dem Nachwachsen schon im Originalzustand sein (harmlos). Ändert der Server später Terrain in einem offenen Block, überschreibt das Nachwachsen diese Änderung bei diesem Spieler bis zum nächsten Laden. Das Koloss-Event (5.6) braucht deshalb eine eigene Lösung. Die Sandfarbe ist global pro Material (`SetMaterialColor`), Zonen mit anderen Sandsorten brauchen in 2.5 eigene Materialien oder Material-Varianten.
+
+## Mini-Kauf und Tutorial (Paket 1.6)
+
+- Neue Knoten in `UpgradeTree` (Werte aus `docs/balance/phase0_startwerte.md`): `collect_rate_1` (15 Münzen, +50 % Sammelrate), `tank_1` (20, Tank 30), `tank_2` (60, Tank 60), `tank_3` (250, Tank 150), `collect_rate_2` (120, +25 %, nach der Schaufel). Jeder Knoten hat jetzt `name` und `description`. Wirkungen: `rateBonus` (bp, Boni addieren sich auf die Grundrate des Werkzeugs), `setTank` (Gesamtgröße, der höchste gekaufte Wert zählt, der Gamepass-Faktor kommt danach).
+- Kauf in `Logic/TreePurchase.luau` (rein): `check` und `buy` prüfen bekannt, nicht vergeben, nicht gekauft, Voraussetzungen, Münzen (in dieser Reihenfolge) und liefern den Grund (`unknown`, `granted`, `owned`, `requires`, `coins`). Der Kauf läuft ohne Warten im selben Aufruf, ein Doppelklick trifft deshalb auf `owned`. `Upgrades` hängt `PurchaseNode` daran, nach Erfolg ruft es `Sand.refresh(player)` (Tutorial neu bewerten, Zustand senden). 2.1 baut den ganzen Baum auf diesem Kauf auf.
+- `StateSync` hat zwei neue Felder: `nodes` (gekaufte, bekannte Knoten) und `tutorialStep`.
+- Tutorial: Schritte und Texte in `Data/Tutorial.luau`, Fortschritt in `Logic/Tutorial.luau` (rein), gespeichert als `profile.tutorial.step` (1 bis 4 = Schritt, 5 = fertig, nie zurück). Bedingungen: `tankAtLeast` (15 Sand), `sold` (Ereignis vom Server), `node` (zählt auch beim Laden, erledigte Schritte entfallen). Das Feld wird bei alten Spielständen von `Profile.migrate` mit Schritt 1 gefüllt, die Profilversion bleibt 1.
+- Anzeige: `Tutorial` (Client) zeigt Text oben und einen Strahl zum Ziel (Teile mit dem Tag `World.sandField.tag` bzw. `World.sellStand.tag`, sonst das Platzhalter-Sandfeld aus `Data/Terrain`). `UpgradeList` erscheint ab `Tutorial.showUpgradesFromStep`, zeigt höchstens 4 kaufbare Knoten nach Preis, graut zu teure aus und lässt den Knoten des aktuellen Schritts leuchten.
+- Zielzeiten: Eine Lune-Simulation mit den echten Regeln (5 s Weg je Richtung, billigsten sichtbaren Knoten kaufen) ergibt das erste Upgrade nach 20 s und die Schaufel nach 120 s, wie `Economy.targetSeconds`.
+- Das Tutorial schickt schon bei 15 Sand zum Verkauf, auch bei größerem Tank (zum Beispiel mit dem Gamepass "Großer Tank", 4.4). Verkaufen geht mit jedem nicht leeren Tank, der Server prüft die Reichweite zum Händlerstand wie in 1.2.
+
+- Security-Review 1.6: kein kritischer Befund (kein Kauf ohne Voraussetzung, Münzen oder doppelt). Eingearbeitet: Sandsturm-Knoten sind nie kaufbar, DataCheck verlangt Preis über 0 für kaufbare Knoten, Fehler in der Anzeige nach dem Kauf melden keinen Fehlschlag mehr. Bekannt und offen: (a) Münzen über etwa 1e15 runden kleine Preise auf 0 (Eigenschaft des Zahlentyps, kein Gewinn, in 2.1 beachten). (b) Eine Raten-Änderung gilt rückwirkend für das offene Abrechnungsfenster (höchstens 0,25 s, etwa 1 Sand). (c) Verkaufen per Teleport zum Stand: Die Position bestimmt der Client, ein Teleport hin und zurück spart den Weg und verkürzt die frühen Zeiten. Mit Käufen für Münzen lohnt sich das, die Prüfung (mehrere Proben in Reichweite oder Geschwindigkeitsgrenze) gehört in Paket 6.1.
 
 ## Zahlentyp
 

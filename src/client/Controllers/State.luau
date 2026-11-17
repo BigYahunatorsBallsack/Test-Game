@@ -14,6 +14,8 @@ export type Snapshot = {
     collecting: boolean,
     zoneId: string,
     pricePerSand: number,
+    nodes: { [string]: boolean }, -- gekaufte Knoten (nur die, die der Baum kennt)
+    tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 
 local State = {}

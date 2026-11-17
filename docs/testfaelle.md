@@ -139,6 +139,26 @@ Die Regeln stehen in zwei reinen Modulen: `src/shared/Logic/SandDig.luau` (welch
 - [ ] [Studio] Rückfallvariante zum Ausprobieren: In der Client-Befehlszeile `game.Players.LocalPlayer:SetAttribute("DigMode", "fallback")`. Dann sinkt eine Sandscheibe ein, und Partikel fliegen, das Terrain bleibt unverändert. `"full"` schaltet zurück, `nil` gibt die Wahl an den Wächter.
 - [ ] [Studio] Auf einem schwachen Handy (veröffentlichtes Spiel, Anzeige oben links mit FPS und Modus) bleibt die Bildrate flüssig. Fällt sie darunter, schaltet der Wächter auf die Rückfallvariante.
 
+## 1.6 Die ersten 2 Minuten
+
+Entscheidung von Waltuh (17.11.2026): 1.6 bringt einen Mini-Kauf mit. Neue Knoten in `UpgradeTree`: `collect_rate_1` (15 Münzen, +50 % Sammelrate), `tank_1` (20, Tank 30), `tank_2` (60, Tank 60), `tank_3` (250, Tank 150), `collect_rate_2` (120, +25 %, nach der Schaufel), dazu die vorhandene Schaufel `collect_tool_2` (50). Werte aus `docs/balance/phase0_startwerte.md`. Der Kauf steht im reinen Modul `src/shared/Logic/TreePurchase.luau`, der Service `Upgrades` schließt `PurchaseNode` an. Paket 2.1 baut darauf auf (ganzer Baum), 2.2 ersetzt die schlichte Upgrade-Liste durch den Baum. Das Tutorial steht in `src/shared/Data/Tutorial.luau` (Schritte und Texte) und `src/shared/Logic/Tutorial.luau` (Fortschritt), der Server entscheidet den Schritt und speichert ihn im Profil (`tutorial.step`).
+
+- [x] [Lune] Kauf ohne Voraussetzung wird abgelehnt (`tank_2` ohne `tank_1`, `collect_rate_2` ohne Schaufel), Münzen bleiben gleich.
+- [x] [Lune] Zwei schnelle Käufe desselben Knotens: Nur der erste bucht ab, der zweite meldet "schon gekauft".
+- [x] [Lune] Zu wenig Münzen wird abgelehnt, Münzen bleiben gleich. Genau passende Münzen gehen auf 0.
+- [x] [Lune] Unbekannte Knoten und vergebene Knoten (`sandstorm_1`) lassen sich nicht kaufen.
+- [x] [Lune] Große Münzwerte (1e20) kaufen ohne Fehler über den Zahlentyp.
+- [x] [Lune] Wirkung: `collect_rate_1` macht aus 1 Sand/s mit der Hand 1,5, mit Schaufel 7,5. `tank_1` gibt 30, `tank_2` 60, der höchste Tank-Knoten zählt, der Gamepass-Faktor kommt danach. Unbekannte oder entfernte Knoten im Profil ändern nichts.
+- [x] [Lune] Tutorial: Ein neuer Spieler startet bei Schritt 1. 15 Sand im Tank (auch bei größerem Tank) führen zu Schritt 2, der erste Verkauf zu Schritt 3, `collect_rate_1` zu Schritt 4, die Schaufel beendet das Tutorial. Schritte gehen nie zurück.
+- [x] [Lune] Tutorial beim Laden: Wer schon weiter ist (zum Beispiel die Schaufel besitzt), überspringt die erledigten Schritte. Ein kaputter Schritt im Profil fällt auf einen gültigen Wert zurück.
+- [x] [Lune] Zeit-Simulation mit den echten Regeln (Sammeln, 5 s Weg je Richtung, Verkaufen, billigsten verfügbaren Knoten kaufen): Das erste Upgrade ist nach etwa 20 s gekauft, die Schaufel nach etwa 2 Minuten (je ±15 %), wie `Economy.targetSeconds`.
+- [x] [Lune] `DataCheck` prüft die neuen Knoten (Name, bekannte Wirkung, Tank-Knoten steigen entlang der Kette) und die Tutorial-Schritte (bekannte Bedingung, existierende Knoten, bekanntes Ziel). Eine kaputte Fassung schlägt fehl.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Neuer Spieler (Profil leeren oder Studio-Speicher neu): Oben steht Schritt 1, ein Strahl und eine Markierung zeigen aufs Sandfeld. Nach dem Füllen zeigt der Strahl zum Händlerstand, nach dem Verkauf leuchtet in der Upgrade-Liste der erste Knoten.
+- [ ] [Studio] Upgrade-Liste rechts: Zeigt die kaufbaren Knoten mit Preis. Zu teuer ist ausgegraut, ein Klick darauf meldet "Zu wenig Münzen". Ein Kauf wirkt sofort (Rate oder Tank im HUD).
+- [ ] [Studio] Nach der Schaufel verschwindet das Tutorial. Nach einem Rejoin bleibt der Schritt erhalten.
+- [ ] [Studio] Fremde Testspieler finden die Schleife ohne Erklärung (Fertig, wenn). Stoppuhr: erstes Upgrade nach etwa 20 s, Schaufel nach etwa 2 Minuten.
+
 ## 2.1 Skilltree-Daten und Kauf-Server
 
 - [ ] [Lune] Ein Kauf ohne Voraussetzung wird abgelehnt.

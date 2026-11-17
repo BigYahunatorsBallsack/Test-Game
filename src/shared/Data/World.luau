@@ -6,6 +6,11 @@
 export type Vec3 = { x: number, y: number, z: number }
 
 local World = {
+    -- Sandfelder: Der Client zeigt Tutorial-Hinweise zum nächsten Teil mit diesem CollectionService-Tag.
+    -- Gibt es keinen, zeigt er auf das Platzhalter-Sandfeld (Data/Terrain).
+    sandField = {
+        tag = "SandField",
+    },
     sellStand = {
         -- CollectionService-Tag, an dem der Server Händlerstände in der Welt erkennt.
         tag = "SellStand",

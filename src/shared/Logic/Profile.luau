@@ -35,6 +35,7 @@ export type Profile = {
     receipts: { [string]: boolean }, -- verarbeitete PurchaseIds
     boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft
     daily: { streak: number, lastDay: number },
+    tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
     createdAt: number,
 }
@@ -87,6 +88,7 @@ function Profile.default(now: number?): Profile
         receipts = {},
         boosts = { coinsUntil = 0 },
         daily = { streak = 0, lastDay = 0 },
+        tutorial = { step = 1 },
         lastSeen = time,
         createdAt = time,
     }

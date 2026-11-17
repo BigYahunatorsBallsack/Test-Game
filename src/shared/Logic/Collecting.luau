@@ -42,11 +42,17 @@ local FALLBACK_ZONE_ID = "dunes"
 
 local Collecting = {}
 
+-- Besitzt der Spieler den Knoten, und kennt der Baum ihn? Unbekannte Knoten-IDs im Profil
+-- (zum Beispiel nach einem Baum-Update) zählen nicht.
+local function owns(profile: any, nodeId: string): boolean
+    return profile.nodes[nodeId] == true and UpgradeTree.byId[nodeId] ~= nil
+end
+
 -- Das höchste Werkzeug, dessen Knoten der Spieler besitzt. Unbekannte Knoten zählen nicht.
 function Collecting.toolOf(profile: any): Tools.Tool
     local best = Tools.byId.hand
     for _, tool in Tools.list do
-        local owned = tool.nodeId == "start" or (profile.nodes[tool.nodeId] == true and UpgradeTree.byId[tool.nodeId] ~= nil)
+        local owned = tool.nodeId == "start" or owns(profile, tool.nodeId)
         if owned and tool.tier > best.tier then
             best = tool
         end
@@ -54,15 +60,39 @@ function Collecting.toolOf(profile: any): Tools.Tool
     return best
 end
 
--- Sand pro Sekunde.
+-- Sand pro Sekunde: Grundrate des Werkzeugs mal (1 + Summe aller Sammelraten-Boni).
 function Collecting.rateOf(profile: any): number
-    return Collecting.toolOf(profile).sandPerSecond
+    local bonusBp = 0
+    for _, node in UpgradeTree.list do
+        if node.effect.kind == "rateBonus" and owns(profile, node.id) then
+            bonusBp += node.effect.bp or 0
+        end
+    end
+    return Collecting.toolOf(profile).sandPerSecond * (10000 + bonusBp) / 10000
 end
 
--- Tankgröße in Sand. Tank-Knoten aus dem Skilltree kommen in Paket 2.1 dazu.
-function Collecting.capacityOf(_profile: any, options: Options?): number
+-- Tankgröße in Sand: der größte gekaufte Tank-Knoten (sonst die Startgröße), danach der
+-- Faktor aus `options` (zum Beispiel Gamepass "Großer Tank", Paket 4.4).
+function Collecting.capacityOf(profile: any, options: Options?): number
+    local base = Economy.startTankCapacity
+    for _, node in UpgradeTree.list do
+        if node.effect.kind == "setTank" and owns(profile, node.id) then
+            base = math.max(base, node.effect.capacity or 0)
+        end
+    end
     local multiplier = if options and options.capacityMultiplier then options.capacityMultiplier else 1
-    return math.floor(Economy.startTankCapacity * multiplier)
+    return math.floor(base * multiplier)
+end
+
+-- Gekaufte Knoten, die der Baum kennt, als Menge (ID -> true) für die Anzeige beim Client.
+function Collecting.ownedNodes(profile: any): { [string]: boolean }
+    local result: { [string]: boolean } = {}
+    for nodeId, owned in profile.nodes do
+        if owned == true and UpgradeTree.byId[nodeId] ~= nil then
+            result[nodeId] = true
+        end
+    end
+    return result
 end
 
 function Collecting.zoneOf(profile: any): Zones.Zone
