@@ -1,17 +1,15 @@
 --!strict
 -- Zahlentyp für große Werte (Mantisse und Exponent): Wert = m * 10^e.
 -- Paket 0.3 lieferte die Schnittstelle (new, zero, serialize, deserialize), Paket 1.2 das
--- Rechnen und Vergleichen, das Sammeln und Verkaufen brauchen. Die Anzeige (format) und
--- die ausführlichen Grenzwert-Tests folgen in Paket 1.3.
+-- Rechnen und Vergleichen, das Sammeln und Verkaufen brauchen, Paket 1.3 die Anzeige
+-- (format) und die Grenzwert-Tests (tests/bignum.spec.luau).
 --
--- Anzeige (Umsetzung in 1.3): deutsches Komma als Dezimaltrenner, ab 1000 mit Suffix
+-- Anzeige: deutsches Komma als Dezimaltrenner, ab 1000 mit Suffix
 -- K, M, B, T, danach Qa, Qi, Sx, Sp, Oc, No, Dc (bis 10^35), ab 10^36 wissenschaftlich
 -- ("1,23e36").
 
 export type BigNum = { m: number, e: number }
 export type Serialized = { m: number, e: number }
-
-local NOT_IMPLEMENTED = "BigNum: in Paket 1.3"
 
 local BigNum = {}
 
@@ -174,9 +172,86 @@ function BigNum.toNumber(a: BigNum): number
     return value
 end
 
--- Anzeigetext für Spieler (deutsches Komma, Suffixe siehe SUFFIXES).
+-- Anzeige (Paket 1.3) ------------------------------------------------------------------
+
+-- Nachkommastellen: Standard und erlaubter Bereich. Nullen am Ende entfallen ("1K", "1,5K").
+BigNum.DEFAULT_DECIMALS = 1
+local MAX_DECIMALS = 4
+-- Wissenschaftliche Schreibweise ab 10^36: bis zu 2 Nachkommastellen ("1,23e36").
+local SCIENTIFIC_DECIMALS = 2
+-- Gleitkomma-Rauschen beim Aufrunden von Hälften (1,15 ist intern 1,1499999...).
+local ROUND_EPSILON = 1e-9
+
+-- Rundet x auf `decimals` Stellen (Hälften nach oben) und gibt die Zahl als ganze Zahl
+-- mal 10^decimals zurück.
+local function roundScaled(x: number, decimals: number): number
+    return math.floor(x * 10 ^ decimals + 0.5 + ROUND_EPSILON)
+end
+
+-- Baut den Text aus einer ganzen Zahl mal 10^decimals: deutsches Komma, ohne Endnullen.
+local function scaledToText(scaled: number, decimals: number): string
+    if decimals == 0 then
+        return string.format("%d", scaled)
+    end
+    local unit = 10 ^ decimals
+    local whole = math.floor(scaled / unit)
+    local fraction = string.format("%0" .. decimals .. "d", scaled - whole * unit)
+    fraction = string.gsub(fraction, "0+$", "") :: string
+    if fraction == "" then
+        return string.format("%d", whole)
+    end
+    return string.format("%d", whole) .. BigNum.DECIMAL_SEPARATOR .. fraction
+end
+
+local function scientificText(m: number, e: number): string
+    local scaled = roundScaled(m, SCIENTIFIC_DECIMALS)
+    if scaled >= 10 * 10 ^ SCIENTIFIC_DECIMALS then
+        -- 9,996e40 rundet auf 10,00 und wird zu 1e41.
+        scaled = 10 ^ SCIENTIFIC_DECIMALS
+        e += 1
+    end
+    return scaledToText(scaled, SCIENTIFIC_DECIMALS) .. "e" .. string.format("%d", e)
+end
+
+-- Anzeigetext für Spieler (deutsches Komma, Suffixe siehe SUFFIXES, ab 10^36 "1,23e36").
+-- `decimals` (0 bis 4, Standard 1) gilt für Zahlen bis 10^36. Rundet Hälften auf und springt
+-- an den Grenzen sauber weiter: 999,96K wird "1M", nie "1000K".
 function BigNum.format(a: BigNum, decimals: number?): string
-    error(NOT_IMPLEMENTED)
+    if a.m == 0 or a.m ~= a.m then
+        return "0"
+    end
+    local d = BigNum.DEFAULT_DECIMALS
+    if decimals ~= nil and decimals == decimals then
+        d = math.clamp(math.floor(decimals), 0, MAX_DECIMALS)
+    end
+
+    local negative = a.m < 0
+    local m = math.abs(a.m)
+    local e = a.e
+    local text: string
+
+    if e >= BigNum.SCIENTIFIC_FROM_EXPONENT then
+        text = scientificText(m, e)
+    else
+        -- Stufe 0 = unter 1000 ohne Suffix, Stufe n = SUFFIXES[n].
+        local tier = if e >= 3 then e // 3 else 0
+        local x = if tier == 0 then m * 10 ^ e else m * 10 ^ (e - 3 * tier)
+        local scaled = roundScaled(x, d)
+        if scaled >= 1000 * 10 ^ d then
+            -- Die Rundung erreicht die nächste Stufe (999,96K wird 1M).
+            tier += 1
+            scaled = 10 ^ d
+        end
+        if tier > #BigNum.SUFFIXES then
+            text = scientificText(1, 3 * tier)
+        elseif scaled == 0 then
+            return "0"
+        else
+            text = scaledToText(scaled, d) .. (if tier == 0 then "" else BigNum.SUFFIXES[tier])
+        end
+    end
+
+    return if negative then "-" .. text else text
 end
 
 return BigNum

@@ -111,7 +111,7 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 
 ## Zahlentyp
 
-`BigNum = { m: number, e: number }` (Wert = m * 10^e, Mantisse in [1, 10)). Paket 0.3 lieferte `new`, `zero`, `serialize` und `deserialize`, Paket 1.2 `add`, `sub`, `mul`, `mulNumber`, `div`, `compare`, `lt`, `eq`, `max`, `min`, `floor` und `toNumber`. Die Mantisse wird auf 14 Nachkommastellen gerundet, damit ganze Zahlen ganz bleiben; `toNumber` gibt ganze Zahlen unter 10^15 exakt zurück. Die Anzeige (`format`) und Grenzwert-Tests folgen in Paket 1.3. Anzeige: deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc (Konstante `BigNum.SUFFIXES`), ab 10^36 wissenschaftlich (`1,23e36`).
+`BigNum = { m: number, e: number }` (Wert = m * 10^e, Mantisse in [1, 10)). Paket 0.3 lieferte `new`, `zero`, `serialize` und `deserialize`, Paket 1.2 `add`, `sub`, `mul`, `mulNumber`, `div`, `compare`, `lt`, `eq`, `max`, `min`, `floor` und `toNumber`. Die Mantisse wird auf 14 Nachkommastellen gerundet, damit ganze Zahlen ganz bleiben; `toNumber` gibt ganze Zahlen unter 10^15 exakt zurück. Paket 1.3 lieferte `format(zahl, stellen?)` und die Tests in `tests/bignum.spec.luau`. Anzeige: deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc (Konstante `BigNum.SUFFIXES`), ab 10^36 wissenschaftlich (`1,23e36`). Standard ist eine Nachkommastelle (`BigNum.DEFAULT_DECIMALS`, wählbar 0 bis 4), Endnullen entfallen (`1K`, `1,5K`), Hälften runden auf, und an den Stufengrenzen springt die Anzeige weiter (999,96K wird `1M`, nie `1000K`). Das HUD zeigt alle Münz- und Sandwerte über `BigNum.format`.
 
 ## Entscheidungen
 

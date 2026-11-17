@@ -168,11 +168,9 @@ T.describe("Profile", function()
         T.expect(BigNum.deserialize(nil)).toEqual({ m = 0, e = 0 })
         T.expect(BigNum.deserialize({ m = "x", e = 1 })).toEqual({ m = 0, e = 0 })
         T.expect(BigNum.new(0, 5)).toEqual({ m = 0, e = 0 })
-        -- Rechnen gibt es seit Paket 1.2, nur die Anzeige folgt in 1.3.
+        -- Rechnen (Paket 1.2) und Anzeige (Paket 1.3) sind fertig, die Details prüft bignum.spec.
         T.expect(BigNum.add(BigNum.zero(), BigNum.zero())).toEqual({ m = 0, e = 0 })
-        T.expect(function()
-            BigNum.format(BigNum.zero())
-        end).toThrow("Paket 1.3")
+        T.expect(BigNum.format(BigNum.zero())).toBe("0")
     end)
 end)
 

@@ -98,9 +98,22 @@ Die Regeln stehen im reinen Modul `src/shared/Logic/Collecting.luau` (Lune-Tests
 
 ## 1.3 Zahlentyp und Anzeige
 
-- [ ] [Lune] Addieren, Multiplizieren und Vergleichen stimmen unterhalb und oberhalb von 10^15 und gegen Referenzwerte.
-- [ ] [Lune] Die Anzeige rundet sauber (K, M, B, T) und springt an Grenzen wie 999,9K nicht falsch.
-- [ ] [Lune] Speichern und Laden verändert den Wert nicht.
+Rechnen und Vergleichen stehen seit 1.2 in `src/shared/Logic/BigNum.luau`, Paket 1.3 ergänzt `BigNum.format` und die Grenztests in `tests/bignum.spec.luau`. Das HUD ruft nur noch `BigNum.format` auf. Entscheidungen: ein Nachkommastelle als Standard, Nullen am Ende entfallen (`1K`, `1,5K`), deutsches Komma, Suffixe K, M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc, ab 10^36 wissenschaftlich mit bis zu 2 Nachkommastellen (`1,23e36`).
+
+- [x] [Lune] Addieren, Multiplizieren, Dividieren und Vergleichen stimmen unterhalb und oberhalb von 10^15 gegen feste Referenzwerte (zum Beispiel 9,5e14 + 9,5e14 = 1,9e15, 1e20 * 1e20 = 1e40, 6e30 / 2e10 = 3e20). Ein winziger Summand neben einem riesigen ändert den Wert nicht. Subtrahieren bis genau 0 ergibt die Null.
+- [x] [Lune] Vergleichen und Ordnen über große Exponenten: 1e15 < 1,0000001e15, 9,99e308 und mehr bleiben vergleichbar (kein Überlauf), negative Werte ordnen sich richtig.
+- [x] [Lune] Anzeige unter 1000: ganze Zahlen ohne Suffix (`0`, `7`, `999`), Brüche mit Komma (`2,5`), Nullen am Ende entfallen.
+- [x] [Lune] Anzeige je Suffix: `1K`, `1,5K`, `12,3K`, `999K`, `1M`, `1,2B`, `4,56T`, bis `Dc` (zum Beispiel `1,2Dc` bei 1,2e33, `999Dc` bei 9,99e35 gerundet).
+- [x] [Lune] Rundung an den Grenzen springt nicht falsch: 999,9K bleibt `999,9K`, 999.950 wird `1M` (nicht `1000K`), 999,96e6 wird `1B`, 999,96e33 wird `1e36`. Das gilt in jeder Stufe bis `Dc`. Halbe Werte runden auf (1,25K mit 1 Stelle ergibt `1,3K`, 1,15K ergibt `1,2K`).
+- [x] [Lune] Wissenschaftlich ab 10^36: `1e36`, `1,23e36`, `9,99e99`, `1,5e308`, und 9,996e40 rundet auf `1e41`.
+- [x] [Lune] Negative Werte: `-1,5K`, `-999`. Null und `{m=0, e=0}` ergeben `0`, auch nach Subtraktion gleicher Werte.
+- [x] [Lune] Die Stellenzahl lässt sich angeben (`decimals` 0 bis 4, andere Werte werden begrenzt): 1234 mit 0 Stellen ergibt `1K`, mit 2 Stellen `1,23K`.
+- [x] [Lune] Ungültige Eingaben stürzen nicht ab: ein Wert mit NaN oder unendlicher Mantisse ergibt `0` bei `deserialize`, und `format` erwartet nur gültige BigNum-Werte.
+- [x] [Lune] Speichern und Laden verändert den Wert nicht: `deserialize(serialize(x))` ist für kleine, große (1e15, 1,234e40) und negative Werte identisch, und die Anzeige bleibt gleich. Ungültige gespeicherte Werte (Text, NaN, unendlich, fehlende Felder) werden zur Null.
+- [x] [Lune] Eine Zahl wie 1e15 hat durch Rechnen keine Rauschstellen (`0,1 + 0,2` als BigNum ergibt `0,3` mit `format`).
+- [x] [Shell] `rojo build` baut ohne Fehler, und `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Im Playtest zeigt das HUD Münzen und Tank mit Suffixen (zum Beispiel `1,5K`), der Verkaufs-Hinweis (`+12,3K Münzen`) stimmt, und per Studio-Befehlszeile gesetzte Münzen von 1e40 erscheinen als `1e40`.
+- [ ] [Studio] Der Text des Tankbalkens passt auch bei `999,9K / 1M` ins Feld (kein Abschneiden am Handy-Bildschirm).
 
 ## 1.4 Terrain-Verformung auf dem Client
 
