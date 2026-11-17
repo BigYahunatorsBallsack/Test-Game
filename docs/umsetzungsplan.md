@@ -60,7 +60,7 @@ Während Claude den Skilltree und die Zonen baut, entstehen parallel die Assets.
 | 2.2 | Tree-UI mit Zoom, Zuständen, Linien, Nebel | Claude Code, Plan mit Opus 5.5, Umsetzung mit Sonnet 5.5, high | L | Baum entsteht aus den Daten und ist am Handy bedienbar |
 | 2.3 | Freischalt-Animationen und Sound | Claude Code, Sonnet 5.5, high, Feinschliff medium | M | Sequenz läuft flüssig, Meilenstein- und Kurzvariante stehen |
 | 2.4 | Ausrüstung wirkt: Detektor, Schaufel, Rucksack | Claude Code, Sonnet 5.5, high | M | Werte aus dem Baum verändern das Spiel spürbar |
-| 2.5 | Zonen 2 bis 5: Freischaltung, Wetter, Tiefenschichten | Claude Code, Sonnet 5.5, high | M | Alle Zonen sind mit Platzhaltern spielbar |
+| 2.5 | Zonen 2 bis 5: Freischaltung über Meilenstein-Knoten-IDs, Wetter, Tiefenschichten | Claude Code, Sonnet 5.5, high | M | Alle Zonen sind mit Platzhaltern spielbar |
 | 2.6 | Museumsbuch mit Sets und Bonus | Claude Code, Sonnet 5.5, medium | M | Neue Funde füllen Slots, der Set-Bonus wirkt |
 | 2.7 | Neustart (Rebirth) mit Prestige-Marken | Claude Code, Opus 5.5, high | S bis M | Reset behält Ausrüstung und Museum, Bonus wirkt |
 | 3.1 | Icons für Knoten, Kisten, Fundkategorien, UI-Rahmen | ChatGPT, GPT Image 2.5 | M | Alle Icons im einheitlichen Stil im Spiel |
@@ -79,13 +79,13 @@ Geld fließt erst, wenn Käufe fehlerfrei laufen und Spieler zurückkommen. Desh
 | 4.1 | Gems und Gem-Pakete als Developer Products mit sicherer Kaufabwicklung | Claude Code, Opus 5.5, xhigh | M | Testkäufe gehen nie doppelt oder verloren |
 | 4.2 | Kisten: Quoten, Pity, Öffnen auf dem Server, Reveal-Oberfläche | Claude Code, Opus 5.5, high | M | Simulation mit vielen Öffnungen bestätigt die Quoten |
 | 4.3 | Kisten-Inhalte: Ausrüstungs-Drops, Skins, Verschmelzen | Claude Code, Sonnet 5.5, high | M | Drops greifen in die Ausrüstung, Duplikate lassen sich verschmelzen |
-| 4.4 | Gamepasses (2x Münzen, Auto-Dig, Großer Rucksack) und Boosts | Claude Code, Sonnet 5.5, high | S bis M | Besitz wird auf dem Server geprüft und wirkt nach Neustart |
+| 4.4 | Gamepasses (2x Münzen, Auto-Dig mit Online-Graben und längerer Offline-Grenze, Großer Rucksack) und Boosts | Claude Code, Sonnet 5.5, high | S bis M | Besitz wird auf dem Server geprüft und wirkt nach Neustart |
 | 4.5 | Shop-Oberfläche und Angebote (Starterpaket-Auslöser, Reihenfolge) | Claude Code, Sonnet 5.5, high | M | Angebote erscheinen nach dem Reveal und blockieren nichts |
-| 4.6 | Policy-Funktionen: Quoten-Anzeige, Regions-Fallback mit Direktkauf-Shop, Fragebogen | Claude Code, Opus 5.5, high | S bis M | Checkliste aus dem Konzept ist abgehakt |
+| 4.6 | Policy-Funktionen: Quoten-Anzeige, Regions-Fallback mit Direktkauf-Shop und Ersatz für die Tag-7-Kiste, aktuelle Policy-Seite lesen, Fragebogen | Claude Code, Opus 5.5, high | S bis M | Checkliste aus dem Konzept ist abgehakt |
 | 4.7 | Quoten-Simulation mit sehr vielen Öffnungen als Skript | Claude Code, Sonnet 5.5, medium | S | Abweichung von der Tabelle ist klein |
-| 5.1 | Daily Reward mit 7-Tage-Serie | Claude Code, Sonnet 5.5, medium | S | Serie zählt richtig, Tag 7 gibt die Gratis-Kiste |
+| 5.1 | Daily Reward mit 7-Tage-Serie | Claude Code, Sonnet 5.5, medium | S | Serie zählt richtig, Tag 7 gibt die Gratis-Kiste oder in gesperrten Regionen den festen Ersatz |
 | 5.2 | Codes-System | Claude Code, Sonnet 5.5, medium | S | Codes sind einmal pro Spieler einlösbar |
-| 5.3 | Begleiter mit Offline-Ertrag | Claude Code, Sonnet 5.5, high | M | Ertrag nach Abwesenheit stimmt |
+| 5.3 | Begleiter mit Offline-Ertrag (Münzen, etwa 4 Stunden Grenze, mit Auto-Dig länger, keine Funde ab "Selten") | Claude Code, Sonnet 5.5, high | M | Ertrag nach Abwesenheit stimmt und hält die Grenze ein |
 | 5.4 | Event-Kalender als Daten: Saisons ohne Code-Änderung | Claude Code, Sonnet 5.5, medium | S | Neue Saison heißt neue Tabellenzeile |
 | 5.5 | Saison-Pass, Event-Kiste, Event-Zone | Claude Code, Zahlen mit Opus 5.5 geplant, Umsetzung Sonnet 5.5, high | L | Saison 1 ist komplett spielbar und kaufbar |
 | 5.6 | Server-Event "Weltfund" | Claude Code, Sonnet 5.5, high | M | Alle Spieler eines Servers graben gemeinsam ein Boss-Relikt aus |
@@ -151,13 +151,7 @@ Der Baum ist eine Datentabelle, die Server und UI gemeinsam lesen. Ein neues Upg
 - **Animationen:** TweenService für Größe, Transparenz und Kamera. Partikel als kleine Bilder im UI. Dauer, Easing und Anzahl stehen als Konstanten oben im Script, damit du sie schnell einstellen kannst.
 - **Performance:** Nur sichtbare Knoten existieren als UI-Objekte. Das hält Handys flüssig und passt zum Verbergen der nächsten Ebenen.
 
-**Testfälle, die bestehen müssen:**
-
-- [ ] Kauf ohne Voraussetzung wird abgelehnt
-- [ ] Doppelklick kauft nicht zweimal
-- [ ] Zu wenig Geld wird abgelehnt, der Client zeigt den Fehler
-- [ ] Spielstand lädt nach Neustart korrekt
-- [ ] Ein Baum-Update zerstört keinen alten Spielstand
+**Testfälle:** stehen in `docs/testfaelle.md` (Abschnitt 2.1).
 
 ## Modellwahl
 
@@ -192,10 +186,11 @@ Claude Code arbeitet in Dateien auf deinem Rechner, und Rojo synchronisiert sie 
 
 - **Studio-Anbindung:** Ein MCP-Server verbindet Claude mit Studio, sodass es Objekte anlegen, Code ausführen und je nach Server auch playtesten und Screenshots machen kann. Studio hat dafür eine [Quick-Connect-Funktion im Assistenten](https://skillselion.com/skills/nonlooped/roblox-suite/roblox-mcp).
 - **Projektdatei (CLAUDE.md):** Kurzfassung des Spielkonzepts, Ordnerstruktur, Regeln (Server entscheidet alles, dem Client wird nie vertraut, Daten kommen aus Tabellen, Luau mit strikter Typprüfung) und die Befehle zum Testen. Claude liest sie in jeder Sitzung.
-- **Pro Arbeitspaket:** Erst ein Plan, dann der Code, dann ein Commit. Kleine Pakete, ein Chat je Paket, damit der Kontext schlank bleibt.
+- **Pro Arbeitspaket:** Erst ein Plan mit Testfällen (abgelegt in `docs/testfaelle.md`), dann der Code, dann ein Commit. Kleine Pakete, ein Chat je Paket, damit der Kontext schlank bleibt.
 - **Animationen abstimmen:** Du beschreibst das gewünschte Gefühl und schickst Screenshots oder einen Bildschirmmitschnitt. Rechne mit drei bis fünf Runden, und halte Dauer und Easing als Konstanten.
 - **Käufe testen:** Developer Products und Gamepasses mit den Testkäufen von Studio prüfen, bevor echte Robux im Spiel sind.
-- **Abnahme:** Jedes Arbeitspaket endet mit deinem Playtest, nicht mit Claudes Meldung "fertig".
+- **Tests ohne Studio:** Logik ohne Roblox-API (Quoten, Pity, Kaufabwicklung, Baum-Kauf) läuft mit dem Luau-Runner Lune auch in der Shell. Dafür bleibt diese Logik in reinen Modulen ohne Roblox-Services.
+- **Abnahme:** Jedes Arbeitspaket endet mit deinem Playtest, nicht mit Claudes Meldung "fertig". Claude liefert dafür eine kurze Studio-Checkliste entlang der Spalte "Fertig, wenn".
 
 ## Quellen
 
