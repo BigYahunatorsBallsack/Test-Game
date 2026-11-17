@@ -1,0 +1,6 @@
+# Werkzeuge für Dune Baron. Installieren mit `rokit install`.
+[tools]
+rojo = "rojo-rbx/rojo@7.7.1"
+lune = "lune-org/lune@0.11.1"
+stylua = "JohnnyMorganz/stylua@2.0.2"
+selene = "Kampfkarren/selene@0.27.1"
