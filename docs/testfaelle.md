@@ -245,13 +245,13 @@ Die Werte aus dem Baum wirken seit 2.1 (Server: `TreeEffects`, `Collecting`). 2.
 - [x] [Lune] `ToolLook.change(vorher, nachher)`: gleiche Stufe ergibt keine Animation, höhere Stufe die Aufwertungs-Animation, niedrigere (Sandsturm-Reset) und der erste Zustand einen stillen Wechsel.
 - [x] [Lune] Kamera: Abstandsbonus je Stufe sinkt nicht, bleibt unter dem Höchstwert und ist nie negativ.
 - [x] [Lune] Staub plus Wechsel-Wolke überschreitet das Partikelbudget nicht.
-- [ ] [Lune] Kein Teil schneidet den Charakter-Quader, kein Teil liegt im Kamera-Gang hinter dem Charakter (alle sechs Stufen, Drehung eingerechnet).
-- [ ] [Lune] Die Arbeitsspitze jeder Stufe liegt vor dem Charakter, und das Loch dort (Radius aus `Terrain.holeByTool`) erreicht den Charakter-Quader nicht.
-- [ ] [Lune] `ToolLook.motionAt` ist periodisch, bleibt im Ausschlag und ist bei Ausschlag 0 still.
-- [ ] [Lune] Jede Stufe hat einen Sandfluss aus der erlaubten Liste, ab der Eimerkette haben zwei aufeinanderfolgende Stufen nie denselben.
-- [ ] [Lune] Höchstens 12 Teile je Modell. `DataCheck` lehnt eine kaputte `ToolLooks`-Tabelle ab (fehlende Stufe, Größe 0, falsche Farbe, Staub fällt, zu viele Teile, unbekannter Sandfluss, kaputte Bewegung).
-- [ ] [Lune] Das Werkzeug für das Attribut `ToolId` ist nach Laden, Kauf und Reset das aus `TreeEffects`.
-- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [x] [Lune] Kein Teil schneidet den Charakter-Quader, kein Teil liegt im Kamera-Gang hinter dem Charakter (alle sechs Stufen, Drehung eingerechnet).
+- [x] [Lune] Die Arbeitsspitze jeder Stufe liegt vor dem Charakter, und das Loch dort (Radius aus `Terrain.holeByTool`) erreicht den Charakter-Quader nicht.
+- [x] [Lune] `ToolLook.motionAt` ist periodisch, bleibt im Ausschlag und ist bei Ausschlag 0 still.
+- [x] [Lune] Jede Stufe hat einen Sandfluss aus der erlaubten Liste, ab der Eimerkette haben zwei aufeinanderfolgende Stufen nie denselben.
+- [x] [Lune] Höchstens 12 Teile je Modell. `DataCheck` lehnt eine kaputte `ToolLooks`-Tabelle ab (fehlende Stufe, Größe 0, falsche Farbe, Staub fällt, zu viele Teile, unbekannter Sandfluss, kaputte Bewegung).
+- [x] [Lune] Das Werkzeug für das Attribut `ToolId` ist nach Laden, Kauf und Reset das aus `TreeEffects`.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
 - [ ] [Studio] Jede der sechs Stufen sieht im Playtest auf den ersten Blick anders aus.
 - [ ] [Studio] Kauf einer neuen Stufe im Baum: das Modell wächst mit kurzer Animation heraus, die Rate steigt im Hud, der Werkzeugname wechselt.
 - [ ] [Studio] Zwei Spieler: jeder sieht die Maschine des anderen, inklusive Wechsel.

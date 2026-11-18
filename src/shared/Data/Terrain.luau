@@ -22,7 +22,7 @@ local Terrain = {
         -- Abstand zwischen zwei Löchern, solange gegraben wird.
         intervalSeconds = 0.35,
         -- Das Loch entsteht so weit vor dem Charakter.
-        forwardStuds = 3.5,
+        forwardStuds = 3.5, -- seit Paket 2.4 nicht mehr genutzt: Das Loch entsteht an ToolLooks.workPoint
         -- Strahl nach unten: Start über dem Boden und Länge.
         rayUpStuds = 6,
         rayLengthStuds = 24,

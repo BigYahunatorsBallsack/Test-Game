@@ -1130,8 +1130,30 @@ local function checkToolLooks(errors: { string }, data: DataSet)
         table.insert(errors, "ToolLooks.limits fehlt")
         return
     end
-    for _, field in { "maxCameraBonusStuds", "maxParticlesPerEmit", "minStepFactor" } do
+    for _, field in { "maxCameraBonusStuds", "maxParticlesPerEmit", "minStepFactor", "maxParts", "maxFlowParticles" } do
         positive(errors, `ToolLooks.limits.{field}`, limits[field])
+    end
+    local function nameSet(label: string, names: any): { [string]: boolean }
+        local set: { [string]: boolean } = {}
+        if type(names) ~= "table" or #names == 0 then
+            table.insert(errors, `ToolLooks.limits.{label} fehlt`)
+            return set
+        end
+        for _, name in names do
+            if type(name) == "string" then
+                set[name] = true
+            end
+        end
+        return set
+    end
+    local flowKinds = nameSet("flowKinds", limits.flowKinds)
+    local motionKinds = nameSet("motionKinds", limits.motionKinds)
+    local view = looks.view
+    if type(view) ~= "table" then
+        table.insert(errors, "ToolLooks.view fehlt")
+    else
+        positive(errors, "ToolLooks.view.motionDistanceStuds", view.motionDistanceStuds)
+        positive(errors, "ToolLooks.view.farUpdateSeconds", view.farUpdateSeconds)
     end
     local change = looks.change
     if type(change) ~= "table" then
@@ -1166,6 +1188,9 @@ local function checkToolLooks(errors: { string }, data: DataSet)
         if type(look.parts) ~= "table" then
             table.insert(errors, `{label}.parts fehlt`)
         else
+            if isFinite(limits.maxParts) and #look.parts > limits.maxParts then
+                table.insert(errors, `{label}: mehr als {limits.maxParts} Teile`)
+            end
             if tool.tier > 1 and #look.parts == 0 then
                 table.insert(errors, `{label}: braucht mindestens ein Teil`)
             end
@@ -1214,6 +1239,75 @@ local function checkToolLooks(errors: { string }, data: DataSet)
             local burst = if type(change) == "table" and isFinite(change.burstCount) then change.burstCount else 0
             if isFinite(dust.count) and isFinite(limits.maxParticlesPerEmit) and dust.count + burst > limits.maxParticlesPerEmit then
                 table.insert(errors, `{label}: Staub plus Wechsel-Wolke übersteigt das Partikelbudget`)
+            end
+        end
+        if type(look.workPoint) ~= "table" or not isFinite(look.workPoint.x) or not isFinite(look.workPoint.z) then
+            table.insert(errors, `{label}.workPoint braucht x und z`)
+        elseif look.workPoint.z >= 0 then
+            table.insert(errors, `{label}.workPoint muss vor dem Charakter liegen (z unter 0)`)
+        end
+        if type(look.loopSoundId) ~= "string" or (look.loopSoundId ~= "" and not string.match(look.loopSoundId, "^rbxassetid://%d+$")) then
+            table.insert(errors, `{label}.loopSoundId muss leer oder rbxassetid:// plus Ziffern sein`)
+        end
+        local partCount = if type(look.parts) == "table" then #look.parts else 0
+        if type(look.motions) ~= "table" then
+            table.insert(errors, `{label}.motions fehlt`)
+        else
+            for index, motion in look.motions do
+                local mLabel = `{label}.motions[{index}]`
+                if type(motion) ~= "table" then
+                    table.insert(errors, `{mLabel} muss eine Tabelle sein`)
+                    continue
+                end
+                if not isInt(motion.part) or motion.part < 1 or motion.part > partCount then
+                    table.insert(errors, `{mLabel}.part verweist auf kein Teil`)
+                end
+                if type(motion.kind) ~= "string" or not motionKinds[motion.kind] then
+                    table.insert(errors, `{mLabel}.kind ist unbekannt`)
+                end
+                positive(errors, `{mLabel}.period`, motion.period)
+                if not isFinite(motion.amplitude) or motion.amplitude < 0 then
+                    table.insert(errors, `{mLabel}.amplitude muss eine Zahl ab 0 sein`)
+                end
+                if motion.kind == "slide" then
+                    local v = motion.vector
+                    if type(v) ~= "table" or not isFinite(v.x) or not isFinite(v.y) or not isFinite(v.z) then
+                        table.insert(errors, `{mLabel}.vector fehlt`)
+                    end
+                elseif motion.axis ~= "x" and motion.axis ~= "y" and motion.axis ~= "z" then
+                    table.insert(errors, `{mLabel}.axis muss x, y oder z sein`)
+                end
+            end
+        end
+        local flow = look.sandFlow
+        if type(flow) ~= "table" then
+            table.insert(errors, `{label}.sandFlow fehlt`)
+        else
+            if type(flow.kind) ~= "string" or not flowKinds[flow.kind] then
+                table.insert(errors, `{label}.sandFlow.kind ist unbekannt`)
+            end
+            for _, point in { "from", "to" } do
+                local v = flow[point]
+                if type(v) ~= "table" or not isFinite(v.x) or not isFinite(v.y) or not isFinite(v.z) then
+                    table.insert(errors, `{label}.sandFlow.{point} braucht x, y und z`)
+                end
+            end
+            positive(errors, `{label}.sandFlow.speed`, flow.speed)
+            positive(errors, `{label}.sandFlow.lifetime`, flow.lifetime)
+            positive(errors, `{label}.sandFlow.size`, flow.size)
+            if not isFinite(flow.rate) or flow.rate < 0 then
+                table.insert(errors, `{label}.sandFlow.rate muss eine Zahl ab 0 sein`)
+            elseif isFinite(flow.lifetime) and isFinite(limits.maxFlowParticles) and flow.rate * flow.lifetime > limits.maxFlowParticles then
+                table.insert(errors, `{label}.sandFlow übersteigt das Partikelbudget`)
+            end
+            if not isFinite(flow.spread) or flow.spread < 0 or flow.spread > 180 then
+                table.insert(errors, `{label}.sandFlow.spread muss zwischen 0 und 180 liegen`)
+            end
+            if tool.tier >= 3 and isFinite(flow.rate) and flow.rate <= 0 then
+                table.insert(errors, `{label}.sandFlow: ab der Eimerkette muss der Sand sichtbar fließen (rate über 0)`)
+            end
+            if type(previous) == "table" and type(previous.sandFlow) == "table" and tool.tier >= 3 and previous.sandFlow.kind == flow.kind then
+                table.insert(errors, `{label}.sandFlow.kind gleicht der Stufe davor`)
             end
         end
         local bonus = look.cameraBonusStuds

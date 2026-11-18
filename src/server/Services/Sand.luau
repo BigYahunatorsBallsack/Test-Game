@@ -29,6 +29,7 @@ local function loadShared(folder: string, name: string): any
 end
 local Collecting = loadShared("Logic", "Collecting")
 local TreeEffects = loadShared("Logic", "TreeEffects")
+local ToolLook = loadShared("Logic", "ToolLook")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
@@ -92,7 +93,22 @@ function Sand.snapshot(player: Player): any?
     }
 end
 
+-- Werkzeug und Sammeln als Spieler-Attribute (Paket 2.4), damit alle Clients die Maschine eines
+-- Spielers sehen. Nur der Server setzt sie, der Client sendet dazu nichts.
+local function publishLook(player: Player)
+    local profile = PlayerData.get(player)
+    if profile == nil then
+        return
+    end
+    for name, value in ToolLook.attributesFor(profile, stateOf(player).holding) do
+        if player:GetAttribute(name) ~= value then
+            player:SetAttribute(name, value)
+        end
+    end
+end
+
 local function sync(player: Player)
+    publishLook(player)
     local snapshot = Sand.snapshot(player)
     if snapshot ~= nil then
         Net.fire(player, "StateSync", snapshot)

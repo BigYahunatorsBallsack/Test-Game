@@ -48,6 +48,7 @@ local OVERLAY_SIZE = UDim2.new(0, 240, 0, 22)
 local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 
 local DIG_MODE_ATTRIBUTE = "DigMode"
+local TOOL_MODELS_FOLDER = "ToolModels" -- Ordner von Controllers/ToolVisual, Teile blockieren den Strahl nicht
 local DEFAULT_SAND_COLOR = Color3.fromRGB(230, 200, 117)
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
@@ -148,13 +149,17 @@ local function wantsDig(): boolean
 end
 
 -- Trefferpunkt auf grabbarem Terrain vor dem Charakter, sonst nil.
-local function findGround(root: BasePart): RaycastResult?
+local function findGround(root: BasePart, toolId: string?): RaycastResult?
     local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
     if look.Magnitude < 1e-3 then
         return nil
     end
     local dig = TerrainData.dig
-    local origin = root.Position + look.Unit * dig.forwardStuds + Vector3.new(0, dig.rayUpStuds, 0)
+    -- Das Loch entsteht an der Arbeitsspitze des Werkzeugs (Data/ToolLooks), z unter 0 = vorn.
+    local workPoint = ToolLook.workPointOf(toolId)
+    local forward = look.Unit
+    local right = forward:Cross(Vector3.yAxis)
+    local origin = root.Position - forward * workPoint.z + right * workPoint.x + Vector3.new(0, dig.rayUpStuds, 0)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     local exclude: { Instance } = {}
@@ -163,6 +168,10 @@ local function findGround(root: BasePart): RaycastResult?
     end
     if discFolder ~= nil then
         table.insert(exclude, discFolder)
+    end
+    local toolModels = workspace:FindFirstChild(TOOL_MODELS_FOLDER)
+    if toolModels ~= nil then
+        table.insert(exclude, toolModels)
     end
     params.FilterDescendantsInstances = exclude
     params.IgnoreWater = true
@@ -345,6 +354,11 @@ local function overlayText(): string
     return `Graben: {modeText} | {fpsText} FPS | Blöcke {SandDig.openCount(digState)}/{TerrainData.regrow.maxDirtyChunks}`
 end
 
+-- Läuft gerade die Rückfallvariante (schwaches Gerät)? ToolVisual spart dann den Sandfluss.
+function Dig.isFallback(): boolean
+    return perf ~= nil and PerfGuard.mode(perf) == "fallback"
+end
+
 function Dig.Init()
     for _, name in TerrainData.diggableMaterials do
         local ok, material = pcall(function(): any
@@ -384,10 +398,10 @@ function Dig.Start()
                 regrowChunk(action)
             end
             if root ~= nil and wantsDig() then
-                local hit = findGround(root)
+                local snapshot = State.get()
+                local toolId = if snapshot ~= nil then snapshot.toolId else nil
+                local hit = findGround(root, toolId)
                 if hit ~= nil then
-                    local snapshot = State.get()
-                    local toolId = if snapshot ~= nil then snapshot.toolId else nil
                     if mode == "full" then
                         digTerrain(t, hit, toolId)
                     else

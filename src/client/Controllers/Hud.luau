@@ -27,6 +27,7 @@ local MESSAGES = {
 }
 
 local BigNum = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Logic"):WaitForChild("BigNum") :: ModuleScript) :: any
+local Tools = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Tools") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 
 local Hud = {}
@@ -96,6 +97,10 @@ function Hud.Start()
     tankLabel.TextXAlignment = Enum.TextXAlignment.Center
     tankLabel.Text = "Tank 0 / 0"
 
+    -- Werkzeugname und Rate unter dem Panel (Paket 2.4)
+    local toolLabel = label(gui, "Tool", UDim2.new(0, 28, 0, 104), UDim2.new(0, 220, 0, 22))
+    toolLabel.Text = ""
+
     local toast = label(gui, "Toast", UDim2.new(0.5, -200, 0.75, 0), UDim2.new(0, 400, 0, 36))
     toast.TextXAlignment = Enum.TextXAlignment.Center
     toast.TextTransparency = 1
@@ -106,6 +111,8 @@ function Hud.Start()
     local barTween = TweenInfo.new(TANK_BAR_TWEEN_SECONDS, TANK_BAR_EASING)
     State.onChanged(function(snapshot: any)
         coinsLabel.Text = `Münzen: {display(snapshot.coins)}`
+        local tool = Tools.byId[snapshot.toolId]
+        toolLabel.Text = if tool ~= nil then `{tool.name} · {displayNumber(snapshot.rate)}/s` else ""
         local tank = BigNum.toNumber(BigNum.deserialize(snapshot.tank))
         local capacity = math.max(snapshot.capacity, 1)
         local ratio = math.clamp(tank / capacity, 0, 1)
