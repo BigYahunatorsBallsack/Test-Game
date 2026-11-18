@@ -10,7 +10,7 @@ src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindO
 src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard, TreePurchase, Tutorial)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, SkillTree, Tutorial)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, SkillTree, UnlockPlayer, Tutorial; UnlockPlayer ist ein Hilfsmodul von SkillTree)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -151,8 +151,18 @@ Der Baum entsteht aus den Daten. Keine neue Remote, kein neues Profilfeld: Der C
 - `Logic/TreeLayout.luau` (rein): rechnet aus `UpgradeTree` den Platz jedes Knotens. Spalte aus der Wirkung, Band aus dem höchsten verlangten Werkzeug (jedes Werkzeug öffnet ein Band), Reihe über den Voraussetzungen derselben Spalte. Die Bänder stapeln sich von unten nach oben, darum verschiebt ein neuer Knoten oben nie die Knoten darunter. Koordinaten: x nach rechts, y nach unten, der Start liegt bei (0, 0).
 - `Logic/TreeView.luau` (rein): Zustand je Knoten aus `TreePurchase.nodeState` und den Münzen: `owned`, `affordable`, `expensive`, `silhouette` (im Nebel, aber alle Voraussetzungen gekauft oder kaufbar, ohne Name und Preis) oder `hidden` (dazu vergebene Knoten wie `sandstorm_1`). Dazu die Linien (nur gerade, senkrecht, innerhalb einer Spalte: `lit`, `dim`, `dashed`), die Bandlinien, "Braucht" je Knoten, der Zähler bezahlbarer Knoten und der Fokus-Knoten beim Öffnen (Tutorial-Knoten, sonst billigster bezahlbarer, sonst billigster kaufbarer, sonst Start).
 - `Logic/TreeCamera.luau` (rein): Zoom um einen Punkt, Pinch, Verschieben mit Randbegrenzung (kleiner Baum steht mittig), Tippen (unter `tapMaxMovePixels`) oder Ziehen, Treffertest, Zentrieren.
-- `Controllers/SkillTree.luau` zeichnet nur: Vollbild-Ebene, Baumfläche mit `UIScale`, Knoten als Frames (Treffer per eigenem Test, nicht per Knopf), gerade Linien, Nebel als Verlauf über dem obersten sichtbaren Knoten, Karte mit Kaufen-Knopf (unten am Handy, rechts am PC), Plus/Minus, Mausrad und Zwei-Finger-Geste. Gekauft wird nur über den Kaufen-Knopf. Solange der Baum offen ist, pausiert `Input.setSuspended` das Sammeln. Die Freischalt-Animation kommt in Paket 2.3.
+- `Controllers/SkillTree.luau` zeichnet nur: Vollbild-Ebene, Baumfläche mit `UIScale`, Knoten als Frames (Treffer per eigenem Test, nicht per Knopf), gerade Linien, Nebel als Verlauf über dem obersten sichtbaren Knoten, Karte mit Kaufen-Knopf (unten am Handy, rechts am PC), Plus/Minus, Mausrad und Zwei-Finger-Geste. Gekauft wird nur über den Kaufen-Knopf. Solange der Baum offen ist, pausiert `Input.setSuspended` das Sammeln. Die Freischalt-Sequenz steht im Abschnitt zu Paket 2.3.
 - `DataCheck` prüft die Layout-Zahlen (eindeutige Spalten, Zoomgrenzen, Mindest-Tippgröße) und `pos` (Spalte, Reihe, Kollision).
+
+## Freischalt-Sequenz (Paket 2.3)
+
+Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durch den Klick, sondern durch den Vergleich zweier `StateSync`-Zustände: Ein Knoten, der neu in `nodes` steht, wurde gekauft. Der erste Zustand nach dem Beitreten hat keinen Vorgänger und zählt nie. Sie läuft nur bei offenem Baum.
+
+- `Data/UnlockAnimation.luau`: Schritte (`press`, `ring`, `pulse`, `reveal`, `camera`, `flash`) mit `start` und `duration` je Variante, dazu `shortAfterPurchases` (10), `pressScale`, `revealStartScale`. Varianten: `normal` (1,2 s), `milestone` (1,6 s, Knoten mit `milestone`, dazu größerer Ring und Aufhell-Puls, gilt immer) und `short` (0,5 s, ab dem elften Kauf einer Sitzung, ohne Lichtimpuls).
+- `Data/TreeSounds.luau`: vier Cues (`press`, `ring`, `reveal`, `milestone`) mit `soundId`, `volume`, `pitch`. Die IDs sind leer, bis Paket 3.5 echte Sounds liefert. Eine leere ID spielt nichts und ist kein Fehler.
+- `Logic/UnlockSequence.luau` (rein): `diff` (neu gekaufte Knoten), `variantFor`, `plan` (Variante, Zeitleiste, neu sichtbare Knoten aus dem Vergleich zweier `TreeView`-Zustände, Impulskanten nur in derselben Spalte, Glanzziele für Folgeknoten ohne Linie, Kamerapunkte, Töne mit Zeitpunkt).
+- `Controllers/UnlockPlayer.luau` (Hilfsmodul von `SkillTree`) spielt den Plan mit Tweens ab: Eindrücken, Ring, Lichtpunkte über die Linien, Schleier und Nebel weichen, Aufhell-Puls, Kamerafahrt per `Heartbeat`. `stop()` springt ans Ende und räumt alle kurzlebigen Instanzen ab. Ein neuer Kauf, das Schließen des Baums und das Ziehen oder Zoomen des Spielers (nur die Kamerafahrt) beenden die laufende Sequenz.
+- `DataCheck` prüft Reihenfolge der Starts, Gesamtdauer (höchstens `maxTotalSeconds`), kurze Variante kürzer und Meilenstein länger als normal, Tonzuordnung und Sound-IDs (leer oder `rbxassetid://` plus Ziffern).
 
 ## Zahlentyp
 

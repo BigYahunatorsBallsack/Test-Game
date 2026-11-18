@@ -7,13 +7,19 @@ local DataCheck = require("../src/shared/Logic/DataCheck")
 local UpgradeTree = require("../src/shared/Data/UpgradeTree")
 local Config = require("../src/shared/Data/TreeLayout")
 
-local function deepCopy(value: any): any
+-- Tiefe Kopie, die gemeinsame Referenzen (list und byId zeigen auf dieselben Knoten) erhält.
+local function deepCopy(value: any, memo: { [any]: any }?): any
     if type(value) ~= "table" then
         return value
     end
+    local seen = memo or {}
+    if seen[value] ~= nil then
+        return seen[value]
+    end
     local copy = {}
+    seen[value] = copy
     for key, inner in value do
-        copy[key] = deepCopy(inner)
+        copy[deepCopy(key, seen)] = deepCopy(inner, seen)
     end
     return copy
 end

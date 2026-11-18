@@ -9,7 +9,8 @@
 -- gekauft wird nur über den Knopf auf der Karte (nie beim Ziehen). Der Client schickt nur die
 -- Knoten-ID (PurchaseNode), der Server prüft und bucht. Alle Werte kommen vom Server (State).
 -- Solange der Baum offen ist, ist das Sammeln pausiert (Input.setSuspended).
--- Die Freischalt-Animation (Ring, Lichtimpuls, Kamerafahrt) kommt in Paket 2.3.
+-- Die Freischalt-Sequenz (Paket 2.3) rechnet Logic/UnlockSequence, abgespielt wird sie von
+-- UnlockPlayer: Sie startet, wenn ein Knoten im StateSync neu in `nodes` steht und der Baum offen ist.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -102,8 +103,10 @@ local TreeCamera = loadShared("Logic", "TreeCamera")
 local LayoutConfig = loadShared("Data", "TreeLayout")
 local TutorialData = loadShared("Data", "Tutorial")
 local UpgradeTree = loadShared("Data", "UpgradeTree")
+local UnlockSequence = loadShared("Logic", "UnlockSequence")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
+local UnlockPlayer = require(script.Parent:WaitForChild("UnlockPlayer") :: ModuleScript) :: any
 
 local SkillTree = {}
 
@@ -116,6 +119,8 @@ type NodeEntry = {
     ringStroke: UIStroke,
     ringPulse: Tween?,
     breath: Tween?,
+    scale: UIScale, -- für Eindrücken und Einblenden (Paket 2.3)
+    veil: Frame, -- deckt den Knoten beim Einblenden zu, danach durchsichtig
     color: Color3,
     lastKey: string, -- Zustand beim letzten Einfärben, damit nichts unnötig neu gesetzt wird
 }
@@ -180,6 +185,7 @@ function SkillTree.Start()
     gui.ResetOnSpawn = false
     gui.ScreenInsets = Enum.ScreenInsets.CoreUISafe -- nichts unter dem Roblox-Menü oder der Notch
     gui.DisplayOrder = 5
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- ZIndex gilt über die ganze Oberfläche
 
     -- Knopf zum Öffnen, oben rechts, mit Zähler
     local openButton = roundButton(gui, "OpenButton", OPEN_TEXT, UDim2.fromOffset(BUTTON_SIZE.X, BUTTON_SIZE.Y))
@@ -272,24 +278,24 @@ function SkillTree.Start()
     -- Kopfzeile: Titel, Münzen, Schließen
     local title = label(overlay, "Title", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN), UDim2.fromOffset(220, 26), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
     title.Text = TITLE_TEXT
-    title.ZIndex = 12
+    title.ZIndex = 20
     local coinsLabel = label(overlay, "Coins", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN + 28), UDim2.fromOffset(240, 20), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     coinsLabel.TextColor3 = TEXT_DIM_COLOR
-    coinsLabel.ZIndex = 12
+    coinsLabel.ZIndex = 20
     local closeButton = roundButton(overlay, "Close", CLOSE_TEXT, UDim2.fromOffset(ICON_BUTTON_SIZE, ICON_BUTTON_SIZE))
     closeButton.AnchorPoint = Vector2.new(1, 0)
     closeButton.Position = UDim2.new(1, -BUTTON_MARGIN, 0, BUTTON_MARGIN)
-    closeButton.ZIndex = 13
+    closeButton.ZIndex = 20
 
     -- Zoom-Knöpfe, links in der Mitte (so liegen sie weder unter der Karte noch unter dem Daumen)
     local zoomIn = roundButton(overlay, "ZoomIn", ZOOM_IN_TEXT, UDim2.fromOffset(ICON_BUTTON_SIZE, ICON_BUTTON_SIZE))
     zoomIn.AnchorPoint = Vector2.new(0, 1)
     zoomIn.Position = UDim2.new(0, EDGE_MARGIN, 0.5, -4)
-    zoomIn.ZIndex = 13
+    zoomIn.ZIndex = 20
     local zoomOut = roundButton(overlay, "ZoomOut", ZOOM_OUT_TEXT, UDim2.fromOffset(ICON_BUTTON_SIZE, ICON_BUTTON_SIZE))
     zoomOut.AnchorPoint = Vector2.new(0, 0)
     zoomOut.Position = UDim2.new(0, EDGE_MARGIN, 0.5, 4)
-    zoomOut.ZIndex = 13
+    zoomOut.ZIndex = 20
 
     -- Karte: unten am Handy, rechts am PC
     local card = Instance.new("Frame")
@@ -298,7 +304,7 @@ function SkillTree.Start()
     card.BackgroundTransparency = 0.05
     card.Active = true
     card.Visible = false
-    card.ZIndex = 14
+    card.ZIndex = 30
     card.Parent = overlay
     if isMobile then
         card.AnchorPoint = Vector2.new(0.5, 1)
@@ -315,20 +321,20 @@ function SkillTree.Start()
     cardStroke.Thickness = 2
     cardStroke.Parent = card
     local cardName = label(card, "Name", UDim2.new(0, 14, 0, 8), UDim2.new(1, -28, 0, 26), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
-    cardName.ZIndex = 15
+    cardName.ZIndex = 31
     local cardDescription = label(card, "Description", UDim2.new(0, 14, 0, 38), UDim2.new(1, -28, 0, 20), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     cardDescription.TextColor3 = TEXT_DIM_COLOR
-    cardDescription.ZIndex = 15
+    cardDescription.ZIndex = 31
     local cardNeeds = label(card, "Needs", UDim2.new(0, 14, 0, 62), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     cardNeeds.TextColor3 = HIGHLIGHT_COLOR
-    cardNeeds.ZIndex = 15
+    cardNeeds.ZIndex = 31
     local cardFeedback = label(card, "Feedback", UDim2.new(0, 14, 0, 84), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     cardFeedback.TextTransparency = 1
-    cardFeedback.ZIndex = 15
+    cardFeedback.ZIndex = 31
     local buyButton = roundButton(card, "Buy", BUY_TEXT, UDim2.new(1, -28, 0, BUY_BUTTON_HEIGHT))
     buyButton.AnchorPoint = Vector2.new(0.5, 1)
     buyButton.Position = UDim2.new(0.5, 0, 1, -12)
-    buyButton.ZIndex = 15
+    buyButton.ZIndex = 31
 
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
@@ -378,6 +384,25 @@ function SkillTree.Start()
     local function framePosition(x: number, y: number): UDim2
         return UDim2.fromOffset(x - area.minX, y - area.minY)
     end
+
+    -- Freischalt-Sequenz (Paket 2.3). `entries` wird beim Anlegen der Knoten gefüllt.
+    local player = UnlockPlayer.new({
+        overlay = overlay,
+        world = world,
+        fog = fog,
+        lineFolder = lineFolder,
+        entries = entries,
+        layout = layout,
+        area = area,
+        framePosition = framePosition,
+        viewport = viewport,
+        getCamera = function(): any
+            return camera
+        end,
+        setCamera = setCamera,
+    })
+    local lastNodes: { [string]: boolean }? = nil -- gekaufte Knoten im vorigen StateSync
+    local purchasesPlayed = 0 -- Käufe dieser Sitzung (für die kurze Variante)
 
     ---------------------------------------------------------------- Knoten
     local function setStrokeStyle(stroke: UIStroke, color: Color3, thickness: number, transparency: number)
@@ -447,6 +472,24 @@ function SkillTree.Start()
         ringStroke.Transparency = 0.1
         ringStroke.Parent = ring
 
+        local scale = Instance.new("UIScale")
+        scale.Parent = frame
+
+        -- Schleier: deckt den Knoten beim Einblenden zu (Hintergrundfarbe), sonst durchsichtig.
+        local veil = Instance.new("Frame")
+        veil.Name = "Veil"
+        veil.AnchorPoint = Vector2.new(0.5, 0.5)
+        veil.Position = UDim2.fromScale(0.5, 0.5)
+        veil.Size = UDim2.new(1, 2 * NODE_STROKE, 1, 2 * NODE_STROKE)
+        veil.BackgroundColor3 = BACKDROP_COLOR
+        veil.BackgroundTransparency = 1
+        veil.BorderSizePixel = 0
+        veil.ZIndex = 16
+        veil.Parent = frame
+        local veilCorner = Instance.new("UICorner")
+        veilCorner.CornerRadius = UDim.new(0, 18)
+        veilCorner.Parent = veil
+
         return {
             frame = frame,
             stroke = stroke,
@@ -456,6 +499,8 @@ function SkillTree.Start()
             ringStroke = ringStroke,
             ringPulse = nil,
             breath = nil,
+            scale = scale,
+            veil = veil,
             color = color,
             lastKey = "",
         }
@@ -538,7 +583,7 @@ function SkillTree.Start()
     end
 
     ---------------------------------------------------------------- Linien, Bänder, Nebel
-    local function newLine(parent: Instance, x: number, yTop: number, length: number, style: string)
+    local function newLine(parent: Instance, x: number, yTop: number, length: number, style: string, toId: string)
         local color = if style == "lit" then LINE_LIT_COLOR else LINE_DIM_COLOR
         if style ~= "dashed" then
             local line = Instance.new("Frame")
@@ -549,6 +594,7 @@ function SkillTree.Start()
             line.BackgroundColor3 = color
             line.BorderSizePixel = 0
             line.ZIndex = 12
+            line:SetAttribute("To", toId)
             line.Parent = parent
             return
         end
@@ -562,6 +608,7 @@ function SkillTree.Start()
             dash.BackgroundColor3 = color
             dash.BorderSizePixel = 0
             dash.ZIndex = 12
+            dash:SetAttribute("To", toId)
             dash.Parent = parent
             offset += DASH_LENGTH + DASH_GAP
         end
@@ -578,7 +625,7 @@ function SkillTree.Start()
             local yTop = to.y + half
             local length = (from.y - half) - yTop
             if length > 0 then
-                newLine(lineFolder, from.x, yTop, length, line.style)
+                newLine(lineFolder, from.x, yTop, length, line.style, line.to)
             end
         end
 
@@ -701,6 +748,21 @@ function SkillTree.Start()
     ---------------------------------------------------------------- Aktualisieren
     local function refresh(newSnapshot: any)
         snapshot = newSnapshot
+
+        -- Neu gekaufte Knoten gegenüber dem vorigen StateSync. Läuft noch eine Sequenz, endet sie
+        -- jetzt (Endzustand), bevor der Baum neu gezeichnet wird.
+        local nodesNow = newSnapshot.nodes or {}
+        local bought: { string } = UnlockSequence.diff(lastNodes, nodesNow)
+        local nodesCopy: { [string]: boolean } = {}
+        for id, owned in nodesNow do
+            nodesCopy[id] = owned
+        end
+        lastNodes = nodesCopy
+        if #bought > 0 then
+            player.stop()
+        end
+        local previousView = view
+        local fogBefore = fog.Size
         local step = newSnapshot.tutorialStep or 1
         local current = TutorialData.steps[step]
         highlightId = if current ~= nil then current.highlightNodeId else nil
@@ -732,13 +794,13 @@ function SkillTree.Start()
 
         -- Knoten anlegen (einmal) und neu einfärben, Linien nur bei Änderung neu bauen.
         positions = {}
-        local parts: { string } = {}
+        local parts: { string } = {} -- nur, was Linien, Bänder und Nebel ändert (nicht der Preis-Zustand)
         for _, node in UpgradeTree.list do
             if entries[node.id] == nil then
                 entries[node.id] = makeNode(node.id)
             end
             local visual: string = view.nodes[node.id]
-            table.insert(parts, visual)
+            table.insert(parts, if visual == "hidden" then "h" else "v")
             if visual ~= "hidden" then
                 positions[node.id] = { x = layout.nodes[node.id].x, y = layout.nodes[node.id].y }
             end
@@ -759,6 +821,18 @@ function SkillTree.Start()
             selectedId = nil
         end
         refreshCard()
+
+        -- Freischalt-Sequenz (nur bei offenem Baum und mit Vorgänger).
+        if #bought > 0 then
+            local playedBefore = purchasesPlayed
+            purchasesPlayed += #bought
+            if isOpen and previousView ~= nil then
+                local plan = UnlockSequence.plan(previousView, view, bought[1], playedBefore)
+                if plan ~= nil then
+                    player.play(plan, fogBefore)
+                end
+            end
+        end
     end
 
     ---------------------------------------------------------------- Öffnen und Schließen
@@ -789,6 +863,7 @@ function SkillTree.Start()
             return
         end
         isOpen = false
+        player.stop()
         overlay.Visible = false
         selectedId = nil
         card.Visible = false
@@ -808,10 +883,12 @@ function SkillTree.Start()
     closeButton.Activated:Connect(close)
     buyButton.Activated:Connect(onBuy)
     zoomIn.Activated:Connect(function()
+        player.stopGlide()
         local size = viewport()
         setCamera(TreeCamera.zoomAt(camera, LayoutConfig.zoom.buttonStep, { x = size.width / 2, y = size.height / 2 }, size, area))
     end)
     zoomOut.Activated:Connect(function()
+        player.stopGlide()
         local size = viewport()
         setCamera(TreeCamera.zoomAt(camera, 1 / LayoutConfig.zoom.buttonStep, { x = size.width / 2, y = size.height / 2 }, size, area))
     end)
@@ -859,6 +936,7 @@ function SkillTree.Start()
         if not isPointerType(input) or pointers[input] ~= nil then
             return
         end
+        player.stopGlide() -- Wer selbst zieht, bekommt die Kamera zurück
         if #order == 0 then
             gestureMoved = 0
             gestureWasPinch = false
@@ -907,6 +985,7 @@ function SkillTree.Start()
             local position = localPosition(input.Position)
             local size = viewport()
             if position.X >= 0 and position.Y >= 0 and position.X <= size.width and position.Y <= size.height then
+                player.stopGlide()
                 local factor = LayoutConfig.zoom.wheelStep ^ input.Position.Z
                 setCamera(TreeCamera.zoomAt(camera, factor, point(position), size, area))
             end
