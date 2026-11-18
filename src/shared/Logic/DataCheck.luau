@@ -56,6 +56,7 @@ export type DataSet = {
     UnlockAnimation: any,
     TreeSounds: any,
     ToolLooks: any,
+    Weather: any,
 }
 
 local DataCheck = {}
@@ -81,6 +82,7 @@ function DataCheck.defaults(): DataSet
         UnlockAnimation = require("../Data/UnlockAnimation"),
         TreeSounds = require("../Data/TreeSounds"),
         ToolLooks = require("../Data/ToolLooks"),
+        Weather = require("../Data/Weather"),
     }
 end
 
@@ -704,6 +706,17 @@ local function checkTerrain(errors: { string }, data: DataSet)
     else
         for _, field in { "intervalSeconds", "forwardStuds", "rayUpStuds", "rayLengthStuds", "maxDepthStuds", "surfaceCellStuds" } do
             positive(errors, `Terrain.dig.{field}`, dig[field])
+        end
+        if type(dig.maxDepthByZone) ~= "table" then
+            table.insert(errors, "Terrain.dig.maxDepthByZone fehlt")
+        else
+            local zoneIds = if type(data.Zones) == "table" and type(data.Zones.byId) == "table" then data.Zones.byId else {}
+            for zoneId, depth in dig.maxDepthByZone do
+                if zoneIds[zoneId] == nil then
+                    table.insert(errors, `Terrain.dig.maxDepthByZone.{tostring(zoneId)}: unbekannte Zone`)
+                end
+                positive(errors, `Terrain.dig.maxDepthByZone.{tostring(zoneId)}`, depth)
+            end
         end
     end
     local holes = terrain.holeByTool
@@ -1340,6 +1353,166 @@ local function checkToolLooks(errors: { string }, data: DataSet)
     end
 end
 
+-- Zonen in der Welt (Paket 2.5): Bereich, Spawn, Stand und Feld je Zone, Bereiche überlappen nicht.
+local function checkWorldZones(errors: { string }, data: DataSet)
+    local world = data.World
+    if type(world) ~= "table" or type(world.zones) ~= "table" or type(world.zonesById) ~= "table" then
+        table.insert(errors, "World.zones und World.zonesById fehlen")
+        return
+    end
+    if not isFinite(world.pushBackMarginStuds) or world.pushBackMarginStuds < 0 then
+        table.insert(errors, "World.pushBackMarginStuds muss eine Zahl ab 0 sein")
+    end
+    positive(errors, "World.travelCooldownSeconds", world.travelCooldownSeconds)
+    if type(world.gateTag) ~= "string" or world.gateTag == "" then
+        table.insert(errors, "World.gateTag fehlt")
+    end
+    local zones = if type(data.Zones) == "table" and type(data.Zones.list) == "table" then data.Zones.list else {}
+    local present: { [string]: boolean } = {}
+    for index, area in world.zones do
+        local label = `World.zones[{index}]`
+        if type(area) ~= "table" or type(area.id) ~= "string" then
+            table.insert(errors, `{label} braucht eine id`)
+            continue
+        end
+        label = `World.zones "{area.id}"`
+        if present[area.id] then
+            table.insert(errors, `{label} ist doppelt`)
+        end
+        present[area.id] = true
+        if world.zonesById[area.id] ~= area then
+            table.insert(errors, `{label}: zonesById passt nicht`)
+        end
+        local b = area.bounds
+        if type(b) ~= "table" or not isFinite(b.minX) or not isFinite(b.maxX) or not isFinite(b.minZ) or not isFinite(b.maxZ) or b.minX >= b.maxX or b.minZ >= b.maxZ then
+            table.insert(errors, `{label}.bounds braucht minX < maxX und minZ < maxZ`)
+            continue
+        end
+        for _, point in { "spawn", "stand" } do
+            local p = area[point]
+            if type(p) ~= "table" or not isFinite(p.x) or not isFinite(p.y) or not isFinite(p.z) then
+                table.insert(errors, `{label}.{point} braucht x, y und z`)
+            elseif p.x < b.minX or p.x >= b.maxX or p.z < b.minZ or p.z > b.maxZ then
+                table.insert(errors, `{label}.{point} liegt nicht im Bereich der Zone`)
+            end
+        end
+        local field = area.field
+        if type(field) ~= "table" or type(field.center) ~= "table" or type(field.size) ~= "table" then
+            table.insert(errors, `{label}.field braucht center und size`)
+        else
+            for _, axis in { "x", "y", "z" } do
+                if not isFinite(field.size[axis]) or field.size[axis] <= 0 then
+                    table.insert(errors, `{label}.field.size.{axis} muss größer als 0 sein`)
+                elseif field.size[axis] % 4 ~= 0 then
+                    table.insert(errors, `{label}.field.size.{axis} muss ein Vielfaches von 4 sein`)
+                end
+                if not isFinite(field.center[axis]) then
+                    table.insert(errors, `{label}.field.center.{axis} muss eine Zahl sein`)
+                end
+            end
+        end
+    end
+    for _, zone in zones do
+        if type(zone) == "table" and type(zone.id) == "string" and not present[zone.id] then
+            table.insert(errors, `World.zones: Zone "{zone.id}" hat keinen Bereich`)
+        end
+    end
+    -- Keine Überlappung (in x und z).
+    local areas = world.zones
+    for i = 1, #areas do
+        for j = i + 1, #areas do
+            local a, c = areas[i].bounds, areas[j].bounds
+            if type(a) == "table" and type(c) == "table" and isFinite(a.minX) and isFinite(c.minX) then
+                if a.minX < c.maxX and c.minX < a.maxX and a.minZ < c.maxZ and c.minZ < a.maxZ then
+                    table.insert(errors, `World.zones: "{areas[i].id}" und "{areas[j].id}" überlappen`)
+                end
+            end
+        end
+    end
+end
+
+-- Sandsorten brauchen ein eigenes Terrain-Material (Paket 2.5), und alle Zonen-Sorten sind verschieden.
+local function checkSandMaterials(errors: { string }, data: DataSet)
+    local sandTypes = data.SandTypes
+    if type(sandTypes) ~= "table" or type(sandTypes.list) ~= "table" then
+        return
+    end
+    local seen: { [string]: string } = {}
+    for _, sandType in sandTypes.list do
+        local material = sandType.terrainMaterial
+        if type(material) ~= "string" or material == "" or material == "Air" then
+            table.insert(errors, `SandTypes "{tostring(sandType.id)}": terrainMaterial muss ein Materialname sein`)
+        elseif seen[material] ~= nil then
+            table.insert(errors, `SandTypes "{tostring(sandType.id)}": terrainMaterial "{material}" nutzt auch "{seen[material]}"`)
+        else
+            seen[material] = sandType.id
+        end
+    end
+end
+
+-- Wetter (Paket 2.5): bekannte Zonen und Arten, gültige Zeiten.
+local function checkWeather(errors: { string }, data: DataSet)
+    local weather = data.Weather
+    if type(weather) ~= "table" or type(weather.zones) ~= "table" or type(weather.looks) ~= "table" then
+        table.insert(errors, "Weather.zones und Weather.looks fehlen")
+        return
+    end
+    positive(errors, "Weather.fadeSeconds", weather.fadeSeconds)
+    local zoneIds = if type(data.Zones) == "table" and type(data.Zones.byId) == "table" then data.Zones.byId else {}
+    for zoneId, schedule in weather.zones do
+        local label = `Weather.zones.{tostring(zoneId)}`
+        if zoneIds[zoneId] == nil then
+            table.insert(errors, `{label}: unbekannte Zone`)
+        end
+        if type(schedule) ~= "table" then
+            table.insert(errors, `{label} muss eine Tabelle sein`)
+            continue
+        end
+        if type(schedule.kind) ~= "string" or weather.looks[schedule.kind] == nil then
+            table.insert(errors, `{label}.kind steht nicht in Weather.looks`)
+        end
+        positive(errors, `{label}.cycleSeconds`, schedule.cycleSeconds)
+        positive(errors, `{label}.activeSeconds`, schedule.activeSeconds)
+        if isFinite(schedule.cycleSeconds) and isFinite(schedule.activeSeconds) and schedule.activeSeconds > schedule.cycleSeconds then
+            table.insert(errors, `{label}: activeSeconds darf nicht länger als cycleSeconds sein`)
+        end
+        if not isFinite(schedule.offsetSeconds) or schedule.offsetSeconds < 0 then
+            table.insert(errors, `{label}.offsetSeconds muss eine Zahl ab 0 sein`)
+        end
+        if not isInt(schedule.findChanceBonusBp) or schedule.findChanceBonusBp < 0 then
+            table.insert(errors, `{label}.findChanceBonusBp muss eine ganze Zahl ab 0 sein`)
+        end
+    end
+    for kind, look in weather.looks do
+        local label = `Weather.looks.{tostring(kind)}`
+        if type(look) ~= "table" then
+            table.insert(errors, `{label} muss eine Tabelle sein`)
+            continue
+        end
+        for _, field in { "atmosphereColorHex", "tintHex", "particleColorHex" } do
+            if type(look[field]) ~= "string" or not string.match(look[field], HEX_PATTERN) then
+                table.insert(errors, `{label}.{field} muss Hex-Text wie #RRGGBB sein`)
+            end
+        end
+        if not isFinite(look.atmosphereDensity) or look.atmosphereDensity < 0 or look.atmosphereDensity > 1 then
+            table.insert(errors, `{label}.atmosphereDensity muss zwischen 0 und 1 liegen`)
+        end
+        if not isFinite(look.atmosphereHaze) or look.atmosphereHaze < 0 or look.atmosphereHaze > 10 then
+            table.insert(errors, `{label}.atmosphereHaze muss zwischen 0 und 10 liegen`)
+        end
+        for _, field in { "brightness", "saturation" } do
+            if not isFinite(look[field]) or look[field] < -1 or look[field] > 1 then
+                table.insert(errors, `{label}.{field} muss zwischen -1 und 1 liegen`)
+            end
+        end
+        for _, field in { "particleRate", "particleSpeed", "particleSize", "particleWindStuds" } do
+            if not isFinite(look[field]) or look[field] < 0 then
+                table.insert(errors, `{label}.{field} muss eine Zahl ab 0 sein`)
+            end
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -1359,6 +1532,9 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkFinds(errors, data)
     checkEconomy(errors, data)
     checkWorld(errors, data)
+    checkWorldZones(errors, data)
+    checkSandMaterials(errors, data)
+    checkWeather(errors, data)
     checkTerrain(errors, data)
     checkTankChain(errors, data)
     checkTutorial(errors, data)

@@ -27,6 +27,7 @@ local MESSAGES = {
 }
 
 local BigNum = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Logic"):WaitForChild("BigNum") :: ModuleScript) :: any
+local Zones = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Zones") :: ModuleScript) :: any
 local Tools = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Tools") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 
@@ -98,7 +99,7 @@ function Hud.Start()
     tankLabel.Text = "Tank 0 / 0"
 
     -- Werkzeugname und Rate unter dem Panel (Paket 2.4)
-    local toolLabel = label(gui, "Tool", UDim2.new(0, 28, 0, 104), UDim2.new(0, 220, 0, 22))
+    local toolLabel = label(gui, "Tool", UDim2.new(0, 28, 0, 104), UDim2.new(0, 320, 0, 22))
     toolLabel.Text = ""
 
     local toast = label(gui, "Toast", UDim2.new(0.5, -200, 0.75, 0), UDim2.new(0, 400, 0, 36))
@@ -112,7 +113,9 @@ function Hud.Start()
     State.onChanged(function(snapshot: any)
         coinsLabel.Text = `Münzen: {display(snapshot.coins)}`
         local tool = Tools.byId[snapshot.toolId]
-        toolLabel.Text = if tool ~= nil then `{tool.name} · {displayNumber(snapshot.rate)}/s` else ""
+        local zone = Zones.byId[snapshot.zoneId]
+        local zoneText = if zone ~= nil then `{zone.name} · ` else ""
+        toolLabel.Text = if tool ~= nil then `{zoneText}{tool.name} · {displayNumber(snapshot.rate)}/s` else zoneText
         local tank = BigNum.toNumber(BigNum.deserialize(snapshot.tank))
         local capacity = math.max(snapshot.capacity, 1)
         local ratio = math.clamp(tank / capacity, 0, 1)
@@ -138,6 +141,12 @@ function Hud.Start()
     State.onNotify(function(payload: any)
         if payload.kind == "sold" and type(payload.earned) == "table" then
             showToast(`+{display(payload.earned)} Münzen`)
+        elseif payload.kind == "zoneUnlocked" and Zones.byId[payload.zoneId] ~= nil then
+            showToast(`Neue Zone: {Zones.byId[payload.zoneId].name}`)
+        elseif payload.kind == "zoneEntered" and Zones.byId[payload.zoneId] ~= nil then
+            showToast(Zones.byId[payload.zoneId].name)
+        elseif payload.kind == "zoneLocked" and Zones.byId[payload.zoneId] ~= nil then
+            showToast(`{Zones.byId[payload.zoneId].name} ist noch gesperrt.`)
         elseif type(payload.kind) == "string" and MESSAGES[payload.kind] ~= nil then
             showToast(MESSAGES[payload.kind])
         end

@@ -18,7 +18,8 @@ export type Pity = { sinceEpic: number, sinceLegendary: number }
 export type Profile = {
     version: number,
     coins: BigNum.Serialized,
-    tank: BigNum.Serialized,
+    tank: BigNum.Serialized, -- Gesamtmenge Sand im Tank
+    tankMix: { [string]: BigNum.Serialized }, -- Sand je Sandsorte (SandTypes-ID), Summe = tank (Paket 2.5)
     gems: number,
     nodes: { [string]: boolean }, -- gekaufte Knoten (ID -> true)
     zones: { [string]: boolean }, -- freigeschaltete Zonen
@@ -76,6 +77,7 @@ function Profile.default(now: number?): Profile
         version = Profile.CURRENT_VERSION,
         coins = BigNum.serialize(BigNum.zero()),
         tank = BigNum.serialize(BigNum.zero()),
+        tankMix = {},
         gems = 0,
         nodes = {},
         zones = { dunes = true },
@@ -149,7 +151,7 @@ end
 
 -- Felder, deren Standardtabelle zwar Einträge hat, deren Schlüssel aber beliebige IDs sind.
 -- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
-local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true }
+local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
 local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true }
 

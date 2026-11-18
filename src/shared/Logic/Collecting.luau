@@ -11,7 +11,12 @@
 --   lastTick  Server-Zeit, bis zu der schon abgerechnet wurde
 --   holdUntil bis wann das letzte SetCollecting(true) gilt (Frist gegen hängende Clients)
 --   carry     Bruchteil eines Korns aus der letzten Abrechnung (Tank enthält nur ganze Körner)
--- Gespeichert wird nur profile.tank und profile.coins (Zahlentyp BigNum).
+-- Gespeichert wird nur profile.tank, profile.tankMix und profile.coins (Zahlentyp BigNum).
+--
+-- Gemischter Tank (Paket 2.5): `tank` ist die Gesamtmenge, `tankMix` merkt sich je Sandsorte, wie
+-- viel davon wo gesammelt wurde. Verkaufen zahlt jede Sorte mit ihrem eigenen Faktor, an
+-- jedem Stand. Was in `tank` steht, aber nicht in `tankMix` (alte Daten, Debug-Werte), zählt
+-- zum Preis der aktuellen Zone.
 
 local BigNum = require("./BigNum")
 local Tools = require("../Data/Tools")
@@ -88,6 +93,33 @@ function Collecting.pricePerSand(profile: any): number
     return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
 end
 
+-- Münzen pro Sand einer bestimmten Sandsorte (Grundpreis mal Faktor der Sorte mal Verkauf-Ast).
+function Collecting.priceOf(profile: any, sandTypeId: string): number
+    local sandType = SandTypes.byId[sandTypeId]
+    if sandType == nil then
+        return 0
+    end
+    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
+end
+
+-- Die Sandsorte der aktuellen Zone.
+function Collecting.sandTypeOf(profile: any): string
+    return Collecting.zoneOf(profile).sandTypeId
+end
+
+local function mixOf(profile: any): { [string]: any }
+    if type(profile.tankMix) ~= "table" then
+        profile.tankMix = {}
+    end
+    return profile.tankMix
+end
+
+local function addToMix(profile: any, sandTypeId: string, amount: number)
+    local mix = mixOf(profile)
+    local current = BigNum.deserialize(mix[sandTypeId])
+    mix[sandTypeId] = BigNum.serialize(BigNum.add(current, BigNum.new(amount)))
+end
+
 function Collecting.newState(now: number): State
     return { holding = false, lastTick = now, holdUntil = now, carry = 0 }
 end
@@ -124,6 +156,7 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     local added = math.min(whole, math.floor(space))
     if added > 0 then
         profile.tank = BigNum.serialize(BigNum.add(tank, BigNum.new(added)))
+        addToMix(profile, Collecting.sandTypeOf(profile), added)
     end
     result.added = added
     state.lastTick = now
@@ -157,18 +190,48 @@ function Collecting.setHolding(state: State, profile: any, holding: boolean, now
     return result
 end
 
--- Verkauft den ganzen Tank zum Preis der aktuellen Zone. Gibt die verdienten Münzen und
--- die verkaufte Menge zurück, oder nil bei leerem Tank. Ändert profile.coins und profile.tank.
+-- Wechselt die aktuelle Zone. Erst wird das offene Sammelfenster mit der alten Sandsorte
+-- abgerechnet, danach zählt die neue. Ein angefangenes Korn verfällt.
+function Collecting.setZone(state: State, profile: any, zoneId: string, now: number, options: Options?): UpdateResult
+    local result = Collecting.update(state, profile, now, options)
+    profile.currentZone = zoneId
+    state.carry = 0
+    return result
+end
+
+-- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
+-- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
+-- Tank. Ändert profile.coins, profile.tank und profile.tankMix.
 function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
     Collecting.update(state, profile, now, options)
     local tank = tankOf(profile)
     if tank.m <= 0 then
         return nil, nil
     end
+    local mix = mixOf(profile)
+    local typeIds: { string } = {}
+    for typeId in mix do
+        table.insert(typeIds, typeId)
+    end
+    table.sort(typeIds) -- feste Reihenfolge, damit die Summe immer gleich rechnet
+    local earned = BigNum.zero()
+    local counted = BigNum.zero()
+    for _, typeId in typeIds do
+        local amount = BigNum.deserialize(mix[typeId])
+        if amount.m > 0 and SandTypes.byId[typeId] ~= nil then
+            earned = BigNum.add(earned, BigNum.mulNumber(amount, Collecting.priceOf(profile, typeId)))
+            counted = BigNum.add(counted, amount)
+        end
+    end
+    local remainder = BigNum.sub(tank, counted)
+    if remainder.m > 0 then
+        earned = BigNum.add(earned, BigNum.mulNumber(remainder, Collecting.pricePerSand(profile)))
+    end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
-    local earned = BigNum.floor(BigNum.mulNumber(tank, Collecting.pricePerSand(profile)))
+    earned = BigNum.floor(earned)
     profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned))
     profile.tank = BigNum.serialize(BigNum.zero())
+    profile.tankMix = {}
     return earned, tank
 end
 

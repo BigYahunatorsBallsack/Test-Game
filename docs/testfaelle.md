@@ -262,23 +262,23 @@ Die Werte aus dem Baum wirken seit 2.1 (Server: `TreeEffects`, `Collecting`). 2.
 
 ## 2.5 Zonen 2 bis 5
 
-Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich im Profil gespeichert), Bereiche je Zone in `Data/World`, eigenes Terrain-Material je Sandsorte, Wetter je Zone als fester Zyklus aus der Serverzeit (`Data/Weather`, `Logic/Weather`), neues reines Modul `Logic/Zones`, neue Remote `TravelToZone`, Tank je Sandsorte (gemischter Tank, Entscheidung von Waltuh am 18.11.2026), Zonen-Menü im Client. Vor dem PR läuft der `security-reviewer` (Remote, Speichern, Preis).
+Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich im Profil gespeichert), Bereiche je Zone in `Data/World`, eigenes Terrain-Material je Sandsorte, Wetter je Zone als fester Zyklus aus der Serverzeit (`Data/Weather`, `Logic/Weather`), neues reines Modul `Logic/Zones`, neue Remote `TravelZone`, Tank je Sandsorte (gemischter Tank, Entscheidung von Waltuh am 18.11.2026), Zonen-Menü im Client. Vor dem PR läuft der `security-reviewer` (Remote, Speichern, Preis).
 
-- [ ] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_tool_3`) gekauft ist, sonst nicht. Das Dünenmeer ist immer frei.
-- [ ] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei. Eine im Profil gespeicherte Zone bleibt frei, auch wenn ihr Knoten aus dem Baum verschwindet.
-- [ ] [Lune] `unlockNew` meldet eine neue Zone genau einmal, auch bei zwei Aufrufen hintereinander.
-- [ ] [Lune] `zoneAt`: Punkte in jedem Bereich liefern die richtige Zone, Punkte zwischen den Bereichen keine.
-- [ ] [Lune] Betreten einer gesperrten Zone: Die aktuelle Zone bleibt, der Spieler wird zum Spawn der aktuellen Zone zurückgesetzt. Betreten einer freien Zone macht sie zur aktuellen Zone.
-- [ ] [Lune] `TravelToZone`: unbekannte ID, falscher Typ, gesperrte Zone, Abklingzeit und Rate-Limit werden abgelehnt, eine freie Zone geht durch.
-- [ ] [Lune] Gemischter Tank: 100 Sand im Dünenmeer, Wechsel zur Oase, 100 Sand dort. Verkaufen zahlt 100 x Faktor 1 plus 100 x Faktor 3, egal an welchem Stand. Die Tankgröße zählt die Summe.
-- [ ] [Lune] Zonenwechsel während des Sammelns: Das offene Sammelfenster wird mit der alten Sorte abgerechnet, erst danach zählt die neue.
-- [ ] [Lune] Migration: Ein Profil der alten Version mit Tank 500 in der Oase wird zu 500 rotem Sand. Eine zweite Migration ändert nichts. Speichern und Laden über den Fake-Speicher ergibt denselben Tank.
-- [ ] [Lune] Wetter: `stateAt` ist für dieselbe Zeit immer gleich, der Regen der Oase dauert 90 s in jedem 8-Minuten-Zyklus, das Dünenmeer hat nie Wetter.
-- [ ] [Lune] `DataCheck` prüft `World`: jede Zone hat Bereich, Spawn und Stand, Spawn und Stand liegen im Bereich, Bereiche überlappen nicht.
-- [ ] [Lune] `DataCheck` prüft `SandTypes.terrainMaterial` (verschieden je Sorte) und `Weather` (Zeiten über 0, aktive Zeit kürzer als der Zyklus, bekannte Zonen).
-- [ ] [Lune] Zeit-Simulation aus 2.1 läuft weiter und wechselt in die beste freie Zone: Die Werkzeugzeiten bleiben in der Spanne aus `docs/balance/skilltree_2_1.md`.
-- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
-- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei `TravelToZone`, Zonenprüfung, Tank und Migration.
+- [x] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_tool_3`) gekauft ist, sonst nicht. Das Dünenmeer ist immer frei.
+- [x] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei. Eine im Profil gespeicherte Zone bleibt frei, auch wenn ihr Knoten aus dem Baum verschwindet.
+- [x] [Lune] `unlockNew` meldet eine neue Zone genau einmal, auch bei zwei Aufrufen hintereinander.
+- [x] [Lune] `zoneAt`: Punkte in jedem Bereich liefern die richtige Zone, Punkte zwischen den Bereichen keine.
+- [x] [Lune] Betreten einer gesperrten Zone: Die aktuelle Zone bleibt, der Spieler wird zum Spawn der aktuellen Zone zurückgesetzt. Betreten einer freien Zone macht sie zur aktuellen Zone.
+- [x] [Lune] `TravelZone`: unbekannte ID, falscher Typ, gesperrte Zone, Abklingzeit und Rate-Limit werden abgelehnt, eine freie Zone geht durch.
+- [x] [Lune] Gemischter Tank: 100 Sand im Dünenmeer, Wechsel zur Oase, 100 Sand dort. Verkaufen zahlt 100 x Faktor 1 plus 100 x Faktor 3, egal an welchem Stand. Die Tankgröße zählt die Summe.
+- [x] [Lune] Zonenwechsel während des Sammelns: Das offene Sammelfenster wird mit der alten Sorte abgerechnet, erst danach zählt die neue.
+- [x] [Lune] Migration: Ein Profil der alten Version mit Tank 500 in der Oase wird zu 500 rotem Sand. Eine zweite Migration ändert nichts. Speichern und Laden über den Fake-Speicher ergibt denselben Tank.
+- [x] [Lune] Wetter: `stateAt` ist für dieselbe Zeit immer gleich, der Regen der Oase dauert 90 s in jedem 8-Minuten-Zyklus, das Dünenmeer hat nie Wetter.
+- [x] [Lune] `DataCheck` prüft `World`: jede Zone hat Bereich, Spawn und Stand, Spawn und Stand liegen im Bereich, Bereiche überlappen nicht.
+- [x] [Lune] `DataCheck` prüft `SandTypes.terrainMaterial` (verschieden je Sorte) und `Weather` (Zeiten über 0, aktive Zeit kürzer als der Zyklus, bekannte Zonen).
+- [x] [Lune] Zeit-Simulation aus 2.1 läuft weiter und wechselt in die beste freie Zone: Die Werkzeugzeiten bleiben in der Spanne aus `docs/balance/skilltree_2_1.md`.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei `TravelZone`, Zonenprüfung, Tank und Migration.
 - [ ] [Studio] Alle fünf Zonen sind als Platzhalter begehbar, jede mit eigener Sandfarbe, Stand und Spawn.
 - [ ] [Studio] Ohne Eimerkette: Das Tor zur Oase ist zu, das Schild nennt den Knoten. Wer trotzdem durchkommt (Fly oder Teleport im Studio-Befehl), landet wieder am Spawn mit Meldung.
 - [ ] [Studio] Eimerkette kaufen: Meldung "Neue Zone: Oase", das Tor öffnet sich.

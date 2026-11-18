@@ -205,14 +205,18 @@ end
 -- Ein Loch an der Trefferstelle (Oberfläche) planen. Prüft den Takt und die Tiefengrenze,
 -- trägt die berührten Blöcke ein und gibt zurück, was der Client aushöhlen soll.
 -- Rückgabe nil plus Grund: "interval" (zu früh) oder "tooDeep" (Grenze erreicht).
-function SandDig.tryDig(state: State, now: number, hit: Vec3, toolId: string?): (DigResult?, string?)
+-- `zoneId` (optional) wählt die Tiefengrenze der Zone (`dig.maxDepthByZone`, Paket 2.5), sonst gilt
+-- `dig.maxDepthStuds`.
+function SandDig.tryDig(state: State, now: number, hit: Vec3, toolId: string?, zoneId: string?): (DigResult?, string?)
     local config = state.config
     if now - state.lastDigAt < config.dig.intervalSeconds - TIME_EPSILON then
         return nil, "interval"
     end
     local hole = SandDig.holeFor(config, toolId)
     local ref = surfaceAt(state, hit, hole.radius)
-    local floorY = ref - config.dig.maxDepthStuds
+    local byZone = config.dig.maxDepthByZone
+    local maxDepth = if zoneId ~= nil and byZone ~= nil and byZone[zoneId] ~= nil then byZone[zoneId] else config.dig.maxDepthStuds
+    local floorY = ref - maxDepth
     if hit.y <= floorY + TOO_DEEP_MARGIN then
         return nil, "tooDeep"
     end

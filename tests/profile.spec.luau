@@ -24,6 +24,8 @@ local function v1Profile(): any
     profile.gems = 120
     profile.nodes = { collect_tool_2 = true }
     profile.finds = { dune_find_1 = 3 }
+    profile.version = 1 -- ein altes Profil: Standardprofile tragen immer die aktuelle Version
+    profile.tankMix = nil
     return profile
 end
 
@@ -32,7 +34,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(nil, nil, NOW)
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
-        T.expect(Profile.CURRENT_VERSION).toBe(1)
+        T.expect(Profile.CURRENT_VERSION).toBe(2) -- 2 seit Paket 2.5 (gemischter Tank)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -40,6 +42,7 @@ T.describe("Profile", function()
         local profile: any = Profile.default(NOW)
         T.expect(profile.coins).toEqual({ m = 0, e = 0 })
         T.expect(profile.tank).toEqual({ m = 0, e = 0 })
+        T.expect(profile.tankMix).toEqual({})
         T.expect(profile.gems).toBe(0)
         T.expect(profile.nodes).toEqual({})
         T.expect(profile.zones).toEqual({ dunes = true })
@@ -123,10 +126,10 @@ T.describe("Profile", function()
         T.expect((profile :: any).zukunftsfeld).toEqual({ a = 1 })
         T.expect((profile :: any).boosts).toBe((future :: any).boosts)
 
-        -- Auch mit den echten Migrationen (Version 1) ist Version 2 "zu neu".
-        local v2: any = v1Profile()
-        v2.version = 2
-        local _, status2 = Profile.migrate(v2, nil, NOW)
+        -- Auch mit den echten Migrationen ist die nächste Version nach der aktuellen "zu neu".
+        local next: any = v1Profile()
+        next.version = Profile.CURRENT_VERSION + 1
+        local _, status2 = Profile.migrate(next, nil, NOW)
         T.expect(status2).toBe("too_new")
     end)
 
