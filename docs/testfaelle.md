@@ -289,6 +289,31 @@ Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich 
 - [ ] [Studio] Graben funktioniert in allen fünf Materialien, im Canyon tiefer.
 - [ ] [Studio] Neustart: Zone, freigeschaltete Zonen und Tank bleiben erhalten.
 
+## 2.6 Fundstücke, Reveal und Sammlung
+
+Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Funde nur für echte Sammelzeit (`collectSeconds` aus `Collecting.update`), Chance mal Zone, Glück-Ast und Regen, Seltenheit nach der Quotentabelle der Zone (`FindOdds.zoneOddsTable`), Fund gleich verteilt unter den Funden der Zone mit dieser Seltenheit, Wert beim Fund festgeschrieben. 150 Platzhalter mit festen IDs (`dunes_s1_1` bis `ruins_s6_5`, Namen in 3.3). Sammlung, Sets, Bonus und Zonenbuch werden aus `profile.finds` berechnet (`Logic/Collection`, `Data/Collection`), der Sammlungsbonus ist ein eigener Faktor auf die Münzen pro Sand. Doppelte Funde: Entscheidung von Waltuh offen, Plan auf "sofort verkaufen". Reveal und Sammlungsbuch im Client, neue Remote `CollectionSync` (nur Server zum Client). Vor dem PR läuft der `security-reviewer` (Münzen, Profil).
+
+- [ ] [Lune] Chance: Ohne Sammelzeit kein Fund, negative oder kaputte Zeit zählt als 0. Die Chance im Fenster folgt 1 − (1 − p)^t und bleibt höchstens 100 %. Pro Tick höchstens ein Fund.
+- [ ] [Lune] Faktoren: Zone, Glück-Ast und Regen multiplizieren die Chance, nicht die Verteilung. Regen zählt nur, solange er aktiv ist (beim Ein- und Ausblenden anteilig).
+- [ ] [Lune] Verteilung: 200.000 Würfe treffen jede Seltenheit innerhalb der statistischen Toleranz der Tabelle.
+- [ ] [Lune] Auswahl: Der Fund kommt immer aus der aktuellen Zone und hat die gewürfelte Seltenheit. Fehlt sie in der Zone, kommt die nächst tiefere.
+- [ ] [Lune] Wert: entspricht `findBaseValue` × Sandfaktor × Werkzeug-Grundrate × Wertfaktor, wird beim Fund festgeschrieben und ändert sich nicht mit dem nächsten Werkzeug.
+- [ ] [Lune] Neu oder doppelt: Ein neuer Fund setzt den Zähler auf 1 ohne Münzen. Ein doppelter erhöht den Zähler und bucht seinen Wert als BigNum, auch bei großen Münzständen.
+- [ ] [Lune] Voller Tank: `collectSeconds` endet bei "voll", danach gibt es keine Funde.
+- [ ] [Lune] Erster Fund sicher: Nach 60 s Sammeln ohne jeden Fund kommt ein Gewöhnlicher Fund, danach greift die Regel nie wieder.
+- [ ] [Lune] Sammlung: Ein Set mit 5 von 5 ist fertig, mit 4 von 5 nicht. Der Bonus ist die Summe der fertigen Sets. Das Zonenbuch ist nur bei 6 von 6 fertig. Unbekannte IDs zählen nicht und bleiben im Profil.
+- [ ] [Lune] Preis: Die Münzen pro Sand steigen mit dem Sammlungsbonus, auch beim gemischten Tank. Funde selbst bekommen den Bonus nicht.
+- [ ] [Lune] `Profile.sanitize` entfernt kaputte Zähler in `finds` (keine ganze Zahl, kleiner 1, NaN), gültige bleiben.
+- [ ] [Lune] `DataCheck`: 150 Funde, je Set genau 5, jede Zone hat jede Seltenheit, IDs nach Muster, `setBonusBp` und `zoneBooks` gültig, `zoneOddsTable` zeigt auf bekannte Tabellen. Kaputte Daten werden abgelehnt.
+- [ ] [Lune] Zeit-Simulation aus 2.1 mit Sammlungsbonus: Die Werkzeugzeiten werden im ersten Lauf höchstens 10 % kürzer.
+- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei Funden, Münzen aus Duplikaten und Profil.
+- [ ] [Studio] Sammeln bringt nach etwa einer Minute den ersten Fund mit Reveal, Sammeln und Laufen gehen dabei weiter.
+- [ ] [Studio] Ein doppelter Fund zeigt "+X Münzen", die Münzen steigen.
+- [ ] [Studio] Ein fertiges Set (im Studio per Befehl gesetzt): Meldung, die Münzen pro Sand steigen sichtbar.
+- [ ] [Studio] Das Sammlungsbuch zeigt alle Zonen, Sets und Slots, auch im Handy-Emulator.
+- [ ] [Studio] Neustart: Sammlung und Bonus bleiben erhalten.
+
 ## 2.7 Sandsturm (Prestige)
 
 - [ ] [Lune] Der Reset setzt Münzen und Werkzeugstufe zurück, behält aber Sammlung und Skins.
