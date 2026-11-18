@@ -10,7 +10,7 @@ src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindO
 src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard, TreePurchase, Tutorial)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, SkillTree, UnlockPlayer, Tutorial; UnlockPlayer ist ein Hilfsmodul von SkillTree)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, ToolVisual, SkillTree, UnlockPlayer, Tutorial; UnlockPlayer ist ein Hilfsmodul von SkillTree)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -184,3 +184,11 @@ Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durc
 - `mkdir -p build` und dann `rojo build -o build/test.rbxl` baut die Platzdatei (Rojo legt den Ordner nicht selbst an; `build/` wird nicht eingecheckt).
 - `rojo serve` startet den Sync mit Studio (Rojo-Plugin verbinden). Playtest: Server und Client drucken je eine Startzeile.
 - Format und Stil: `stylua src tests`, `selene src tests` (für selene einmal `selene generate-roblox-std` ausführen).
+
+## Sichtbare Werkzeugstufen (Paket 2.4)
+
+- Die Wirkung der Stufen (Rate, Tank, Preis, Werkzeug) rechnet der Server seit 2.1 aus dem Baum (`TreeEffects`). 2.4 zeigt sie nur an und ändert den Server nicht.
+- `Data/ToolLooks.luau`: je Stufe `footprint`, Modellteile aus Block, Zylinder und Kugel (Lage relativ zum Charakter, y über dem Boden), Staub (`count`, `size`) und Kamera-Bonus. Dazu die Wechsel-Animation (`change`) und Grenzen (`limits`). Jede Stufe ist mindestens 1,25-fach größer als die vorige (Ausdehnung, Staubmenge, Staubgröße), das prüft `DataCheck`.
+- `Logic/ToolLook.luau` (rein): Aussehen zur ID (unbekannt = Hand), `change(vorher, nachher)` liefert `none`, `upgrade` oder `silent` (erster Zustand und Sandsturm-Reset wechseln still).
+- `Controllers/ToolVisual.luau`: baut das Modell bei jedem StateSync mit neuer Stufe, folgt dem Charakter (nur Drehung um die Hochachse), lässt es bei `upgrade` herauswachsen, zeigt eine Staubwolke und gleitet den Mindest-Kameraabstand auf den Wert der Stufe. Nach dem Wiederbeleben wird neu gebaut.
+- `Dig` liest Staubmenge und -größe aus `ToolLooks`. Die Rückfallvariante für schwache Geräte behält ihre feste Partikelzahl.

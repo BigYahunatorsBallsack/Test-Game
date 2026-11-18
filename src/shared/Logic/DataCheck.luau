@@ -55,6 +55,7 @@ export type DataSet = {
     TreeLayout: any,
     UnlockAnimation: any,
     TreeSounds: any,
+    ToolLooks: any,
 }
 
 local DataCheck = {}
@@ -79,6 +80,7 @@ function DataCheck.defaults(): DataSet
         TreeLayout = require("../Data/TreeLayout"),
         UnlockAnimation = require("../Data/UnlockAnimation"),
         TreeSounds = require("../Data/TreeSounds"),
+        ToolLooks = require("../Data/ToolLooks"),
     }
 end
 
@@ -1114,6 +1116,136 @@ local function checkTutorial(errors: { string }, data: DataSet)
     end
 end
 
+local SHAPES = { Block = true, Cylinder = true, Ball = true }
+
+-- Aussehen der Werkzeugstufen (Paket 2.4): jede Stufe vorhanden, deutlich größer als die vorige.
+local function checkToolLooks(errors: { string }, data: DataSet)
+    local looks = data.ToolLooks
+    if type(looks) ~= "table" or type(looks.list) ~= "table" or type(looks.byToolId) ~= "table" then
+        table.insert(errors, "ToolLooks: list und byToolId fehlen")
+        return
+    end
+    local limits = looks.limits
+    if type(limits) ~= "table" then
+        table.insert(errors, "ToolLooks.limits fehlt")
+        return
+    end
+    for _, field in { "maxCameraBonusStuds", "maxParticlesPerEmit", "minStepFactor" } do
+        positive(errors, `ToolLooks.limits.{field}`, limits[field])
+    end
+    local change = looks.change
+    if type(change) ~= "table" then
+        table.insert(errors, "ToolLooks.change fehlt")
+    else
+        for _, field in { "popSeconds", "popStartScale", "cameraSeconds" } do
+            positive(errors, `ToolLooks.change.{field}`, change[field])
+        end
+        if isFinite(change.popStartScale) and change.popStartScale >= 1 then
+            table.insert(errors, "ToolLooks.change.popStartScale muss unter 1 liegen")
+        end
+        if not isInt(change.burstCount) or change.burstCount < 0 then
+            table.insert(errors, "ToolLooks.change.burstCount muss eine ganze Zahl ab 0 sein")
+        end
+    end
+    local tools = if type(data.Tools) == "table" and type(data.Tools.list) == "table" then data.Tools.list else {}
+    local known: { [string]: boolean } = {}
+    local previous: any = nil
+    for _, tool in tools do
+        if type(tool) ~= "table" or type(tool.id) ~= "string" then
+            continue
+        end
+        known[tool.id] = true
+        local look = looks.byToolId[tool.id]
+        local label = `ToolLooks "{tool.id}"`
+        if type(look) ~= "table" then
+            table.insert(errors, `{label}: Werkzeug hat kein Aussehen`)
+            previous = nil
+            continue
+        end
+        positive(errors, `{label}.footprint`, look.footprint)
+        if type(look.parts) ~= "table" then
+            table.insert(errors, `{label}.parts fehlt`)
+        else
+            if tool.tier > 1 and #look.parts == 0 then
+                table.insert(errors, `{label}: braucht mindestens ein Teil`)
+            end
+            if tool.tier == 1 and #look.parts > 0 then
+                table.insert(errors, `{label}: die Hand hat kein Modell`)
+            end
+            for index, part in look.parts do
+                local partLabel = `{label}.parts[{index}]`
+                if type(part) ~= "table" then
+                    table.insert(errors, `{partLabel} muss eine Tabelle sein`)
+                    continue
+                end
+                if type(part.shape) ~= "string" or not SHAPES[part.shape] then
+                    table.insert(errors, `{partLabel}.shape muss Block, Cylinder oder Ball sein`)
+                end
+                if type(part.size) ~= "table" then
+                    table.insert(errors, `{partLabel}.size fehlt`)
+                else
+                    for _, axis in { "x", "y", "z" } do
+                        positive(errors, `{partLabel}.size.{axis}`, part.size[axis])
+                    end
+                end
+                if type(part.offset) ~= "table" then
+                    table.insert(errors, `{partLabel}.offset fehlt`)
+                else
+                    for _, axis in { "x", "y", "z" } do
+                        if not isFinite(part.offset[axis]) then
+                            table.insert(errors, `{partLabel}.offset.{axis} muss eine Zahl sein`)
+                        end
+                    end
+                end
+                if type(part.colorHex) ~= "string" or not string.match(part.colorHex, HEX_PATTERN) then
+                    table.insert(errors, `{partLabel}.colorHex muss Hex-Text wie #RRGGBB sein`)
+                end
+                if type(part.material) ~= "string" or part.material == "" then
+                    table.insert(errors, `{partLabel}.material fehlt`)
+                end
+            end
+        end
+        local dust = look.dust
+        if type(dust) ~= "table" then
+            table.insert(errors, `{label}.dust fehlt`)
+        else
+            positive(errors, `{label}.dust.count`, dust.count)
+            positive(errors, `{label}.dust.size`, dust.size)
+            local burst = if type(change) == "table" and isFinite(change.burstCount) then change.burstCount else 0
+            if isFinite(dust.count) and isFinite(limits.maxParticlesPerEmit) and dust.count + burst > limits.maxParticlesPerEmit then
+                table.insert(errors, `{label}: Staub plus Wechsel-Wolke übersteigt das Partikelbudget`)
+            end
+        end
+        local bonus = look.cameraBonusStuds
+        if not isFinite(bonus) or bonus < 0 then
+            table.insert(errors, `{label}.cameraBonusStuds muss eine Zahl ab 0 sein`)
+        elseif isFinite(limits.maxCameraBonusStuds) and bonus > limits.maxCameraBonusStuds then
+            table.insert(errors, `{label}.cameraBonusStuds liegt über dem Höchstwert`)
+        end
+        if type(previous) == "table" and type(look.dust) == "table" and type(previous.dust) == "table" then
+            local factor = if isFinite(limits.minStepFactor) then limits.minStepFactor else 1
+            if isFinite(look.footprint) and isFinite(previous.footprint) and look.footprint < previous.footprint * factor then
+                table.insert(errors, `{label}: footprint steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(dust.count) and isFinite(previous.dust.count) and dust.count < previous.dust.count * factor then
+                table.insert(errors, `{label}: dust.count steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(dust.size) and isFinite(previous.dust.size) and dust.size < previous.dust.size * factor then
+                table.insert(errors, `{label}: dust.size steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(bonus) and isFinite(previous.cameraBonusStuds) and bonus < previous.cameraBonusStuds then
+                table.insert(errors, `{label}: cameraBonusStuds darf nicht sinken`)
+            end
+        end
+        previous = look
+    end
+    for toolId in looks.byToolId do
+        if not known[toolId] then
+            table.insert(errors, `ToolLooks "{tostring(toolId)}": kein Werkzeug mit dieser ID`)
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -1124,6 +1256,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
     checkUnlockAnimation(errors, data)
+    checkToolLooks(errors, data)
     checkTools(errors, data)
     checkSandTypes(errors, data)
     checkZones(errors, data)

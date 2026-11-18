@@ -238,15 +238,15 @@ Paket 2.3 spielt die Freischalt-Sequenz im Baum ab (Konzept: etwa 1,2 Sekunden).
 
 Die Werte aus dem Baum wirken schon seit 2.1 (Server: `TreeEffects`, `Collecting`). 2.4 macht die sechs Stufen sichtbar: neue Tabelle `Data/ToolLooks` (Modellteile aus einfachen Formen, Staub, Kamera, Cue je Stufe), reines Modul `Logic/ToolLook` (Auswahl, Größenvergleich) und der Client-Controller `ToolVisual` (baut das Modell, folgt dem Charakter, wechselt bei neuer Stufe mit kurzer Animation). `Dig` liest die Staubwerte aus der Tabelle.
 
-- [ ] [Lune] Jede Werkzeugstufe in `Tools` hat einen Eintrag in `ToolLooks`, und es gibt keinen Eintrag ohne Werkzeug.
-- [ ] [Lune] Die Stufen unterscheiden sich deutlich: Modellgröße (Ausdehnung), Staubmenge und Staubgröße steigen streng mit der Stufe, jede Stufe mindestens um den Faktor 1,25 gegenüber der vorigen.
-- [ ] [Lune] Die Hand hat kein Modell (nur Körner), jede andere Stufe mindestens ein Teil. Jedes Teil hat gültige Form, Größe über 0 und Farbe als Hex-Text.
-- [ ] [Lune] `ToolLook.of(toolId)`: bekannte ID liefert die Stufe, unbekannte oder leere ID liefert die Hand.
-- [ ] [Lune] `ToolLook.change(vorher, nachher)`: gleiche Stufe ergibt keine Animation, höhere Stufe die Aufwertungs-Animation, niedrigere (Sandsturm-Reset) einen stillen Wechsel.
-- [ ] [Lune] Kamera: Abstandsbonus je Stufe steigt nicht, bleibt unter dem Höchstwert und ist nie negativ.
-- [ ] [Lune] Staubmenge je Stufe überschreitet das Partikelbudget aus `Terrain.perf` nicht (Summe aus Sammeln und Wechsel-Animation).
-- [ ] [Lune] `DataCheck` lehnt eine kaputte `ToolLooks`-Tabelle ab (fehlende Stufe, Größe 0, falsche Farbe, Staub fällt mit der Stufe).
-- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [x] [Lune] Jede Werkzeugstufe in `Tools` hat einen Eintrag in `ToolLooks`, und es gibt keinen Eintrag ohne Werkzeug.
+- [x] [Lune] Die Stufen unterscheiden sich deutlich: Modellgröße (Ausdehnung), Staubmenge und Staubgröße steigen streng mit der Stufe, jede Stufe mindestens um den Faktor 1,25 gegenüber der vorigen.
+- [x] [Lune] Die Hand hat kein Modell (nur Körner), jede andere Stufe mindestens ein Teil. Jedes Teil hat gültige Form, Größe über 0 und Farbe als Hex-Text.
+- [x] [Lune] `ToolLook.of(toolId)`: bekannte ID liefert die Stufe, unbekannte oder leere ID liefert die Hand.
+- [x] [Lune] `ToolLook.change(vorher, nachher)`: gleiche Stufe ergibt keine Animation, höhere Stufe die Aufwertungs-Animation, niedrigere (Sandsturm-Reset) einen stillen Wechsel.
+- [x] [Lune] Kamera: Abstandsbonus je Stufe steigt nicht, bleibt unter dem Höchstwert und ist nie negativ.
+- [x] [Lune] Staubmenge je Stufe überschreitet das Partikelbudget aus `Terrain.perf` nicht (Summe aus Sammeln und Wechsel-Animation).
+- [x] [Lune] `DataCheck` lehnt eine kaputte `ToolLooks`-Tabelle ab (fehlende Stufe, Größe 0, falsche Farbe, Staub fällt mit der Stufe).
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
 - [ ] [Studio] Jede der sechs Stufen sieht im Playtest auf den ersten Blick anders aus (Hand, Schaufel, Eimerkette, Mini-Bagger, Saugroboter, Großmaschine).
 - [ ] [Studio] Kauf einer neuen Stufe im Baum: das Modell wechselt mit kurzer Animation, der Sand und die Rate steigen sichtbar (Hud).
 - [ ] [Studio] Werkzeug folgt dem Charakter beim Laufen und Springen, ohne zu ruckeln oder im Boden zu stecken.

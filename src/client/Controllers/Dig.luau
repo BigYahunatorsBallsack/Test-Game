@@ -17,15 +17,12 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 -- Partikel
-local PARTICLE_COUNT_FULL = 10
 local PARTICLE_COUNT_FALLBACK = 14
 local PARTICLE_LIFETIME = NumberRange.new(0.35, 0.7)
 local PARTICLE_SPEED = NumberRange.new(5, 11)
 local PARTICLE_SPREAD_DEGREES = 55
-local PARTICLE_SIZE = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0.45),
-    NumberSequenceKeypoint.new(1, 0.15),
-})
+local PARTICLE_SIZE_START_FACTOR = 1 -- Startgröße = Staubgröße der Stufe (Data/ToolLooks)
+local PARTICLE_SIZE_END_FACTOR = 0.33
 local PARTICLE_TRANSPARENCY = NumberSequence.new({
     NumberSequenceKeypoint.new(0, 0.1),
     NumberSequenceKeypoint.new(1, 1),
@@ -62,6 +59,7 @@ local Zones = loadShared("Data", "Zones")
 local SandTypes = loadShared("Data", "SandTypes")
 local SandDig = loadShared("Logic", "SandDig")
 local PerfGuard = loadShared("Logic", "PerfGuard")
+local ToolLook = loadShared("Logic", "ToolLook")
 local BigNum = loadShared("Logic", "BigNum")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
@@ -175,10 +173,15 @@ local function findGround(root: BasePart): RaycastResult?
     return result
 end
 
-local function emitParticles(position: Vector3, count: number)
+local function emitParticles(position: Vector3, count: number, toolId: string?)
     if emitter == nil or emitterAttachment == nil then
         return
     end
+    local size = ToolLook.of(toolId).dust.size
+    emitter.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, size * PARTICLE_SIZE_START_FACTOR),
+        NumberSequenceKeypoint.new(1, size * PARTICLE_SIZE_END_FACTOR),
+    })
     emitterAttachment.WorldPosition = position
     emitter.Color = ColorSequence.new(sandColor())
     emitter:Emit(count)
@@ -202,7 +205,7 @@ local function digTerrain(now: number, hit: RaycastResult, toolId: string?)
             baselines[ref.key] = nil
         end
     end
-    emitParticles(hit.Position, PARTICLE_COUNT_FULL)
+    emitParticles(hit.Position, ToolLook.dustCount(toolId), toolId)
 end
 
 local function regrowChunk(action: any)
@@ -270,7 +273,7 @@ local function digFallback(now: number, hit: RaycastResult, toolId: string?)
         end)
         fade:Play()
     end)
-    emitParticles(hit.Position, PARTICLE_COUNT_FALLBACK)
+    emitParticles(hit.Position, PARTICLE_COUNT_FALLBACK, toolId)
 end
 
 local function readForcedMode()
@@ -303,7 +306,7 @@ local function createEffects()
     e.Speed = PARTICLE_SPEED
     e.SpreadAngle = Vector2.new(PARTICLE_SPREAD_DEGREES, PARTICLE_SPREAD_DEGREES)
     e.EmissionDirection = Enum.NormalId.Top
-    e.Size = PARTICLE_SIZE
+    e.Size = NumberSequence.new(ToolLook.of(nil).dust.size)
     e.Transparency = PARTICLE_TRANSPARENCY
     e.Acceleration = Vector3.new(0, -workspace.Gravity * PARTICLE_GRAVITY_FACTOR, 0)
     e.LightInfluence = 1
