@@ -53,6 +53,8 @@ export type DataSet = {
     Terrain: any,
     Tutorial: any,
     TreeLayout: any,
+    UnlockAnimation: any,
+    TreeSounds: any,
 }
 
 local DataCheck = {}
@@ -75,6 +77,8 @@ function DataCheck.defaults(): DataSet
         Terrain = require("../Data/Terrain"),
         Tutorial = require("../Data/Tutorial"),
         TreeLayout = require("../Data/TreeLayout"),
+        UnlockAnimation = require("../Data/UnlockAnimation"),
+        TreeSounds = require("../Data/TreeSounds"),
     }
 end
 
@@ -941,6 +945,126 @@ local function checkTreeLayout(errors: { string }, data: DataSet)
     end
 end
 
+-- Freischalt-Sequenz und ihre Töne (Paket 2.3).
+local UNLOCK_VARIANTS = { "normal", "short", "milestone" }
+local UNLOCK_REQUIRED_STEPS = { "press", "ring", "reveal", "camera" }
+-- Reihenfolge der Schritte: Die Starts dürfen nicht fallen (Eindrücken, Ring, Impuls, Einblenden, Kamera).
+local UNLOCK_STEP_ORDER = { "press", "ring", "pulse", "reveal", "camera" }
+local SOUND_ID_PATTERN = "^rbxassetid://%d+$"
+
+local function checkUnlockAnimation(errors: { string }, data: DataSet)
+    local anim = data.UnlockAnimation
+    local sounds = data.TreeSounds
+    if type(anim) ~= "table" then
+        table.insert(errors, "UnlockAnimation fehlt")
+        return
+    end
+    if not isInt(anim.shortAfterPurchases) or anim.shortAfterPurchases < 1 then
+        table.insert(errors, "UnlockAnimation.shortAfterPurchases muss eine ganze Zahl ab 1 sein")
+    end
+    if not isFinite(anim.maxTotalSeconds) or anim.maxTotalSeconds <= 0 then
+        table.insert(errors, "UnlockAnimation.maxTotalSeconds muss eine Zahl größer als 0 sein")
+    end
+    for _, field in { "pressScale", "revealStartScale" } do
+        if not isFinite(anim[field]) or anim[field] <= 0 or anim[field] > 1 then
+            table.insert(errors, `UnlockAnimation.{field} muss größer als 0 und höchstens 1 sein`)
+        end
+    end
+
+    local cueTable = if type(sounds) == "table" and type(sounds.cues) == "table" then sounds.cues else nil
+    if cueTable == nil then
+        table.insert(errors, "TreeSounds.cues fehlt")
+    else
+        for cueName, cue in cueTable do
+            local label = `TreeSounds.cues.{tostring(cueName)}`
+            if type(cue) ~= "table" then
+                table.insert(errors, `{label} muss eine Tabelle sein`)
+            else
+                if type(cue.soundId) ~= "string" or (cue.soundId ~= "" and string.match(cue.soundId, SOUND_ID_PATTERN) == nil) then
+                    table.insert(errors, `{label}.soundId muss leer oder "rbxassetid://" plus Ziffern sein`)
+                end
+                if not isFinite(cue.volume) or cue.volume < 0 or cue.volume > 1 then
+                    table.insert(errors, `{label}.volume muss zwischen 0 und 1 liegen`)
+                end
+                if not isFinite(cue.pitch) or cue.pitch < 0.5 or cue.pitch > 2 then
+                    table.insert(errors, `{label}.pitch muss zwischen 0,5 und 2 liegen`)
+                end
+            end
+        end
+    end
+
+    if type(anim.variants) ~= "table" then
+        table.insert(errors, "UnlockAnimation.variants fehlt")
+        return
+    end
+    local totals: { [string]: number } = {}
+    for _, name in UNLOCK_VARIANTS do
+        local variant = anim.variants[name]
+        local label = `UnlockAnimation.variants.{name}`
+        if type(variant) ~= "table" then
+            table.insert(errors, `{label} fehlt`)
+            continue
+        end
+        local total = 0
+        local lastStart = -1
+        for _, stepName in UNLOCK_STEP_ORDER do
+            local step = variant[stepName]
+            if step == nil then
+                if table.find(UNLOCK_REQUIRED_STEPS, stepName) ~= nil then
+                    table.insert(errors, `{label}.{stepName} fehlt`)
+                end
+                continue
+            end
+            if type(step) ~= "table" or not isFinite(step.start) or step.start < 0 or not isFinite(step.duration) or step.duration <= 0 then
+                table.insert(errors, `{label}.{stepName} braucht start ab 0 und duration über 0`)
+                continue
+            end
+            if step.start < lastStart then
+                table.insert(errors, `{label}.{stepName} startet vor dem Schritt davor (Reihenfolge: press, ring, pulse, reveal, camera)`)
+            end
+            lastStart = math.max(lastStart, step.start)
+            total = math.max(total, step.start + step.duration)
+        end
+        if type(variant.ring) == "table" and (not isFinite(variant.ring.scale) or variant.ring.scale <= 1) then
+            table.insert(errors, `{label}.ring.scale muss größer als 1 sein`)
+        end
+        local flash = variant.flash
+        if flash ~= nil then
+            if type(flash) ~= "table" or not isFinite(flash.start) or flash.start < 0 or not isFinite(flash.duration) or flash.duration <= 0 then
+                table.insert(errors, `{label}.flash braucht start ab 0 und duration über 0`)
+            else
+                total = math.max(total, flash.start + flash.duration)
+                if not isFinite(flash.strength) or flash.strength <= 0 or flash.strength > 1 then
+                    table.insert(errors, `{label}.flash.strength muss größer als 0 und höchstens 1 sein`)
+                end
+            end
+        end
+        if isFinite(anim.maxTotalSeconds) and total > anim.maxTotalSeconds then
+            table.insert(errors, `{label} dauert {total} s, erlaubt sind höchstens {anim.maxTotalSeconds} s`)
+        end
+        totals[name] = total
+
+        if type(variant.cues) ~= "table" then
+            table.insert(errors, `{label}.cues fehlt`)
+        else
+            for cueName, stepName in variant.cues do
+                if cueTable ~= nil and cueTable[cueName] == nil then
+                    table.insert(errors, `{label}.cues: Ton "{tostring(cueName)}" fehlt in TreeSounds`)
+                end
+                if type(stepName) ~= "string" or variant[stepName] == nil then
+                    table.insert(errors, `{label}.cues.{tostring(cueName)}: Schritt "{tostring(stepName)}" gibt es in dieser Variante nicht`)
+                end
+            end
+        end
+    end
+    if totals.short ~= nil and totals.normal ~= nil and totals.short >= totals.normal then
+        table.insert(errors, "UnlockAnimation: die kurze Variante muss kürzer sein als die normale")
+    end
+    if totals.milestone ~= nil and totals.normal ~= nil and totals.milestone <= totals.normal then
+        table.insert(errors, "UnlockAnimation: die Meilenstein-Variante muss länger sein als die normale")
+    end
+end
+
 local function checkTutorial(errors: { string }, data: DataSet)
     local tutorial = data.Tutorial
     if type(tutorial) ~= "table" or type(tutorial.steps) ~= "table" or #tutorial.steps == 0 then
@@ -999,6 +1123,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkCrates(errors, data)
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
+    checkUnlockAnimation(errors, data)
     checkTools(errors, data)
     checkSandTypes(errors, data)
     checkZones(errors, data)

@@ -219,15 +219,15 @@ Paket 2.2 ersetzt die Upgrade-Liste aus 1.6 durch den Skilltree als Vollbild-Ebe
 
 Paket 2.3 spielt die Freischalt-Sequenz im Baum ab (Konzept: etwa 1,2 Sekunden). Ausgelöst wird sie durch den Vergleich zweier `StateSync`-Zustände (neu in `nodes`), der erste Zustand nach dem Beitreten zählt nie als Kauf. Varianten: normal (1,2 s: Eindrücken, Ring, Lichtimpuls über die Linien zu den Folgeknoten, neue Knoten blenden aus dem Nebel ein, Kamera gleitet), Meilenstein (1,6 s, Knoten mit `milestone`, dazu ein Aufhell-Puls) und kurz (0,5 s, ab dem elften Kauf einer Sitzung). Berechnung im reinen Modul `src/shared/Logic/UnlockSequence.luau`, Zahlen in `src/shared/Data/UnlockAnimation.luau`, Töne als Platzhalter in `src/shared/Data/TreeSounds.luau` (leere IDs bis Paket 3.5). Der Controller `SkillTree` spielt den Plan mit Tweens ab. Keine neue Remote, kein neues Profilfeld.
 
-- [ ] [Lune] Der Vergleich findet neu gekaufte Knoten, ignoriert den ersten Zustand (kein Vorgänger), unveränderte Zustände und entfernte Knoten.
-- [ ] [Lune] Variante: Der erste Kauf ist normal, ein Knoten mit `milestone` immer Meilenstein, ab dem elften Kauf einer Sitzung kurz.
-- [ ] [Lune] Neu sichtbare Knoten stimmen (nach `tank_1` wird `tank_2` kaufbar und `tank_3` Silhouette), ohne Doppelte.
-- [ ] [Lune] Impulskanten laufen nur vom gekauften Knoten zu Folgeknoten in derselben Spalte, Folgeknoten anderer Spalten bekommen einen Glanzring.
-- [ ] [Lune] Zeitleiste: Reihenfolge Eindrücken, Ring, Impuls, Einblenden, Kamera. Gesamtdauer normal 1,2 s, kurz höchstens 0,6 s, Meilenstein 1,6 s (je plus/minus 0,05 s).
-- [ ] [Lune] Kamerapunkte enthalten den gekauften Knoten und alle neu sichtbaren Knoten.
-- [ ] [Lune] Cues passen zur Variante (Meilenstein spielt `milestone`, die kurze Variante nur `press` und `reveal`).
-- [ ] [Lune] `DataCheck` lehnt kaputte Zeiten, zu lange Dauern und ungültige Sound-IDs ab, leere IDs sind erlaubt.
-- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [x] [Lune] Der Vergleich findet neu gekaufte Knoten, ignoriert den ersten Zustand (kein Vorgänger), unveränderte Zustände und entfernte Knoten.
+- [x] [Lune] Variante: Der erste Kauf ist normal, ein Knoten mit `milestone` immer Meilenstein, ab dem elften Kauf einer Sitzung kurz.
+- [x] [Lune] Neu sichtbare Knoten stimmen (nach `tank_1` wird `tank_2` kaufbar und `tank_3` Silhouette), ohne Doppelte.
+- [x] [Lune] Impulskanten laufen nur vom gekauften Knoten zu Folgeknoten in derselben Spalte, Folgeknoten anderer Spalten bekommen einen Glanzring.
+- [x] [Lune] Zeitleiste: Reihenfolge Eindrücken, Ring, Impuls, Einblenden, Kamera. Gesamtdauer normal 1,2 s, kurz höchstens 0,6 s, Meilenstein 1,6 s (je plus/minus 0,05 s).
+- [x] [Lune] Kamerapunkte enthalten den gekauften Knoten und alle neu sichtbaren Knoten.
+- [x] [Lune] Cues passen zur Variante (Meilenstein spielt `milestone`, die kurze Variante nur `press` und `reveal`).
+- [x] [Lune] `DataCheck` lehnt kaputte Zeiten, zu lange Dauern und ungültige Sound-IDs ab, leere IDs sind erlaubt.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
 - [ ] [Studio] Kauf im Baum: Eindrücken, Ring, Impuls zu den Folgeknoten, neue Knoten blenden ein, Kamera gleitet. Die Dauer fühlt sich nach etwa 1,2 s an.
 - [ ] [Studio] Eimerkette kaufen: Meilenstein-Variante mit Aufhell-Puls.
 - [ ] [Studio] Zehn Käufe hintereinander: danach läuft die kurze Variante. Schnelle Käufe stauen sich nicht.
