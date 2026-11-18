@@ -262,7 +262,7 @@ Die Werte aus dem Baum wirken seit 2.1 (Server: `TreeEffects`, `Collecting`). 2.
 
 ## 2.5 Zonen 2 bis 5
 
-Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich im Profil gespeichert), Bereiche je Zone in `Data/World`, eigenes Terrain-Material je Sandsorte, Wetter je Zone als fester Zyklus aus der Serverzeit (`Data/Weather`, `Logic/Weather`), neues reines Modul `Logic/Zones`, neue Remote `TravelToZone`, Tank je Sandsorte (gemischter Tank, falls Waltuh so entscheidet), Zonen-Menü im Client. Vor dem PR läuft der `security-reviewer` (Remote, Speichern, Preis).
+Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich im Profil gespeichert), Bereiche je Zone in `Data/World`, eigenes Terrain-Material je Sandsorte, Wetter je Zone als fester Zyklus aus der Serverzeit (`Data/Weather`, `Logic/Weather`), neues reines Modul `Logic/Zones`, neue Remote `TravelToZone`, Tank je Sandsorte (gemischter Tank, Entscheidung von Waltuh am 18.11.2026), Zonen-Menü im Client. Vor dem PR läuft der `security-reviewer` (Remote, Speichern, Preis).
 
 - [ ] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_tool_3`) gekauft ist, sonst nicht. Das Dünenmeer ist immer frei.
 - [ ] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei. Eine im Profil gespeicherte Zone bleibt frei, auch wenn ihr Knoten aus dem Baum verschwindet.
