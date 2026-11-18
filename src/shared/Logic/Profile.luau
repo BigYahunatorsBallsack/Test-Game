@@ -18,7 +18,8 @@ export type Pity = { sinceEpic: number, sinceLegendary: number }
 export type Profile = {
     version: number,
     coins: BigNum.Serialized,
-    tank: BigNum.Serialized,
+    tank: BigNum.Serialized, -- Gesamtmenge Sand im Tank
+    tankMix: { [string]: BigNum.Serialized }, -- Sand je Sandsorte (SandTypes-ID), Summe = tank (Paket 2.5)
     gems: number,
     nodes: { [string]: boolean }, -- gekaufte Knoten (ID -> true)
     zones: { [string]: boolean }, -- freigeschaltete Zonen
@@ -76,6 +77,7 @@ function Profile.default(now: number?): Profile
         version = Profile.CURRENT_VERSION,
         coins = BigNum.serialize(BigNum.zero()),
         tank = BigNum.serialize(BigNum.zero()),
+        tankMix = {},
         gems = 0,
         nodes = {},
         zones = { dunes = true },
@@ -149,7 +151,7 @@ end
 
 -- Felder, deren Standardtabelle zwar Einträge hat, deren Schlüssel aber beliebige IDs sind.
 -- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
-local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true }
+local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
 local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true }
 
@@ -231,6 +233,28 @@ end
 function Profile.sanitize(profile: Profile, now: number?): { string }
     local warnings: { string } = {}
     sanitizeInto(profile, Profile.default(now), "", warnings)
+    local data: any = profile
+    -- Tank und Sand-Mix (Paket 2.5): negativer Tank wird 0, ein Mix ohne Tank wird geleert,
+    -- ungültige oder negative Mix-Einträge werden entfernt.
+    if type(data.tank) == "table" and data.tank.m < 0 then
+        warn(warnings, "tank", "negativ, auf 0 gesetzt")
+        data.tank = BigNum.serialize(BigNum.zero())
+    end
+    if type(data.tankMix) == "table" then
+        if type(data.tank) ~= "table" or data.tank.m <= 0 then
+            if next(data.tankMix) ~= nil then
+                warn(warnings, "tankMix", "Tank ist leer, Mix geleert")
+            end
+            data.tankMix = {}
+        else
+            for typeId, amount in data.tankMix do
+                if type(typeId) ~= "string" or not isValidBigNum(amount) or amount.m < 0 then
+                    warn(warnings, `tankMix.{tostring(typeId)}`, "ungültiger Eintrag, entfernt")
+                    data.tankMix[typeId] = nil
+                end
+            end
+        end
+    end
     return warnings
 end
 

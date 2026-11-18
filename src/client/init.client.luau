@@ -1,7 +1,7 @@
 --!strict
 -- Client-Bootstrap: lädt die Controller und ruft erst alle Init(), dann alle Start().
 
-local CONTROLLER_NAMES = { "State", "Input", "Hud", "Dig", "ToolVisual", "SkillTree", "Tutorial" }
+local CONTROLLER_NAMES = { "State", "Input", "Hud", "Dig", "ToolVisual", "ZoneMenu", "Weather", "SkillTree", "Tutorial" }
 
 type Controller = {
     Init: () -> (),
@@ -17,11 +17,19 @@ for _, name in CONTROLLER_NAMES do
     table.insert(controllers, require(module) :: Controller)
 end
 
-for _, controller in controllers do
-    controller.Init()
+-- Ein Fehler in einem Controller darf die folgenden nicht verhindern: Er wird gemeldet, die
+-- anderen starten trotzdem (sonst fehlte durch einen Fehler im Baum auch das Tutorial).
+for index, controller in controllers do
+    local ok, err = pcall(controller.Init)
+    if not ok then
+        warn(`[Client] Init von {CONTROLLER_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
+    end
 end
-for _, controller in controllers do
-    controller.Start()
+for index, controller in controllers do
+    local ok, err = pcall(controller.Start)
+    if not ok then
+        warn(`[Client] Start von {CONTROLLER_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
+    end
 end
 
 print("[Client] Dune Baron läuft")

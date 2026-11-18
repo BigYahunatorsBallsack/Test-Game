@@ -232,6 +232,25 @@ T.describe("Tiefengrenze und Takt", function()
         end
     end)
 
+    T.it("Tiefengrenze der Zone: Canyon gräbt tiefer als die anderen Zonen", function()
+        local canyonDepth = Terrain.dig.maxDepthByZone.canyon
+        T.expect(canyonDepth > Terrain.dig.maxDepthStuds).toBe(true)
+        local deepHit = { x = 8, y = 8 - Terrain.dig.maxDepthStuds - 1, z = 8 }
+        local state = SandDig.new(Terrain)
+        T.expect(SandDig.tryDig(state, 0, { x = 8, y = 8, z = 8 }, "hand", "canyon") ~= nil).toBe(true)
+        -- Tiefer als die Standardgrenze: im Dünenmeer gesperrt, im Canyon erlaubt.
+        local blocked, reason = SandDig.tryDig(state, 1, deepHit, "hand", "dunes")
+        T.expect(blocked).toBeNil()
+        T.expect(reason).toBe("tooDeep")
+        local allowed = SandDig.tryDig(state, 2, deepHit, "hand", "canyon")
+        T.expect(allowed ~= nil).toBe(true)
+        T.expect((allowed :: any).floorY).toBe(8 - canyonDepth)
+        -- Ohne Zone (oder Zone ohne Eintrag) gilt die Standardgrenze.
+        local other = SandDig.new(Terrain)
+        T.expect(SandDig.tryDig(other, 0, { x = 8, y = 8, z = 8 }, "hand") ~= nil).toBe(true)
+        T.expect(SandDig.tryDig(other, 1, deepHit, "hand", "oasis")).toBeNil()
+    end)
+
     T.it("ein Treffer an der Grenze gräbt nicht", function()
         local state = SandDig.new(Terrain)
         T.expect(SandDig.tryDig(state, 0, { x = 8, y = 8, z = 8 }, "hand") ~= nil).toBe(true)

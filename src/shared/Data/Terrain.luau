@@ -15,7 +15,8 @@ local Terrain = {
     voxelSize = 4,
     -- Kantenlänge der Blöcke, in denen der Client Originalzustand und Nachwachsen verwaltet.
     chunkSize = 16,
-    -- Nur auf diesen Materialien entstehen Löcher.
+    -- Nur auf diesen Materialien entstehen Löcher. Dazu kommen die Terrain-Materialien aller
+    -- Sandsorten (SandTypes.terrainMaterial, Paket 2.5), dafür muss hier nichts stehen.
     diggableMaterials = { "Sand" },
 
     dig = {
@@ -28,6 +29,9 @@ local Terrain = {
         rayLengthStuds = 24,
         -- Höchstens so tief unter der zuerst gemessenen Oberfläche (ungefähr, auf Voxel genau).
         maxDepthStuds = 4,
+        -- Tiefengrenze einzelner Zonen (Zonen-ID -> Studs), sonst gilt maxDepthStuds.
+        -- Canyon: tiefe Schichten mit seltenen Funden.
+        maxDepthByZone = { canyon = 8 } :: { [string]: number },
         -- Rasterweite, in der sich der Client die ursprüngliche Oberfläche merkt.
         surfaceCellStuds = 4,
     },

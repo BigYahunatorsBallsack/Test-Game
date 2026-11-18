@@ -1,6 +1,6 @@
 --!strict
 -- Upgrades-Service
--- Zuständig: Skilltree-Käufe (PurchaseNode), Voraussetzungen, Zonen-Freischaltung über
+-- Zuständig: Skilltree-Käufe (PurchaseNode), Voraussetzungen, Zonen-Freischaltung (ZoneService) über
 -- Knoten-IDs, Sandsturm (Prestige). Paket 1.6 bringt den Mini-Kauf (PurchaseNode für die
 -- ersten Knoten), 2.1 den ganzen Baum (Äste Sammeln, Tank, Verkauf, Glück), 2.5 die Zonen und
 -- 2.7 den Sandsturm.
@@ -19,6 +19,7 @@ local TreePurchase = require(shared:WaitForChild("Logic"):WaitForChild("TreePurc
 local servicesFolder = script.Parent
 local PlayerData: any = nil
 local Sand: any = nil
+local ZoneService: any = nil
 local Net: any = nil
 
 local Upgrades = {}
@@ -36,6 +37,11 @@ local function onPurchaseNode(player: Player, nodeId: string): any
     end
     local ok, reason = TreePurchase.buy(profile, nodeId)
     if ok then
+        -- Neue Zonen freischalten und melden (Paket 2.5). Ein Fehler darf den Kauf nicht kippen.
+        local unlocked, unlockErr = pcall(ZoneService.unlockNew, player)
+        if not unlocked then
+            warn(`[Upgrades] Zonen-Freischaltung nach Kauf von {nodeId} fehlgeschlagen: {tostring(unlockErr)}`)
+        end
         -- Rate, Tank, Tutorial und Anzeige neu berechnen und an den Client schicken. Ein Fehler
         -- dabei darf den schon gebuchten Kauf nicht als Fehlschlag melden.
         local refreshed, err = pcall(Sand.refresh, player)
@@ -50,6 +56,7 @@ end
 function Upgrades.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    ZoneService = require(servicesFolder:WaitForChild("ZoneService") :: ModuleScript)
     Net = require(servicesFolder.Parent:WaitForChild("Net"):WaitForChild("Net") :: ModuleScript)
 end
 

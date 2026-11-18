@@ -260,10 +260,59 @@ Die Werte aus dem Baum wirken seit 2.1 (Server: `TreeEffects`, `Collecting`). 2.
 - [ ] [Studio] Eimerkette, Saugroboter und Großmaschine bewegen den Sand erkennbar anders (Band, Sog, Fontäne).
 - [ ] [Studio] Schwaches Handy: Großmaschine mit Staub bleibt über 40 FPS, sonst greift der Wächter.
 
-## 2.5 Zonen-Freischaltung
+## 2.5 Zonen 2 bis 5
 
-- [ ] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_milestone_1`) gekauft ist, sonst nicht.
-- [ ] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei.
+Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich im Profil gespeichert), Bereiche je Zone in `Data/World`, eigenes Terrain-Material je Sandsorte, Wetter je Zone als fester Zyklus aus der Serverzeit (`Data/Weather`, `Logic/Weather`), neues reines Modul `Logic/Zones`, neue Remote `TravelZone`, Tank je Sandsorte (gemischter Tank, Entscheidung von Waltuh am 18.11.2026), Zonen-Menü im Client. Vor dem PR läuft der `security-reviewer` (Remote, Speichern, Preis).
+
+- [x] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_tool_3`) gekauft ist, sonst nicht. Das Dünenmeer ist immer frei.
+- [x] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei. Eine im Profil gespeicherte Zone bleibt frei, auch wenn ihr Knoten aus dem Baum verschwindet.
+- [x] [Lune] `unlockNew` meldet eine neue Zone genau einmal, auch bei zwei Aufrufen hintereinander.
+- [x] [Lune] `zoneAt`: Punkte in jedem Bereich liefern die richtige Zone, Punkte zwischen den Bereichen keine.
+- [x] [Lune] Betreten einer gesperrten Zone: Die aktuelle Zone bleibt, der Spieler wird an den Rand der aktuellen Zone zurückgesetzt (nicht zum Spawn). Betreten einer freien Zone macht sie zur aktuellen Zone.
+- [x] [Lune] `TravelZone`: unbekannte ID, falscher Typ, gesperrte Zone, Abklingzeit und Rate-Limit werden abgelehnt, eine freie Zone geht durch.
+- [x] [Lune] Gemischter Tank: 100 Sand im Dünenmeer, Wechsel zur Oase, 100 Sand dort. Verkaufen zahlt 100 x Faktor 1 plus 100 x Faktor 3, egal an welchem Stand. Die Tankgröße zählt die Summe.
+- [x] [Lune] Zonenwechsel während des Sammelns: Das offene Sammelfenster wird mit der alten Sorte abgerechnet, erst danach zählt die neue.
+- [x] [Lune] Migration: Ein Profil der alten Version mit Tank 500 in der Oase wird zu 500 rotem Sand. Eine zweite Migration ändert nichts. Speichern und Laden über den Fake-Speicher ergibt denselben Tank.
+- [x] [Lune] Wetter: `stateAt` ist für dieselbe Zeit immer gleich, der Regen der Oase dauert 90 s in jedem 8-Minuten-Zyklus, das Dünenmeer hat nie Wetter.
+- [x] [Lune] `DataCheck` prüft `World`: jede Zone hat Bereich, Spawn und Stand, Spawn und Stand liegen im Bereich, Bereiche überlappen nicht.
+- [x] [Lune] `DataCheck` prüft `SandTypes.terrainMaterial` (verschieden je Sorte) und `Weather` (Zeiten über 0, aktive Zeit kürzer als der Zyklus, bekannte Zonen).
+- [x] [Lune] Sicherheit (Review): Ist die aktuelle Zone gesperrt (Sandsturm, Daten-Update), setzt der Server auf das Dünenmeer zurück. Ein zu großer Mix, ein negativer Tank und Sand ohne Mix-Eintrag zahlen nie mehr als der Tank, billigste Sorte zuerst. Die Migration verwirft einen vorhandenen Mix. `sanitize` leert einen Mix ohne Tank. `addSand` und `clearTank` halten Tank und Mix zusammen. Das Limit von `TravelZone` lehnt den zweiten Aufruf ab.
+- [x] [Lune] Zeit-Simulation aus 2.1 läuft weiter und wechselt in die beste freie Zone: Die Werkzeugzeiten bleiben in der Spanne aus `docs/balance/skilltree_2_1.md`.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei `TravelZone`, Zonenprüfung, Tank und Migration.
+- [ ] [Studio] Alle fünf Zonen sind als Platzhalter begehbar, jede mit eigener Sandfarbe, Stand und Spawn.
+- [ ] [Studio] Ohne Eimerkette: Das Tor zur Oase ist zu, das Schild nennt den Knoten. Wer trotzdem durchkommt (Fly oder Teleport im Studio-Befehl), landet wieder am Rand der aktuellen Zone mit Meldung.
+- [ ] [Studio] Eimerkette kaufen: Meldung "Neue Zone: Oase", das Tor öffnet sich.
+- [ ] [Studio] Zonen-Menü: Reisen in eine freie Zone klappt, gesperrte Zonen zeigen den nötigen Knoten.
+- [ ] [Studio] Verkaufen in der Oase bringt sichtbar mehr als im Dünenmeer, gemischter Tank wird richtig bezahlt.
+- [ ] [Studio] Wetter: Regen in der Oase, Nebel im Salzsee, Dunst in der Ruinenstadt, weiche Übergänge beim Zonenwechsel.
+- [ ] [Studio] Graben funktioniert in allen fünf Materialien, im Canyon tiefer.
+- [ ] [Studio] Neustart: Zone, freigeschaltete Zonen und Tank bleiben erhalten.
+
+## 2.6 Fundstücke, Reveal und Sammlung
+
+Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Funde nur für echte Sammelzeit (`collectSeconds` aus `Collecting.update`), Chance mal Zone, Glück-Ast und Regen, Seltenheit nach der Quotentabelle der Zone (`FindOdds.zoneOddsTable`), Fund gleich verteilt unter den Funden der Zone mit dieser Seltenheit, Wert beim Fund festgeschrieben. 150 Platzhalter mit festen IDs (`dunes_s1_1` bis `ruins_s6_5`, Namen in 3.3). Sammlung, Sets, Bonus und Zonenbuch werden aus `profile.finds` berechnet (`Logic/Collection`, `Data/Collection`), der Sammlungsbonus ist ein eigener Faktor auf die Münzen pro Sand. Doppelte Funde werden sofort zu ihrem festen Wert verkauft (Entscheidung von Waltuh am 18.11.2026). Reveal und Sammlungsbuch im Client, neue Remote `CollectionSync` (nur Server zum Client). Vor dem PR läuft der `security-reviewer` (Münzen, Profil).
+
+- [ ] [Lune] Chance: Ohne Sammelzeit kein Fund, negative oder kaputte Zeit zählt als 0. Die Chance im Fenster folgt 1 − (1 − p)^t und bleibt höchstens 100 %. Pro Tick höchstens ein Fund.
+- [ ] [Lune] Faktoren: Zone, Glück-Ast und Regen multiplizieren die Chance, nicht die Verteilung. Regen zählt nur, solange er aktiv ist (beim Ein- und Ausblenden anteilig).
+- [ ] [Lune] Verteilung: 200.000 Würfe treffen jede Seltenheit innerhalb der statistischen Toleranz der Tabelle.
+- [ ] [Lune] Auswahl: Der Fund kommt immer aus der aktuellen Zone und hat die gewürfelte Seltenheit. Fehlt sie in der Zone, kommt die nächst tiefere.
+- [ ] [Lune] Wert: entspricht `findBaseValue` × Sandfaktor × Werkzeug-Grundrate × Wertfaktor, wird beim Fund festgeschrieben und ändert sich nicht mit dem nächsten Werkzeug.
+- [ ] [Lune] Neu oder doppelt: Ein neuer Fund setzt den Zähler auf 1 ohne Münzen. Ein doppelter erhöht den Zähler und bucht seinen Wert als BigNum, auch bei großen Münzständen.
+- [ ] [Lune] Voller Tank: `collectSeconds` endet bei "voll", danach gibt es keine Funde.
+- [ ] [Lune] Erster Fund sicher: Nach 60 s Sammeln ohne jeden Fund kommt ein Gewöhnlicher Fund, danach greift die Regel nie wieder.
+- [ ] [Lune] Sammlung: Ein Set mit 5 von 5 ist fertig, mit 4 von 5 nicht. Der Bonus ist die Summe der fertigen Sets. Das Zonenbuch ist nur bei 6 von 6 fertig. Unbekannte IDs zählen nicht und bleiben im Profil.
+- [ ] [Lune] Preis: Die Münzen pro Sand steigen mit dem Sammlungsbonus, auch beim gemischten Tank. Funde selbst bekommen den Bonus nicht.
+- [ ] [Lune] `Profile.sanitize` entfernt kaputte Zähler in `finds` (keine ganze Zahl, kleiner 1, NaN), gültige bleiben.
+- [ ] [Lune] `DataCheck`: 150 Funde, je Set genau 5, jede Zone hat jede Seltenheit, IDs nach Muster, `setBonusBp` und `zoneBooks` gültig, `zoneOddsTable` zeigt auf bekannte Tabellen. Kaputte Daten werden abgelehnt.
+- [ ] [Lune] Zeit-Simulation aus 2.1 mit Sammlungsbonus: Die Werkzeugzeiten werden im ersten Lauf höchstens 10 % kürzer.
+- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei Funden, Münzen aus Duplikaten und Profil.
+- [ ] [Studio] Sammeln bringt nach etwa einer Minute den ersten Fund mit Reveal, Sammeln und Laufen gehen dabei weiter.
+- [ ] [Studio] Ein doppelter Fund zeigt "+X Münzen", die Münzen steigen.
+- [ ] [Studio] Ein fertiges Set (im Studio per Befehl gesetzt): Meldung, die Münzen pro Sand steigen sichtbar.
+- [ ] [Studio] Das Sammlungsbuch zeigt alle Zonen, Sets und Slots, auch im Handy-Emulator.
+- [ ] [Studio] Neustart: Sammlung und Bonus bleiben erhalten.
 
 ## 2.7 Sandsturm (Prestige)
 

@@ -85,6 +85,7 @@ T.describe("PlayerSession", function()
         local world = FakeStore.newWorld()
         local old: any = Profile.default(START)
         old.gems = 77
+        old.version = 1
         world.saved[KEY] = old
         local steps: { [number]: Migrations.Step } = {
             [1] = function(p: any)
@@ -135,6 +136,7 @@ T.describe("PlayerSession", function()
     T.it("Migration mit Fehler: Spieler wird entfernt, Daten bleiben unverändert", function()
         local world = FakeStore.newWorld()
         local old: any = Profile.default(START)
+        old.version = 1
         world.saved[KEY] = FakeStore.deepCopy(old)
         local steps: { [number]: Migrations.Step } = {
             [1] = function(_p: any): any

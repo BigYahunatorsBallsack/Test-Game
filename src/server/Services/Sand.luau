@@ -18,6 +18,8 @@ local TICK_SECONDS = 0.25
 -- Platzhalter-Stand: Größe und Farbe (nur bis Phase 3).
 local PLACEHOLDER_SIZE = Vector3.new(8, 6, 4)
 local PLACEHOLDER_COLOR = Color3.fromRGB(176, 120, 64)
+-- So nah an der Standposition der Zone zählt ein vorhandener Stand als ihr Stand (Studs).
+local PLACEHOLDER_SEARCH_RADIUS = 40
 local PROMPT_ACTION_TEXT = "Verkaufen"
 local PROMPT_OBJECT_TEXT = "Händlerstand"
 -- Attribut am ProximityPrompt, an dem der Client den Verkaufs-Prompt erkennt.
@@ -30,11 +32,10 @@ end
 local Collecting = loadShared("Logic", "Collecting")
 local TreeEffects = loadShared("Logic", "TreeEffects")
 local ToolLook = loadShared("Logic", "ToolLook")
+local Zones = loadShared("Logic", "Zones")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
-local TerrainData = loadShared("Data", "Terrain")
-local SandTypes = loadShared("Data", "SandTypes")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -87,6 +88,7 @@ function Sand.snapshot(player: Player): any?
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile),
         nodes = Collecting.ownedNodes(profile),
+        zonesUnlocked = Zones.unlockedMap(profile),
         sellBonusBp = effects.sellBonusBp,
         luckBonusBp = effects.luckBonusBp,
         tutorialStep = Tutorial.stepOf(profile),
@@ -127,6 +129,20 @@ end
 
 local function notify(player: Player, payload: any)
     Net.fire(player, "Notify", payload)
+end
+
+-- Wechselt die aktuelle Zone des Spielers (Paket 2.5). Das offene Sammelfenster wird mit der
+-- alten Sandsorte abgerechnet, danach zählt die neue. Eine gesperrte Zone wird nie übernommen
+-- (zweite Sicherung neben ZoneService). Gibt false zurück, wenn kein Profil da ist oder die Zone
+-- gesperrt ist.
+function Sand.setZone(player: Player, zoneId: string): boolean
+    local profile = PlayerData.get(player)
+    if profile == nil or not Zones.isUnlocked(profile, zoneId) then
+        return false
+    end
+    Collecting.setZone(stateOf(player), profile, zoneId, now())
+    sync(player)
+    return true
 end
 
 -- HumanoidRootPart eines lebenden Charakters, sonst nil.
@@ -222,17 +238,30 @@ end
 
 local function setupSellStands()
     local tag = World.sellStand.tag
-    if #CollectionService:GetTagged(tag) == 0 then
-        local pos = World.sellStand.placeholderPosition
-        local part = Instance.new("Part")
-        part.Name = "SellStand_Platzhalter"
-        part.Anchored = true
-        part.Size = PLACEHOLDER_SIZE
-        part.Color = PLACEHOLDER_COLOR
-        part.Position = Vector3.new(pos.x, pos.y, pos.z)
-        part:AddTag(tag)
-        part.Parent = workspace
-        warn("[Sand] Kein Händlerstand im Workspace: Platzhalter angelegt (bis Phase 3)")
+    -- Je Zone ein Platzhalter-Stand, falls im Workspace noch keiner in der Nähe liegt (bis Phase 3).
+    for _, area in World.zones do
+        local pos = area.stand
+        local nearby = false
+        for _, stand in CollectionService:GetTagged(tag) do
+            if stand:IsA("BasePart") then
+                local d = stand.Position - Vector3.new(pos.x, pos.y, pos.z)
+                if d.Magnitude <= PLACEHOLDER_SEARCH_RADIUS then
+                    nearby = true
+                    break
+                end
+            end
+        end
+        if not nearby then
+            local part = Instance.new("Part")
+            part.Name = `SellStand_Platzhalter_{area.id}`
+            part.Anchored = true
+            part.Size = PLACEHOLDER_SIZE
+            part.Color = PLACEHOLDER_COLOR
+            part.Position = Vector3.new(pos.x, pos.y, pos.z)
+            part:AddTag(tag)
+            part.Parent = workspace
+            warn(`[Sand] Kein Händlerstand für Zone {area.id}: Platzhalter angelegt (bis Phase 3)`)
+        end
     end
     for _, stand in CollectionService:GetTagged(tag) do
         if stand:IsA("BasePart") then
@@ -244,46 +273,6 @@ local function setupSellStands()
             addPrompt(stand)
         end
     end)
-end
-
--- Platzhalter-Sandfeld (Paket 1.4), bis die Zone Dünenmeer steht (Paket 1.5). Nur wenn es in
--- den Daten eingeschaltet ist und an der Mitte der Oberseite noch kein Terrain liegt. Löcher
--- gräbt später nur der Client, der Server ändert dieses Terrain danach nicht mehr.
-local function setupPlaceholderSand()
-    local field = TerrainData.placeholderField
-    if not field.enabled then
-        return
-    end
-    local terrain = workspace.Terrain
-    local voxel = TerrainData.voxelSize
-    local center = Vector3.new(field.center.x, field.center.y, field.center.z)
-    local size = Vector3.new(field.size.x, field.size.y, field.size.z)
-    -- Probe: der Voxel direkt unter der Mitte der Oberseite.
-    local probeTop = center + Vector3.new(0, size.Y / 2, 0)
-    local probe = Region3.new(probeTop - Vector3.new(voxel, voxel, voxel), probeTop):ExpandToGrid(voxel)
-    local _materials, occupancies = terrain:ReadVoxels(probe, voxel)
-    local grid = occupancies :: any
-    local size3 = grid.Size :: Vector3
-    local occupied = false
-    for x = 1, size3.X do
-        for y = 1, size3.Y do
-            for z = 1, size3.Z do
-                if grid[x][y][z] > 0 then
-                    occupied = true
-                end
-            end
-        end
-    end
-    if occupied then
-        return
-    end
-    local material = (Enum.Material :: any)[field.material]
-    terrain:FillBlock(CFrame.new(center), size, material)
-    local sandType = SandTypes.byId[field.sandTypeId]
-    if sandType ~= nil then
-        terrain:SetMaterialColor(material, Color3.fromHex(sandType.colorHex))
-    end
-    warn("[Sand] Kein Sandterrain am Platzhalter-Feld: Platzhalter-Sandfeld angelegt (bis Paket 1.5)")
 end
 
 -- Ein Spieler pro Tick: Position proben, laufendes Sammeln abrechnen, Änderungen senden.
@@ -330,12 +319,16 @@ end
 
 function Sand.Start()
     setupSellStands()
-    setupPlaceholderSand()
     Net.on("SetCollecting", onSetCollecting)
     Net.on("Sell", onSell)
 
-    PlayerData.onLoaded(function(player: Player, _profile: any)
+    PlayerData.onLoaded(function(player: Player, profile: any)
         states[player] = Collecting.newState(now())
+        -- Zonen, deren Knoten schon gekauft sind (alte Spielstände), still freischalten.
+        Zones.unlockNew(profile)
+        if not Zones.isUnlocked(profile, profile.currentZone) then
+            profile.currentZone = "dunes" -- eine gesperrte aktuelle Zone nie übernehmen
+        end
         Sand.refresh(player)
     end)
     Players.PlayerRemoving:Connect(function(player: Player)

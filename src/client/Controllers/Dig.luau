@@ -43,7 +43,7 @@ local MAX_DISCS = 24
 
 -- Anzeige für den Handy-Test
 local OVERLAY_REFRESH_SECONDS = 0.5
-local OVERLAY_POSITION = UDim2.new(0, 16, 0, 108)
+local OVERLAY_POSITION = UDim2.new(0, 16, 0, 132)
 local OVERLAY_SIZE = UDim2.new(0, 240, 0, 22)
 local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 
@@ -196,8 +196,8 @@ local function emitParticles(position: Vector3, count: number, toolId: string?)
     emitter:Emit(count)
 end
 
-local function digTerrain(now: number, hit: RaycastResult, toolId: string?)
-    local result = SandDig.tryDig(digState, now, vec(hit.Position), toolId)
+local function digTerrain(now: number, hit: RaycastResult, toolId: string?, zoneId: string?)
+    local result = SandDig.tryDig(digState, now, vec(hit.Position), toolId, zoneId)
     if result == nil then
         return
     end
@@ -360,14 +360,19 @@ function Dig.isFallback(): boolean
 end
 
 function Dig.Init()
-    for _, name in TerrainData.diggableMaterials do
+    -- Grabbar: die Materialien aus Terrain.diggableMaterials und das Terrain-Material jeder Sandsorte.
+    local names: { string } = table.clone(TerrainData.diggableMaterials)
+    for _, sandType in SandTypes.list do
+        table.insert(names, sandType.terrainMaterial)
+    end
+    for _, name in names do
         local ok, material = pcall(function(): any
             return (Enum.Material :: any)[name]
         end)
         if ok and material ~= nil then
             diggable[material] = true
         else
-            warn(`[Dig] Unbekanntes Material in Terrain.diggableMaterials: {name}`)
+            warn(`[Dig] Unbekanntes Material: {name}`)
         end
     end
 end
@@ -403,7 +408,7 @@ function Dig.Start()
                 local hit = findGround(root, toolId)
                 if hit ~= nil then
                     if mode == "full" then
-                        digTerrain(t, hit, toolId)
+                        digTerrain(t, hit, toolId, if snapshot ~= nil then snapshot.zoneId else nil)
                     else
                         digFallback(t, hit, toolId)
                     end
