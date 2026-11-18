@@ -18,16 +18,18 @@ local Economy = require("../src/shared/Data/Economy")
 
 local NOW = 1_700_000_000
 
--- Zielzeiten aus docs/balance/skilltree_2_1.md, Variante "mit Glück-Knoten" (die Simulation
--- kauft immer den billigsten sichtbaren Knoten, also auch Glück), je ±15 %. Längste Pause
--- zwischen zwei Käufen: Konzept "höchstens etwa 2 Minuten".
+-- Zielzeiten aus docs/balance/skilltree_2_1.md, Variante "Ohne Tore an den Werkzeugen"
+-- (Entscheidung 18.11.2026: keine Raten-Sperren, Werkzeugpreise steigen in Paket 6.4). Die
+-- Simulation kauft immer den billigsten sichtbaren Knoten, also auch Glück (etwa 2 bis 4 %
+-- später). Je ±15 %. Längste Pause zwischen zwei Käufen: Konzept "höchstens etwa 2 Minuten".
+-- Paket 6.4 setzt hier die neuen Zielzeiten ein.
 local SIM = {
     limitSeconds = 3 * 60 * 60,
     toolSeconds = {
-        collect_tool_3 = 7 * 60 + 8, -- Eimerkette, Oase
-        collect_tool_4 = 11 * 60 + 21, -- Mini-Bagger, Canyon
-        collect_tool_5 = 17 * 60 + 30, -- Saugroboter, Salzsee
-        collect_tool_6 = 22 * 60 + 1, -- Großmaschine
+        collect_tool_3 = 6 * 60 + 54, -- Eimerkette, Oase
+        collect_tool_4 = 9 * 60 + 52, -- Mini-Bagger, Canyon
+        collect_tool_5 = 10 * 60 + 47, -- Saugroboter, Salzsee
+        collect_tool_6 = 11 * 60 + 49, -- Großmaschine
     } :: { [string]: number },
     maxGapSeconds = 120,
 }
