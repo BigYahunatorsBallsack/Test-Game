@@ -3,6 +3,8 @@
 -- `DataCheck.run()` prüft die echten Tabellen, `DataCheck.run(dataSet)` eine übergebene
 -- (z. B. absichtlich kaputte) Fassung. Der Server ruft die Prüfung beim Start auf.
 
+local TreeLayout = require("./TreeLayout")
+
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
 local HEX_PATTERN = "^#%x%x%x%x%x%x$"
@@ -30,7 +32,7 @@ local BRANCH_OF_EFFECT = {
 }
 local BP_EFFECTS = { rateBonus = true, sellBonus = true, luckBonus = true }
 local CONDITION_KINDS = { tankAtLeast = true, sold = true, node = true }
-local TUTORIAL_TARGETS = { sand = true, stand = true, list = true }
+local TUTORIAL_TARGETS = { sand = true, stand = true, tree = true }
 local BRANCHES = { collect = true, tank = true, sell = true, luck = true, sandstorm = true }
 
 -- Alle Tabellen, die geprüft werden. Felder sind bewusst `any`, damit auch kaputte
@@ -50,6 +52,7 @@ export type DataSet = {
     World: any,
     Terrain: any,
     Tutorial: any,
+    TreeLayout: any,
 }
 
 local DataCheck = {}
@@ -71,6 +74,7 @@ function DataCheck.defaults(): DataSet
         World = require("../Data/World"),
         Terrain = require("../Data/Terrain"),
         Tutorial = require("../Data/Tutorial"),
+        TreeLayout = require("../Data/TreeLayout"),
     }
 end
 
@@ -799,6 +803,144 @@ local function checkTankChain(errors: { string }, data: DataSet)
     end
 end
 
+-- Zahlen der Baumansicht (Paket 2.2): Spalten, Abstände, Zoomgrenzen, Platzhalter-Looks und die
+-- festgenagelten Plätze (`pos`) der Knoten.
+local function checkTreeLayout(errors: { string }, data: DataSet)
+    local config = data.TreeLayout
+    if type(config) ~= "table" then
+        table.insert(errors, "TreeLayout fehlt")
+        return
+    end
+    local before = #errors
+
+    local columnValues: { [number]: string } = {}
+    if type(config.columns) ~= "table" then
+        table.insert(errors, "TreeLayout.columns fehlt")
+    else
+        for kind, column in config.columns do
+            if EFFECT_KINDS[kind] == nil then
+                table.insert(errors, `TreeLayout.columns: unbekannte Wirkung "{tostring(kind)}"`)
+            elseif not isInt(column) then
+                table.insert(errors, `TreeLayout.columns.{kind} muss eine ganze Zahl sein`)
+            elseif columnValues[column] ~= nil then
+                table.insert(errors, `TreeLayout.columns: {kind} und {columnValues[column]} teilen sich die Spalte {column}`)
+            else
+                columnValues[column] = kind
+            end
+        end
+        for kind in EFFECT_KINDS do
+            if config.columns[kind] == nil then
+                table.insert(errors, `TreeLayout.columns: Wirkung "{kind}" hat keine Spalte`)
+            end
+        end
+    end
+
+    if type(config.looks) ~= "table" then
+        table.insert(errors, "TreeLayout.looks fehlt")
+    else
+        for kind in EFFECT_KINDS do
+            local look = config.looks[kind]
+            local label = `TreeLayout.looks.{kind}`
+            if type(look) ~= "table" then
+                table.insert(errors, `{label} fehlt`)
+            else
+                if type(look.glyph) ~= "string" or look.glyph == "" then
+                    table.insert(errors, `{label}.glyph muss ein Zeichen sein`)
+                end
+                local ok = type(look.color) == "table" and #look.color == 3
+                if ok then
+                    for _, channel in look.color do
+                        if not isInt(channel) or channel < 0 or channel > 255 then
+                            ok = false
+                        end
+                    end
+                end
+                if not ok then
+                    table.insert(errors, `{label}.color braucht drei ganze Zahlen von 0 bis 255`)
+                end
+            end
+        end
+    end
+
+    for _, field in { "columnSpacing", "rowSpacing", "nodeSize", "minTouchPixels", "tapMaxMovePixels" } do
+        positive(errors, `TreeLayout.{field}`, config[field])
+    end
+    if not isFinite(config.margin) or config.margin < 0 then
+        table.insert(errors, "TreeLayout.margin muss eine Zahl ab 0 sein")
+    end
+    if isFinite(config.nodeSize) then
+        if isFinite(config.columnSpacing) and config.columnSpacing <= config.nodeSize then
+            table.insert(errors, "TreeLayout.columnSpacing muss größer als nodeSize sein (Knoten dürfen sich nicht berühren)")
+        end
+        if isFinite(config.rowSpacing) and config.rowSpacing <= config.nodeSize then
+            table.insert(errors, "TreeLayout.rowSpacing muss größer als nodeSize sein (Knoten dürfen sich nicht berühren)")
+        end
+    end
+
+    local zoom = config.zoom
+    if type(zoom) ~= "table" then
+        table.insert(errors, "TreeLayout.zoom fehlt")
+    else
+        for _, field in { "min", "max", "start" } do
+            positive(errors, `TreeLayout.zoom.{field}`, zoom[field])
+        end
+        if isFinite(zoom.min) and isFinite(zoom.max) and zoom.max <= zoom.min then
+            table.insert(errors, "TreeLayout.zoom.max muss über zoom.min liegen")
+        end
+        if isFinite(zoom.min) and isFinite(zoom.max) and isFinite(zoom.start) and (zoom.start < zoom.min or zoom.start > zoom.max) then
+            table.insert(errors, "TreeLayout.zoom.start muss zwischen min und max liegen")
+        end
+        for _, field in { "buttonStep", "wheelStep" } do
+            if not isFinite(zoom[field]) or zoom[field] <= 1 then
+                table.insert(errors, `TreeLayout.zoom.{field} muss über 1 liegen`)
+            end
+        end
+        if isFinite(zoom.min) and isFinite(config.nodeSize) and isFinite(config.minTouchPixels) and config.nodeSize * zoom.min < config.minTouchPixels then
+            table.insert(errors, "TreeLayout: nodeSize mal zoom.min liegt unter minTouchPixels (Knoten am Handy zu klein zum Antippen)")
+        end
+    end
+
+    -- Festgenagelte Plätze und Kollisionen (nur wenn die Zahlen oben stimmen).
+    local tree = data.UpgradeTree
+    if type(tree) ~= "table" or not isList(tree.list) or type(tree.byId) ~= "table" then
+        return
+    end
+    for _, node in tree.list do
+        if node.pos ~= nil then
+            local label = `UpgradeTree "{tostring(node.id)}"`
+            if type(node.pos) ~= "table" or not isInt(node.pos.column) or not isInt(node.pos.row) or node.pos.row < 1 then
+                table.insert(errors, `{label}: pos braucht column (ganze Zahl) und row (ganze Zahl ab 1)`)
+            elseif type(config.columns) == "table" and columnValues[node.pos.column] == nil then
+                table.insert(errors, `{label}: pos.column {node.pos.column} ist keine Spalte aus TreeLayout.columns`)
+            end
+        end
+    end
+    if #errors ~= before then
+        return
+    end
+    local ok, layout = pcall(function()
+        return TreeLayout.compute(tree, config)
+    end)
+    if not ok then
+        table.insert(errors, `TreeLayout: Berechnung schlägt fehl ({tostring(layout)})`)
+        return
+    end
+    local taken: { [string]: string } = {}
+    for _, node in tree.list do
+        local placement = layout.nodes[node.id]
+        if placement == nil then
+            table.insert(errors, `UpgradeTree "{tostring(node.id)}": kein Platz im Baum`)
+        else
+            local key = `{placement.column}:{placement.row}`
+            if taken[key] ~= nil then
+                table.insert(errors, `UpgradeTree "{node.id}": liegt auf demselben Platz wie "{taken[key]}" (Spalte {placement.column}, Reihe {placement.row})`)
+            else
+                taken[key] = node.id
+            end
+        end
+    end
+end
+
 local function checkTutorial(errors: { string }, data: DataSet)
     local tutorial = data.Tutorial
     if type(tutorial) ~= "table" or type(tutorial.steps) ~= "table" or #tutorial.steps == 0 then
@@ -856,6 +998,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkQuotas(errors, data)
     checkCrates(errors, data)
     checkUpgradeTree(errors, data)
+    checkTreeLayout(errors, data)
     checkTools(errors, data)
     checkSandTypes(errors, data)
     checkZones(errors, data)

@@ -24,9 +24,39 @@ local Input = {}
 
 local holding = false
 local holdToken = 0
+local suspended = false
+local setHolding: (boolean) -> () = function(_value: boolean) end
 
 function Input.isHolding(): boolean
     return holding
+end
+
+local function bindCollect()
+    ContextActionService:BindAction(ACTION_NAME, function(_name: string, inputState: Enum.UserInputState, _input: InputObject)
+        if inputState == Enum.UserInputState.Begin then
+            setHolding(true)
+        elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+            setHolding(false)
+        end
+        return Enum.ContextActionResult.Sink
+    end, true, table.unpack(COLLECT_INPUTS))
+    ContextActionService:SetTitle(ACTION_NAME, TOUCH_BUTTON_TITLE)
+    ContextActionService:SetPosition(ACTION_NAME, TOUCH_BUTTON_POSITION)
+end
+
+-- Pausiert das Sammeln, solange der Skilltree offen ist (Paket 2.2): Die Aktion wird gelöst
+-- (damit auch der Bildschirmknopf am Handy verschwindet), und ein laufendes Halten endet.
+function Input.setSuspended(value: boolean)
+    if suspended == value then
+        return
+    end
+    suspended = value
+    if value then
+        setHolding(false)
+        ContextActionService:UnbindAction(ACTION_NAME)
+    else
+        bindCollect()
+    end
 end
 
 function Input.Init() end
@@ -36,7 +66,7 @@ function Input.Start()
     local setCollecting = remotes:WaitForChild("SetCollecting") :: RemoteEvent
     local sell = remotes:WaitForChild("Sell") :: RemoteEvent
 
-    local function setHolding(value: boolean)
+    setHolding = function(value: boolean)
         if holding == value then
             return
         end
@@ -56,16 +86,9 @@ function Input.Start()
         end
     end
 
-    ContextActionService:BindAction(ACTION_NAME, function(_name: string, inputState: Enum.UserInputState, _input: InputObject)
-        if inputState == Enum.UserInputState.Begin then
-            setHolding(true)
-        elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
-            setHolding(false)
-        end
-        return Enum.ContextActionResult.Sink
-    end, true, table.unpack(COLLECT_INPUTS))
-    ContextActionService:SetTitle(ACTION_NAME, TOUCH_BUTTON_TITLE)
-    ContextActionService:SetPosition(ACTION_NAME, TOUCH_BUTTON_POSITION)
+    if not suspended then
+        bindCollect()
+    end
 
     ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
         if prompt:GetAttribute(SELL_PROMPT_ATTRIBUTE) == true then

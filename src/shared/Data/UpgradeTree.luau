@@ -37,6 +37,10 @@ export type Effect = {
     capacity: number?, -- bei "setTank": Tankgröße in Sand
 }
 
+-- Festgenagelter Platz: Spalte (siehe Data/TreeLayout) und absolute Reihe (1 = unterste Reihe
+-- über dem Start, größere Zahlen liegen weiter oben).
+export type Pos = { column: number, row: number }
+
 export type Node = {
     id: string,
     name: string, -- Anzeigename für Spieler
@@ -47,6 +51,7 @@ export type Node = {
     effect: Effect,
     milestone: number?, -- Meilenstein-Nummer im Ast "Sammeln"
     granted: boolean?, -- true: wird vergeben, nicht gekauft
+    pos: Pos?, -- optional: Platz im Baum festnageln (sonst rechnet Logic/TreeLayout ihn aus)
 }
 
 local list: { Node } = {

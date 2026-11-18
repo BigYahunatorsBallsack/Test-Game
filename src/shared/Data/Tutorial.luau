@@ -7,7 +7,7 @@
 --                endet der Schritt nicht durch Sammeln).
 --   sold         Der Spieler hat verkauft (Ereignis vom Server, nicht ausgewertet beim Laden).
 --   node         Der Knoten `nodeId` ist gekauft (zählt auch beim Laden: erledigte Schritte entfallen).
--- Ziel (`target`) bestimmt, wohin der Strahl zeigt: sand, stand oder nichts (list = Upgrade-Liste).
+-- Ziel (`target`) bestimmt, wohin der Strahl zeigt: sand, stand oder nichts (tree = Skilltree).
 -- Die Zielzeiten stehen in Economy.targetSeconds (erstes Upgrade etwa 20 s, Schaufel etwa 2 Minuten).
 
 export type Condition = {
@@ -19,9 +19,9 @@ export type Condition = {
 export type Step = {
     id: string,
     text: string, -- Hinweis für Spieler (kurz, am Handy lesbar)
-    target: "sand" | "stand" | "list",
+    target: "sand" | "stand" | "tree",
     done: Condition, -- Der Schritt ist erledigt, sobald das gilt
-    highlightNodeId: string?, -- Knoten, der in der Upgrade-Liste leuchtet
+    highlightNodeId: string?, -- Knoten, der im Baum leuchtet
 }
 
 local steps: { Step } = {
@@ -40,7 +40,7 @@ local steps: { Step } = {
     {
         id = "firstUpgrade",
         text = "Kaufe dein erstes Upgrade: mehr Sand pro Sekunde!",
-        target = "list",
+        target = "tree",
         done = { kind = "node", nodeId = "collect_rate_1" },
         highlightNodeId = "collect_rate_1",
     },
@@ -55,7 +55,7 @@ local steps: { Step } = {
 
 return {
     steps = steps,
-    -- Die Upgrade-Liste erscheint ab diesem Schritt (erst nach dem ersten Verkauf), damit Anfänger
-    -- nicht von Knöpfen abgelenkt werden. Nach dem Tutorial ist sie immer sichtbar.
+    -- Der Baum-Knopf erscheint ab diesem Schritt (erst nach dem ersten Verkauf), damit Anfänger
+    -- nicht von Knöpfen abgelenkt werden. Nach dem Tutorial ist er immer sichtbar.
     showUpgradesFromStep = 3,
 }
