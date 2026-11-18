@@ -15,8 +15,8 @@
 --
 -- Gemischter Tank (Paket 2.5): `tank` ist die Gesamtmenge, `tankMix` merkt sich je Sandsorte, wie
 -- viel davon wo gesammelt wurde. Verkaufen zahlt jede Sorte mit ihrem eigenen Faktor, an
--- jedem Stand. Was in `tank` steht, aber nicht in `tankMix` (alte Daten, Debug-Werte), zählt
--- zum Preis der aktuellen Zone.
+-- jedem Stand, und nie mehr als `tank` hergibt (billigste Sorte zuerst). Was in `tank` steht,
+-- aber nicht in `tankMix` (alte Daten, Debug-Werte), zählt zum billigsten Preis.
 
 local BigNum = require("./BigNum")
 local Tools = require("../Data/Tools")
@@ -93,6 +93,18 @@ function Collecting.pricePerSand(profile: any): number
     return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
 end
 
+-- Alle Schreibzugriffe auf den Tank laufen über addSand und clearTank, damit `tank` und `tankMix`
+-- zusammenbleiben (Sandsturm, Offline-Ertrag und Events dürfen die Regel nicht umgehen).
+
+-- Der Preis des billigsten Sands (für Sand ohne bekannte Sorte).
+local function cheapestFactor(): number
+    local lowest = math.huge
+    for _, sandType in SandTypes.list do
+        lowest = math.min(lowest, sandType.priceFactor)
+    end
+    return if lowest == math.huge then 1 else lowest
+end
+
 -- Münzen pro Sand einer bestimmten Sandsorte (Grundpreis mal Faktor der Sorte mal Verkauf-Ast).
 function Collecting.priceOf(profile: any, sandTypeId: string): number
     local sandType = SandTypes.byId[sandTypeId]
@@ -114,10 +126,22 @@ local function mixOf(profile: any): { [string]: any }
     return profile.tankMix
 end
 
-local function addToMix(profile: any, sandTypeId: string, amount: number)
+-- Legt gesammelten Sand in den Tank, in die Sorte `sandTypeId` (Standard: aktuelle Zone).
+function Collecting.addSand(profile: any, amount: number, sandTypeId: string?)
+    if amount ~= amount or amount <= 0 or amount == math.huge then
+        return
+    end
+    local typeId = sandTypeId or Collecting.sandTypeOf(profile)
+    local tank = BigNum.deserialize(profile.tank)
+    profile.tank = BigNum.serialize(BigNum.add(tank, BigNum.new(amount)))
     local mix = mixOf(profile)
-    local current = BigNum.deserialize(mix[sandTypeId])
-    mix[sandTypeId] = BigNum.serialize(BigNum.add(current, BigNum.new(amount)))
+    mix[typeId] = BigNum.serialize(BigNum.add(BigNum.deserialize(mix[typeId]), BigNum.new(amount)))
+end
+
+-- Leert den Tank und den Mix zusammen.
+function Collecting.clearTank(profile: any)
+    profile.tank = BigNum.serialize(BigNum.zero())
+    profile.tankMix = {}
 end
 
 function Collecting.newState(now: number): State
@@ -148,15 +172,14 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     end
     local tank = tankOf(profile)
     local capacity = Collecting.capacityOf(profile, options)
-    local space = math.max(capacity - BigNum.toNumber(tank), 0)
+    local space = math.max(capacity - math.max(BigNum.toNumber(tank), 0), 0)
 
     local accrued = Collecting.rateOf(profile) * dt + state.carry
     local whole = math.floor(accrued)
     state.carry = accrued - whole
     local added = math.min(whole, math.floor(space))
     if added > 0 then
-        profile.tank = BigNum.serialize(BigNum.add(tank, BigNum.new(added)))
-        addToMix(profile, Collecting.sandTypeOf(profile), added)
+        Collecting.addSand(profile, added)
     end
     result.added = added
     state.lastTick = now
@@ -206,32 +229,43 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
     Collecting.update(state, profile, now, options)
     local tank = tankOf(profile)
     if tank.m <= 0 then
+        Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
         return nil, nil
     end
     local mix = mixOf(profile)
+    -- Billigste Sorte zuerst und nie mehr als der Tank: Ein zu großer Mix (kaputte oder
+    -- fremd geschriebene Daten) kann so nie mehr bringen als der Tank hergibt.
     local typeIds: { string } = {}
     for typeId in mix do
-        table.insert(typeIds, typeId)
-    end
-    table.sort(typeIds) -- feste Reihenfolge, damit die Summe immer gleich rechnet
-    local earned = BigNum.zero()
-    local counted = BigNum.zero()
-    for _, typeId in typeIds do
-        local amount = BigNum.deserialize(mix[typeId])
-        if amount.m > 0 and SandTypes.byId[typeId] ~= nil then
-            earned = BigNum.add(earned, BigNum.mulNumber(amount, Collecting.priceOf(profile, typeId)))
-            counted = BigNum.add(counted, amount)
+        if SandTypes.byId[typeId] ~= nil then
+            table.insert(typeIds, typeId)
         end
     end
-    local remainder = BigNum.sub(tank, counted)
-    if remainder.m > 0 then
-        earned = BigNum.add(earned, BigNum.mulNumber(remainder, Collecting.pricePerSand(profile)))
+    table.sort(typeIds, function(a: string, b: string): boolean
+        local pa, pb = SandTypes.byId[a].priceFactor, SandTypes.byId[b].priceFactor
+        if pa ~= pb then
+            return pa < pb
+        end
+        return a < b
+    end)
+    local earned = BigNum.zero()
+    local remaining = tank
+    for _, typeId in typeIds do
+        local amount = BigNum.deserialize(mix[typeId])
+        if amount.m > 0 and remaining.m > 0 then
+            local take = BigNum.min(amount, remaining)
+            earned = BigNum.add(earned, BigNum.mulNumber(take, Collecting.priceOf(profile, typeId)))
+            remaining = BigNum.sub(remaining, take)
+        end
+    end
+    -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis.
+    if remaining.m > 0 then
+        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile)))
     end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
     earned = BigNum.floor(earned)
     profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned))
-    profile.tank = BigNum.serialize(BigNum.zero())
-    profile.tankMix = {}
+    Collecting.clearTank(profile)
     return earned, tank
 end
 

@@ -10,14 +10,17 @@
 -- zurückgesetzt. Die Tor-Anzeigen sind nur Optik (kein Kollisionsschutz), die Sperre ist die
 -- Prüfung des Servers. Die Regeln stehen im reinen Modul Logic/Zones (Lune-Tests).
 
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Wie oft der Server die Zone jedes Spielers prüft (Sekunden).
 local TICK_SECONDS = 0.25
--- Meldung "Zone gesperrt" höchstens so oft pro Spieler (Sekunden).
+-- Meldung "Zone gesperrt" und "Zone betreten" höchstens so oft pro Spieler (Sekunden).
 local LOCKED_NOTICE_SECONDS = 2
+local ENTERED_NOTICE_SECONDS = 1
+-- Nach einem Teleport des Servers wird die Position so lange nicht geprüft (Sekunden), weil der
+-- Client noch die alte Position melden kann.
+local TELEPORT_GRACE_SECONDS = 0.5
 -- Tor-Anzeige: Größe in Studs (Dicke, Höhe, Länge folgt der Zone) und Farbe.
 local GATE_THICKNESS = 2
 local GATE_HEIGHT = 24
@@ -45,6 +48,8 @@ local ZoneService = {}
 
 local lastTravelAt: { [Player]: number } = {}
 local lastLockedNoticeAt: { [Player]: number } = {}
+local lastEnteredNoticeAt: { [Player]: number } = {}
+local graceUntil: { [Player]: number } = {}
 
 local function now(): number
     return os.clock()
@@ -154,9 +159,24 @@ local function setupGates()
     end
 end
 
-local function teleport(root: BasePart, position: { x: number, y: number, z: number })
-    root.CFrame = CFrame.new(position.x, position.y + TRAVEL_LIFT_STUDS, position.z)
+local function teleport(player: Player, root: BasePart, position: { x: number, y: number, z: number })
+    local target = CFrame.new(position.x, position.y + TRAVEL_LIFT_STUDS, position.z)
+    local character = player.Character
+    if character ~= nil then
+        character:PivotTo(target)
+    else
+        root.CFrame = target
+    end
     root.AssemblyLinearVelocity = Vector3.zero
+    graceUntil[player] = now() + TELEPORT_GRACE_SECONDS
+end
+
+local function notifyEntered(player: Player, zoneId: string, t: number)
+    local last = lastEnteredNoticeAt[player]
+    if last == nil or t - last >= ENTERED_NOTICE_SECONDS then
+        lastEnteredNoticeAt[player] = t
+        notify(player, { kind = "zoneEntered", zoneId = zoneId })
+    end
 end
 
 -- Ein Spieler pro Tick: Position proben und die Zone danach setzen.
@@ -166,14 +186,24 @@ local function tickPlayer(player: Player, t: number)
     if profile == nil or root == nil then
         return
     end
+    local grace = graceUntil[player]
+    if grace ~= nil and t < grace then
+        return
+    end
     local p = root.Position
     local result = Zone.resolve(profile, { x = p.X, y = p.Y, z = p.Z })
     if result.kind == "enter" and result.zoneId ~= nil then
         if Sand.setZone(player, result.zoneId) then
-            notify(player, { kind = "zoneEntered", zoneId = result.zoneId })
+            notifyEntered(player, result.zoneId, t)
+        end
+    elseif result.kind == "reset" and result.zoneId ~= nil and result.pushTo ~= nil then
+        -- Die aktuelle Zone ist gesperrt (zum Beispiel nach einem Sandsturm): zurück zum Anfang.
+        if Sand.setZone(player, result.zoneId) then
+            teleport(player, root, result.pushTo)
+            notifyEntered(player, result.zoneId, t)
         end
     elseif result.kind == "blocked" and result.pushTo ~= nil then
-        teleport(root, result.pushTo)
+        teleport(player, root, result.pushTo)
         local last = lastLockedNoticeAt[player]
         if last == nil or t - last >= LOCKED_NOTICE_SECONDS then
             lastLockedNoticeAt[player] = t
@@ -212,8 +242,8 @@ local function onTravelZone(player: Player, zoneId: string): any
         return { ok = false, reason = "unknown" }
     end
     lastTravelAt[player] = t
-    teleport(root, area.spawn)
-    notify(player, { kind = "zoneEntered", zoneId = zoneId })
+    teleport(player, root, area.spawn)
+    notifyEntered(player, zoneId, t)
     return { ok = true }
 end
 
@@ -241,6 +271,8 @@ function ZoneService.Start()
     Players.PlayerRemoving:Connect(function(player: Player)
         lastTravelAt[player] = nil
         lastLockedNoticeAt[player] = nil
+        lastEnteredNoticeAt[player] = nil
+        graceUntil[player] = nil
     end)
     task.spawn(function()
         while true do

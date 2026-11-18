@@ -233,6 +233,28 @@ end
 function Profile.sanitize(profile: Profile, now: number?): { string }
     local warnings: { string } = {}
     sanitizeInto(profile, Profile.default(now), "", warnings)
+    local data: any = profile
+    -- Tank und Sand-Mix (Paket 2.5): negativer Tank wird 0, ein Mix ohne Tank wird geleert,
+    -- ungültige oder negative Mix-Einträge werden entfernt.
+    if type(data.tank) == "table" and data.tank.m < 0 then
+        warn(warnings, "tank", "negativ, auf 0 gesetzt")
+        data.tank = BigNum.serialize(BigNum.zero())
+    end
+    if type(data.tankMix) == "table" then
+        if type(data.tank) ~= "table" or data.tank.m <= 0 then
+            if next(data.tankMix) ~= nil then
+                warn(warnings, "tankMix", "Tank ist leer, Mix geleert")
+            end
+            data.tankMix = {}
+        else
+            for typeId, amount in data.tankMix do
+                if type(typeId) ~= "string" or not isValidBigNum(amount) or amount.m < 0 then
+                    warn(warnings, `tankMix.{tostring(typeId)}`, "ungültiger Eintrag, entfernt")
+                    data.tankMix[typeId] = nil
+                end
+            end
+        end
+    end
     return warnings
 end
 

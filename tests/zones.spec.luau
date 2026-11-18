@@ -139,6 +139,24 @@ T.describe("Position und Zonenwechsel", function()
         T.expect(push.x <= bounds.maxX - World.pushBackMarginStuds + 1e-9).toBe(true)
     end)
 
+    T.it("gesperrte aktuelle Zone (zum Beispiel nach einem Sandsturm): zurück zum Dünenmeer-Spawn", function()
+        local profile = profileWith({})
+        profile.currentZone = "ruins" -- Knoten fehlt, Zone steht nicht im Profil
+        local result = Zone.resolve(profile, at("ruins"))
+        T.expect(result.kind).toBe("reset")
+        T.expect(result.zoneId).toBe("dunes")
+        T.expect(result.pushTo).toEqual(World.zonesById.dunes.spawn)
+        -- Auch außerhalb aller Zonen und bei unbekannter Zone im Profil.
+        T.expect(Zone.resolve(profile, { x = -999, y = 0, z = 0 }).kind).toBe("reset")
+        profile.currentZone = "gibt_es_nicht"
+        T.expect(Zone.resolve(profile, at("dunes")).kind).toBe("reset")
+        -- Steht die Zone im Profil, bleibt sie frei und es passiert nichts.
+        local kept = profileWith({})
+        kept.zones.ruins = true
+        kept.currentZone = "ruins"
+        T.expect(Zone.resolve(kept, at("ruins")).kind).toBe("none")
+    end)
+
     T.it("außerhalb aller Zonen passiert nichts", function()
         T.expect(Zone.resolve(profileWith({}), { x = -999, y = 5, z = 0 }).kind).toBe("none")
     end)
@@ -186,6 +204,24 @@ T.describe("Reisen", function()
         T.expect((Validate.check(def.schema, { 5 }, 1))).toBe(false)
         T.expect((Validate.check(def.schema, { "oasis", "x" }, 2))).toBe(false)
         T.expect((Validate.check(def.schema, {}, 0))).toBe(false)
+    end)
+
+    T.it("Remote TravelZone: Limit lehnt den zweiten Aufruf in einer Sekunde ab", function()
+        local RateLimiter = require("../src/shared/Logic/RateLimiter")
+        local def: any
+        for _, entry in RemoteSpec.list do
+            if entry.name == "TravelZone" then
+                def = entry
+            end
+        end
+        local clock = 0
+        local limiter = RateLimiter.new(function()
+            return clock
+        end)
+        T.expect(limiter:allow("1", "TravelZone", def.limit)).toBe(true)
+        T.expect(limiter:allow("1", "TravelZone", def.limit)).toBe(false)
+        clock += def.limit.per
+        T.expect(limiter:allow("1", "TravelZone", def.limit)).toBe(true)
     end)
 end)
 

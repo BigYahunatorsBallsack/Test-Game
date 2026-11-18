@@ -182,6 +182,7 @@ function ZoneMenu.Start()
     message.Text = ""
     message.Parent = panel
 
+    local busy = false
     local rows: { [string]: { status: TextLabel, go: TextButton } } = {}
     for index, zone in Zones.list do
         local row = Instance.new("Frame")
@@ -227,9 +228,14 @@ function ZoneMenu.Start()
 
         rows[zone.id] = { status = status, go = go }
         go.Activated:Connect(function()
+            if busy then
+                return -- ein Aufruf läuft noch (Doppelklick)
+            end
+            busy = true
             local ok, response = pcall(function(): any
                 return travel:InvokeServer(zone.id)
             end)
+            busy = false
             if not ok or type(response) ~= "table" then
                 message.Text = REASON_TEXT.unknown
             elseif response.ok == true then

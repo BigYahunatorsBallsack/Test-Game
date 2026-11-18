@@ -118,13 +118,56 @@ T.describe("Sand je Sandsorte", function()
         T.expect(tankNumber(profile)).toBe(6)
     end)
 
-    T.it("Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum Preis der aktuellen Zone", function()
+    T.it("Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis, nicht zur aktuellen Zone", function()
         local profile, state = fresh()
         profile.tank = BigNum.serialize(BigNum.new(40))
         profile.tankMix = {}
-        profile.currentZone = "canyon"
+        profile.currentZone = "ruins" -- Spieler wählt die teuerste Zone, es nützt nichts
         local earned = Collecting.sell(state, profile, NOW)
-        T.expect(BigNum.toNumber(earned :: any)).toBe(40 * Economy.baseCoinsPerSand * SandTypes.byId.white.priceFactor)
+        T.expect(BigNum.toNumber(earned :: any)).toBe(40 * Economy.baseCoinsPerSand * SandTypes.byId.yellow.priceFactor)
+    end)
+
+    T.it("ein zu großer Mix (Summe über dem Tank) zahlt nie mehr als der Tank hergibt, billigste Sorte zuerst", function()
+        local profile, state = fresh()
+        profile.tank = BigNum.serialize(BigNum.new(100))
+        -- Mix 300 Sand bei Tank 100: zahlen darf nur 100, und zwar zu den billigsten Preisen.
+        profile.tankMix = { black = { m = 1, e = 2 }, yellow = { m = 1, e = 2 }, crystal = { m = 1, e = 2 } }
+        local earned = Collecting.sell(state, profile, NOW)
+        T.expect(BigNum.toNumber(earned :: any)).toBe(100 * Economy.baseCoinsPerSand * SandTypes.byId.yellow.priceFactor)
+        T.expect(tankNumber(profile)).toBe(0)
+        T.expect(next(profile.tankMix)).toBeNil()
+    end)
+
+    T.it("negativer Tank: kein Verkauf, der Mix wird geleert, Sammeln füllt höchstens die Kapazität", function()
+        local profile, state = fresh()
+        profile.tank = BigNum.serialize(BigNum.new(-1000))
+        profile.tankMix = { black = { m = 5, e = 3 } }
+        T.expect(Collecting.sell(state, profile, NOW)).toBeNil()
+        T.expect(next(profile.tankMix)).toBeNil()
+        -- Tank -1000, Kapazität begrenzt weiter: höchstens die Kapazität kommt hinzu.
+        local p2, s2 = fresh()
+        p2.tank = BigNum.serialize(BigNum.new(-1000))
+        local capacity = Collecting.capacityOf(p2)
+        Collecting.setHolding(s2, p2, true, NOW)
+        for i = 1, 200 do
+            Collecting.setHolding(s2, p2, true, NOW + i)
+        end
+        T.expect(tankNumber(p2) <= -1000 + capacity + 1).toBe(true)
+    end)
+
+    T.it("addSand und clearTank halten Tank und Mix zusammen", function()
+        local profile = Profile.default(NOW)
+        Collecting.addSand(profile, 10, "red")
+        Collecting.addSand(profile, 5)
+        T.expect(tankNumber(profile)).toBe(15)
+        T.expect(mixNumber(profile, "red")).toBe(10)
+        T.expect(mixNumber(profile, "yellow")).toBe(5)
+        Collecting.addSand(profile, -3, "red") -- ungültig, ignoriert
+        Collecting.addSand(profile, 0 / 0, "red")
+        T.expect(tankNumber(profile)).toBe(15)
+        Collecting.clearTank(profile)
+        T.expect(tankNumber(profile)).toBe(0)
+        T.expect(next(profile.tankMix)).toBeNil()
     end)
 
     T.it("unbekannte Sorte und kaputte Werte im Mix werden nicht bezahlt, der Rest schon", function()
@@ -228,8 +271,36 @@ T.describe("Migration auf Version 2", function()
         T.expect(BigNum.toNumber(earned :: any)).toBe(20 * 1 + 5 * 3)
     end)
 
+    T.it("Migration verwirft einen vorhandenen Mix (kaputtes Versionsfeld) und kopiert den Tank neu", function()
+        local broken = v1Profile("oasis", { m = 5, e = 2 })
+        broken.tankMix = { black = { m = 9, e = 9 }, red = { m = 1, e = 1 } }
+        local profile: any = Profile.migrate(broken, nil, NOW)
+        T.expect(profile.tankMix).toEqual({ red = { m = 5, e = 2 } })
+    end)
+
+    T.it("Profile.sanitize: Mix ohne Tank wird geleert, negativer Tank wird 0, negative Einträge fliegen raus", function()
+        local empty: any = Profile.default(NOW)
+        empty.tankMix = { black = { m = 1, e = 5 } }
+        Profile.sanitize(empty, NOW)
+        T.expect(empty.tankMix).toEqual({})
+
+        local negative: any = Profile.default(NOW)
+        negative.tank = { m = -2, e = 3 }
+        negative.tankMix = { red = { m = 1, e = 1 } }
+        Profile.sanitize(negative, NOW)
+        T.expect(negative.tank).toEqual({ m = 0, e = 0 })
+        T.expect(negative.tankMix).toEqual({})
+
+        local mixed: any = Profile.default(NOW)
+        mixed.tank = { m = 3, e = 1 }
+        mixed.tankMix = { yellow = { m = 2, e = 1 }, red = { m = -1, e = 1 } }
+        Profile.sanitize(mixed, NOW)
+        T.expect(mixed.tankMix).toEqual({ yellow = { m = 2, e = 1 } })
+    end)
+
     T.it("Profile.sanitize entfernt kaputte Zahlen im Mix, der Rest bleibt, kaputter Sand zählt als 0", function()
         local profile: any = Profile.default(NOW)
+        profile.tank = { m = 1, e = 1 }
         profile.tankMix = { yellow = { m = 1, e = 1 }, red = { m = 0 / 0, e = 0 } }
         Profile.sanitize(profile, NOW)
         T.expect(profile.tankMix.yellow).toEqual({ m = 1, e = 1 })

@@ -38,9 +38,8 @@ local Migrations = {
 -- Version 1 -> 2 (Paket 2.5, gemischter Tank): Der Tank merkt sich die Sandsorte. Der alte Tank
 -- wird zu Sand der Zone, in der der Spieler beim Speichern stand.
 Migrations.steps[1] = function(profile: any): any
-    if type(profile.tankMix) ~= "table" then
-        profile.tankMix = {}
-    end
+    -- Version 1 kannte keinen Mix: Ein vorhandener Mix (kaputtes Versionsfeld) wird verworfen.
+    profile.tankMix = {}
     local tank = profile.tank
     if isValidBigNum(tank) and tank.m > 0 then
         local sandType = LEGACY_SAND_TYPE[profile.currentZone] or LEGACY_FALLBACK_SAND_TYPE

@@ -132,11 +132,12 @@ local function notify(player: Player, payload: any)
 end
 
 -- Wechselt die aktuelle Zone des Spielers (Paket 2.5). Das offene Sammelfenster wird mit der
--- alten Sandsorte abgerechnet, danach zählt die neue. Prüfen, ob die Zone frei ist, ist Sache des
--- Aufrufers (ZoneService). Gibt false zurück, wenn kein Profil da ist.
+-- alten Sandsorte abgerechnet, danach zählt die neue. Eine gesperrte Zone wird nie übernommen
+-- (zweite Sicherung neben ZoneService). Gibt false zurück, wenn kein Profil da ist oder die Zone
+-- gesperrt ist.
 function Sand.setZone(player: Player, zoneId: string): boolean
     local profile = PlayerData.get(player)
-    if profile == nil then
+    if profile == nil or not Zones.isUnlocked(profile, zoneId) then
         return false
     end
     Collecting.setZone(stateOf(player), profile, zoneId, now())
@@ -325,6 +326,9 @@ function Sand.Start()
         states[player] = Collecting.newState(now())
         -- Zonen, deren Knoten schon gekauft sind (alte Spielstände), still freischalten.
         Zones.unlockNew(profile)
+        if not Zones.isUnlocked(profile, profile.currentZone) then
+            profile.currentZone = "dunes" -- eine gesperrte aktuelle Zone nie übernehmen
+        end
         Sand.refresh(player)
     end)
     Players.PlayerRemoving:Connect(function(player: Player)

@@ -17,8 +17,8 @@ export type Vec3 = { x: number, y: number, z: number }
 
 export type Resolution = {
     kind: string, -- "none", "enter" oder "blocked"
-    zoneId: string?, -- Zone an der Position (bei enter und blocked)
-    pushTo: Vec3?, -- Zielposition bei blocked (innerhalb der aktuellen Zone)
+    zoneId: string?, -- Zone an der Position (enter, blocked) oder die Zone, auf die zurückgesetzt wird (reset)
+    pushTo: Vec3?, -- Zielposition bei blocked (innerhalb der aktuellen Zone) und reset (Spawn)
 }
 
 local Zone = {}
@@ -109,17 +109,23 @@ end
 --   none     nichts (außerhalb aller Zonen oder in der aktuellen Zone)
 --   enter    freie andere Zone betreten: sie wird zur aktuellen Zone
 --   blocked  gesperrte Zone betreten: zurück in die aktuelle Zone (`pushTo`), sie bleibt aktuell
+--   reset    die aktuelle Zone selbst ist gesperrt oder unbekannt (zum Beispiel nach einem
+--            Sandsturm oder einem Daten-Update): zurück auf die erste Zone am Spawn
 function Zone.resolve(profile: any, position: Vec3, world: any?): Resolution
-    local zoneId = Zone.zoneAt(position, world)
     local current = profile.currentZone
+    if type(current) ~= "string" or not Zone.isUnlocked(profile, current) then
+        local first = Zones.list[1].id
+        local area = (world or WorldData).zonesById[first]
+        return { kind = "reset", zoneId = first, pushTo = if area ~= nil then area.spawn else nil }
+    end
+    local zoneId = Zone.zoneAt(position, world)
     if zoneId == nil or zoneId == current then
         return { kind = "none" }
     end
     if Zone.isUnlocked(profile, zoneId) then
         return { kind = "enter", zoneId = zoneId }
     end
-    local anchor = if Zones.byId[current] ~= nil and (world or WorldData).zonesById[current] ~= nil then current else Zones.list[1].id
-    return { kind = "blocked", zoneId = zoneId, pushTo = Zone.clampInto(position, anchor, world) }
+    return { kind = "blocked", zoneId = zoneId, pushTo = Zone.clampInto(position, current, world) }
 end
 
 -- Darf der Spieler jetzt in die Zone reisen? Gibt true oder false plus Grund zurück:

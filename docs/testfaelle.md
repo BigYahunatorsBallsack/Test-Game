@@ -268,7 +268,7 @@ Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich 
 - [x] [Lune] Ein Umbau des Baums, der die Position des Meilensteins ändert, lässt bereits freigeschaltete Zonen frei. Eine im Profil gespeicherte Zone bleibt frei, auch wenn ihr Knoten aus dem Baum verschwindet.
 - [x] [Lune] `unlockNew` meldet eine neue Zone genau einmal, auch bei zwei Aufrufen hintereinander.
 - [x] [Lune] `zoneAt`: Punkte in jedem Bereich liefern die richtige Zone, Punkte zwischen den Bereichen keine.
-- [x] [Lune] Betreten einer gesperrten Zone: Die aktuelle Zone bleibt, der Spieler wird zum Spawn der aktuellen Zone zurückgesetzt. Betreten einer freien Zone macht sie zur aktuellen Zone.
+- [x] [Lune] Betreten einer gesperrten Zone: Die aktuelle Zone bleibt, der Spieler wird an den Rand der aktuellen Zone zurückgesetzt (nicht zum Spawn). Betreten einer freien Zone macht sie zur aktuellen Zone.
 - [x] [Lune] `TravelZone`: unbekannte ID, falscher Typ, gesperrte Zone, Abklingzeit und Rate-Limit werden abgelehnt, eine freie Zone geht durch.
 - [x] [Lune] Gemischter Tank: 100 Sand im Dünenmeer, Wechsel zur Oase, 100 Sand dort. Verkaufen zahlt 100 x Faktor 1 plus 100 x Faktor 3, egal an welchem Stand. Die Tankgröße zählt die Summe.
 - [x] [Lune] Zonenwechsel während des Sammelns: Das offene Sammelfenster wird mit der alten Sorte abgerechnet, erst danach zählt die neue.
@@ -276,11 +276,12 @@ Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich 
 - [x] [Lune] Wetter: `stateAt` ist für dieselbe Zeit immer gleich, der Regen der Oase dauert 90 s in jedem 8-Minuten-Zyklus, das Dünenmeer hat nie Wetter.
 - [x] [Lune] `DataCheck` prüft `World`: jede Zone hat Bereich, Spawn und Stand, Spawn und Stand liegen im Bereich, Bereiche überlappen nicht.
 - [x] [Lune] `DataCheck` prüft `SandTypes.terrainMaterial` (verschieden je Sorte) und `Weather` (Zeiten über 0, aktive Zeit kürzer als der Zyklus, bekannte Zonen).
+- [x] [Lune] Sicherheit (Review): Ist die aktuelle Zone gesperrt (Sandsturm, Daten-Update), setzt der Server auf das Dünenmeer zurück. Ein zu großer Mix, ein negativer Tank und Sand ohne Mix-Eintrag zahlen nie mehr als der Tank, billigste Sorte zuerst. Die Migration verwirft einen vorhandenen Mix. `sanitize` leert einen Mix ohne Tank. `addSand` und `clearTank` halten Tank und Mix zusammen. Das Limit von `TravelZone` lehnt den zweiten Aufruf ab.
 - [x] [Lune] Zeit-Simulation aus 2.1 läuft weiter und wechselt in die beste freie Zone: Die Werkzeugzeiten bleiben in der Spanne aus `docs/balance/skilltree_2_1.md`.
 - [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
 - [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei `TravelZone`, Zonenprüfung, Tank und Migration.
 - [ ] [Studio] Alle fünf Zonen sind als Platzhalter begehbar, jede mit eigener Sandfarbe, Stand und Spawn.
-- [ ] [Studio] Ohne Eimerkette: Das Tor zur Oase ist zu, das Schild nennt den Knoten. Wer trotzdem durchkommt (Fly oder Teleport im Studio-Befehl), landet wieder am Spawn mit Meldung.
+- [ ] [Studio] Ohne Eimerkette: Das Tor zur Oase ist zu, das Schild nennt den Knoten. Wer trotzdem durchkommt (Fly oder Teleport im Studio-Befehl), landet wieder am Rand der aktuellen Zone mit Meldung.
 - [ ] [Studio] Eimerkette kaufen: Meldung "Neue Zone: Oase", das Tor öffnet sich.
 - [ ] [Studio] Zonen-Menü: Reisen in eine freie Zone klappt, gesperrte Zonen zeigen den nötigen Knoten.
 - [ ] [Studio] Verkaufen in der Oase bringt sichtbar mehr als im Dünenmeer, gemischter Tank wird richtig bezahlt.
