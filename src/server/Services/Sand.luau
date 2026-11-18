@@ -28,6 +28,7 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local Collecting = loadShared("Logic", "Collecting")
+local TreeEffects = loadShared("Logic", "TreeEffects")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
@@ -57,6 +58,15 @@ local function stateOf(player: Player): any
     return state
 end
 
+-- Rechnet das offene Sammelfenster mit der bisherigen Rate ab. Upgrades ruft das vor einem
+-- Kauf auf, damit eine neue Rate (oder ein neuer Tank) nicht rückwirkend gilt.
+function Sand.settle(player: Player)
+    local profile = PlayerData.get(player)
+    if profile ~= nil then
+        Collecting.update(stateOf(player), profile, now())
+    end
+end
+
 -- Zustand für die Anzeige beim Client. Der Client rechnet damit nichts Maßgebliches.
 function Sand.snapshot(player: Player): any?
     local profile = PlayerData.get(player)
@@ -65,6 +75,7 @@ function Sand.snapshot(player: Player): any?
     end
     local state = stateOf(player)
     local zone = Collecting.zoneOf(profile)
+    local effects = TreeEffects.of(profile)
     return {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
         tank = BigNum.serialize(BigNum.deserialize(profile.tank)),
@@ -75,6 +86,8 @@ function Sand.snapshot(player: Player): any?
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile),
         nodes = Collecting.ownedNodes(profile),
+        sellBonusBp = effects.sellBonusBp,
+        luckBonusBp = effects.luckBonusBp,
         tutorialStep = Tutorial.stepOf(profile),
     }
 end

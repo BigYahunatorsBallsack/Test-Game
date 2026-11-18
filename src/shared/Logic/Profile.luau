@@ -239,7 +239,7 @@ end
 function Profile.ownedKnownNodes(profile: Profile, known: { [string]: any }): { string }
     local result = {}
     for nodeId, owned in profile.nodes do
-        if owned and known[nodeId] ~= nil then
+        if owned == true and known[nodeId] ~= nil then
             table.insert(result, nodeId)
         end
     end

@@ -10,7 +10,25 @@ local HEX_PATTERN = "^#%x%x%x%x%x%x$"
 local CURRENCIES = { coins = true, gems = true }
 local PRODUCT_KINDS = { gamepass = true, developerProduct = true, direct = true }
 local DAILY_KINDS = { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
-local EFFECT_KINDS = { setTool = true, rateBonus = true, setTank = true, grantedBySandstorm = true }
+local EFFECT_KINDS = {
+    setTool = true,
+    rateBonus = true,
+    setTank = true,
+    sellBonus = true,
+    luckBonus = true,
+    grantedBySandstorm = true,
+}
+-- Welche Wirkung in welchen Ast gehört (Konzept: Sammeln = Rate, Tank = Kapazität,
+-- Verkauf = Preisfaktor, Glück = Fundchance).
+local BRANCH_OF_EFFECT = {
+    setTool = "collect",
+    rateBonus = "collect",
+    setTank = "tank",
+    sellBonus = "sell",
+    luckBonus = "luck",
+    grantedBySandstorm = "sandstorm",
+}
+local BP_EFFECTS = { rateBonus = true, sellBonus = true, luckBonus = true }
 local CONDITION_KINDS = { tankAtLeast = true, sold = true, node = true }
 local TUTORIAL_TARGETS = { sand = true, stand = true, list = true }
 local BRANCHES = { collect = true, tank = true, sell = true, luck = true, sandstorm = true }
@@ -341,8 +359,8 @@ local function checkUpgradeTree(errors: { string }, data: DataSet)
         if BRANCHES[node.branch] == nil then
             table.insert(errors, `{label}: unbekannter Ast "{tostring(node.branch)}"`)
         end
-        if not isFinite(node.cost) or node.cost < 0 then
-            table.insert(errors, `{label}: cost muss eine Zahl ab 0 sein`)
+        if not isInt(node.cost) or node.cost < 0 then
+            table.insert(errors, `{label}: cost muss eine ganze Zahl ab 0 sein`)
         end
         if type(node.effect) == "table" and (node.effect.kind == "grantedBySandstorm") ~= (node.granted == true) then
             table.insert(errors, `{label}: "grantedBySandstorm" und granted = true gehören zusammen`)
@@ -360,10 +378,16 @@ local function checkUpgradeTree(errors: { string }, data: DataSet)
             table.insert(errors, `{label}: effect fehlt`)
         elseif EFFECT_KINDS[node.effect.kind] == nil then
             table.insert(errors, `{label}: unbekannte Wirkung "{tostring(node.effect.kind)}"`)
-        elseif node.effect.kind == "rateBonus" and (not isInt(node.effect.bp) or node.effect.bp <= 0) then
-            table.insert(errors, `{label}: rateBonus braucht bp als ganze Zahl über 0`)
+        elseif BP_EFFECTS[node.effect.kind] and (not isInt(node.effect.bp) or node.effect.bp <= 0) then
+            table.insert(errors, `{label}: {node.effect.kind} braucht bp als ganze Zahl über 0`)
         elseif node.effect.kind == "setTank" and (not isInt(node.effect.capacity) or node.effect.capacity <= 0) then
             table.insert(errors, `{label}: setTank braucht capacity als ganze Zahl über 0`)
+        end
+        if type(node.effect) == "table" and BRANCH_OF_EFFECT[node.effect.kind] ~= nil and BRANCH_OF_EFFECT[node.effect.kind] ~= node.branch then
+            table.insert(errors, `{label}: Wirkung "{node.effect.kind}" gehört in den Ast "{BRANCH_OF_EFFECT[node.effect.kind]}"`)
+        end
+        if node.milestone ~= nil and (not isInt(node.milestone) or node.milestone < 1) then
+            table.insert(errors, `{label}: milestone muss eine ganze Zahl ab 1 sein`)
         end
         if type(node.requires) ~= "table" then
             table.insert(errors, `{label}: requires fehlt`)

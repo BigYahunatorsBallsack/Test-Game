@@ -152,11 +152,18 @@ function BigNum.min(a: BigNum, b: BigNum): BigNum
 end
 
 -- Rundet ab. Ab 10^15 hat eine Gleitkommazahl keine Nachkommastellen mehr, der Wert bleibt.
+-- Ganze Zahlen bleiben ganz: 1,15 * 10^2 ist intern 114,99999999999999 und soll 115 ergeben
+-- (gleiche Toleranz wie toNumber), sonst ginge beim Verkauf eine Münze verloren.
 function BigNum.floor(a: BigNum): BigNum
     if a.m == 0 or a.e >= PRECISION_DIGITS then
         return copy(a)
     end
-    return BigNum.new(math.floor(a.m * 10 ^ a.e))
+    local value = a.m * 10 ^ a.e
+    local rounded = math.round(value)
+    if math.abs(value - rounded) <= 1e-9 * math.max(1, math.abs(value)) then
+        return BigNum.new(rounded)
+    end
+    return BigNum.new(math.floor(value))
 end
 
 -- Als gewöhnliche Zahl (verliert ab etwa 10^15 Genauigkeit, ab 10^308 unendlich).

@@ -19,6 +19,7 @@ local Zones = require("../Data/Zones")
 local SandTypes = require("../Data/SandTypes")
 local Economy = require("../Data/Economy")
 local UpgradeTree = require("../Data/UpgradeTree")
+local TreeEffects = require("./TreeEffects")
 
 export type State = {
     holding: boolean,
@@ -42,44 +43,21 @@ local FALLBACK_ZONE_ID = "dunes"
 
 local Collecting = {}
 
--- Besitzt der Spieler den Knoten, und kennt der Baum ihn? Unbekannte Knoten-IDs im Profil
--- (zum Beispiel nach einem Baum-Update) zählen nicht.
-local function owns(profile: any, nodeId: string): boolean
-    return profile.nodes[nodeId] == true and UpgradeTree.byId[nodeId] ~= nil
-end
-
 -- Das höchste Werkzeug, dessen Knoten der Spieler besitzt. Unbekannte Knoten zählen nicht.
 function Collecting.toolOf(profile: any): Tools.Tool
-    local best = Tools.byId.hand
-    for _, tool in Tools.list do
-        local owned = tool.nodeId == "start" or owns(profile, tool.nodeId)
-        if owned and tool.tier > best.tier then
-            best = tool
-        end
-    end
-    return best
+    return TreeEffects.of(profile).tool
 end
 
 -- Sand pro Sekunde: Grundrate des Werkzeugs mal (1 + Summe aller Sammelraten-Boni).
 function Collecting.rateOf(profile: any): number
-    local bonusBp = 0
-    for _, node in UpgradeTree.list do
-        if node.effect.kind == "rateBonus" and owns(profile, node.id) then
-            bonusBp += node.effect.bp or 0
-        end
-    end
-    return Collecting.toolOf(profile).sandPerSecond * (10000 + bonusBp) / 10000
+    local effects = TreeEffects.of(profile)
+    return effects.tool.sandPerSecond * (10000 + effects.rateBonusBp) / 10000
 end
 
 -- Tankgröße in Sand: der größte gekaufte Tank-Knoten (sonst die Startgröße), danach der
 -- Faktor aus `options` (zum Beispiel Gamepass "Großer Tank", Paket 4.4).
 function Collecting.capacityOf(profile: any, options: Options?): number
-    local base = Economy.startTankCapacity
-    for _, node in UpgradeTree.list do
-        if node.effect.kind == "setTank" and owns(profile, node.id) then
-            base = math.max(base, node.effect.capacity or 0)
-        end
-    end
+    local base = TreeEffects.of(profile).tankCapacity
     local multiplier = if options and options.capacityMultiplier then options.capacityMultiplier else 1
     return math.floor(base * multiplier)
 end
@@ -103,11 +81,11 @@ function Collecting.zoneOf(profile: any): Zones.Zone
     return zone
 end
 
--- Münzen pro Sand in der aktuellen Zone. Boni (Windkristalle, Freunde, Boosts, Verkauf-Ast)
--- kommen mit ihren Paketen dazu.
+-- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1).
+-- Boni aus Windkristallen, Freunden und Boosts kommen mit ihren Paketen dazu.
 function Collecting.pricePerSand(profile: any): number
     local sandType = SandTypes.byId[Collecting.zoneOf(profile).sandTypeId]
-    return Economy.baseCoinsPerSand * sandType.priceFactor
+    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
 end
 
 function Collecting.newState(now: number): State
@@ -187,7 +165,8 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
     if tank.m <= 0 then
         return nil, nil
     end
-    local earned = BigNum.mulNumber(tank, Collecting.pricePerSand(profile))
+    -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
+    local earned = BigNum.floor(BigNum.mulNumber(tank, Collecting.pricePerSand(profile)))
     profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned))
     profile.tank = BigNum.serialize(BigNum.zero())
     return earned, tank

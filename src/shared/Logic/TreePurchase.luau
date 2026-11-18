@@ -1,6 +1,6 @@
 --!strict
--- Kauf eines Skilltree-Knotens (Paket 1.6, Mini-Kauf; Paket 2.1 baut darauf auf). Rein,
--- ohne Roblox-API, Lune-Tests in tests/treepurchase.spec.luau.
+-- Kauf eines Skilltree-Knotens (Paket 1.6 Mini-Kauf, Paket 2.1 ganzer Baum). Rein, ohne
+-- Roblox-API, Lune-Tests in tests/treepurchase.spec.luau und tests/skilltree.spec.luau.
 --
 -- Der Client schickt nur die Knoten-ID (PurchaseNode). Der Server prüft alles hier:
 -- Knoten bekannt, nicht vergeben, noch nicht gekauft, Voraussetzungen erfüllt, genug Münzen.
@@ -12,10 +12,15 @@ local UpgradeTree = require("../Data/UpgradeTree")
 
 export type Reason = "unknown" | "granted" | "owned" | "requires" | "coins"
 
+-- Zustand eines Knotens für die Anzeige (Paket 2.2): gekauft, kaufbar (Voraussetzungen erfüllt,
+-- Geld egal) oder im Nebel (Voraussetzungen fehlen, oder vom Sandsturm vergeben und noch nicht
+-- erhalten). Konzept: "Nur gekaufte und direkt erreichbare Knoten sind sichtbar."
+export type NodeState = "owned" | "available" | "fog"
+
 local TreePurchase = {}
 
 local function owns(profile: any, nodeId: string): boolean
-    return profile.nodes[nodeId] == true
+    return type(profile.nodes) == "table" and profile.nodes[nodeId] == true
 end
 
 -- Ist der Knoten kaufbar (Voraussetzungen erfüllt, nicht gekauft, nicht vergeben)?
@@ -61,6 +66,9 @@ function TreePurchase.buy(profile: any, nodeId: string): (boolean, Reason?)
     if reason ~= nil then
         return false, reason
     end
+    if type(profile.nodes) ~= "table" then
+        return false, "unknown" -- kaputtes Profil: nichts abbuchen
+    end
     local node = UpgradeTree.byId[nodeId]
     local coins = BigNum.deserialize(profile.coins)
     profile.coins = BigNum.serialize(BigNum.sub(coins, BigNum.new(node.cost)))
@@ -85,6 +93,29 @@ function TreePurchase.visible(profile: any): { string }
         return a < b
     end)
     return ids
+end
+
+-- Zustand eines bekannten Knotens. Unbekannte IDs ergeben nil.
+function TreePurchase.nodeState(profile: any, nodeId: string): NodeState?
+    if UpgradeTree.byId[nodeId] == nil then
+        return nil
+    end
+    if owns(profile, nodeId) then
+        return "owned"
+    end
+    if TreePurchase.availability(profile, nodeId) == nil then
+        return "available"
+    end
+    return "fog"
+end
+
+-- Zustand aller Knoten des Baums (ID -> Zustand).
+function TreePurchase.treeState(profile: any): { [string]: NodeState }
+    local result: { [string]: NodeState } = {}
+    for _, node in UpgradeTree.list do
+        result[node.id] = TreePurchase.nodeState(profile, node.id) :: NodeState
+    end
+    return result
 end
 
 return TreePurchase

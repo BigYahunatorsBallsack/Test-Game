@@ -15,6 +15,8 @@ export type Snapshot = {
     zoneId: string,
     pricePerSand: number,
     nodes: { [string]: boolean }, -- gekaufte Knoten (nur die, die der Baum kennt)
+    sellBonusBp: number, -- Summe des Verkauf-Asts (Hundertstel-Prozent, Paket 2.1)
+    luckBonusBp: number, -- Summe des Glück-Asts (Hundertstel-Prozent, Paket 2.1)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 

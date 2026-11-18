@@ -2,10 +2,14 @@
 -- Upgrades-Service
 -- Zuständig: Skilltree-Käufe (PurchaseNode), Voraussetzungen, Zonen-Freischaltung über
 -- Knoten-IDs, Sandsturm (Prestige). Paket 1.6 bringt den Mini-Kauf (PurchaseNode für die
--- ersten Knoten), 2.1 baut den ganzen Baum darauf, 2.5 die Zonen und 2.7 den Sandsturm.
+-- ersten Knoten), 2.1 den ganzen Baum (Äste Sammeln, Tank, Verkauf, Glück), 2.5 die Zonen und
+-- 2.7 den Sandsturm.
 --
--- Die Regeln stehen im reinen Modul Logic/TreePurchase (Lune-Tests). Der Client schickt nur
--- die Knoten-ID, der Server prüft Voraussetzungen und Münzen und antwortet mit ok und Grund.
+-- Die Regeln stehen in den reinen Modulen Logic/TreePurchase (Kauf, Zustand der Knoten) und
+-- Logic/TreeEffects (Wirkung), beide mit Lune-Tests. Der Client schickt nur die Knoten-ID, der
+-- Server prüft Voraussetzungen und Münzen und antwortet mit ok und Grund. Der Kauf läuft ohne
+-- Warten in einem Aufruf, darum kann ein zweiter schneller Aufruf nicht doppelt kaufen.
+-- Gespeichert werden nur die gekauften IDs; die Wirkung kommt immer aus der aktuellen Tabelle.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -23,6 +27,12 @@ local function onPurchaseNode(player: Player, nodeId: string): any
     local profile = PlayerData.get(player)
     if profile == nil then
         return { ok = false, reason = "unknown" }
+    end
+    -- Erst das offene Sammelfenster mit der alten Rate abrechnen (sonst gälte eine neue Rate
+    -- bis zu einem Takt rückwirkend). Ein Fehler dabei darf den Kauf nicht verhindern.
+    local settled, settleErr = pcall(Sand.settle, player)
+    if not settled then
+        warn(`[Upgrades] Abrechnung vor dem Kauf von {nodeId} fehlgeschlagen: {tostring(settleErr)}`)
     end
     local ok, reason = TreePurchase.buy(profile, nodeId)
     if ok then

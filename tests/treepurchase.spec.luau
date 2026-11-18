@@ -106,7 +106,7 @@ T.describe("Kauf eines Knotens", function()
         T.expect(TreePurchase.visible(profile)).toEqual({ "collect_rate_1", "tank_1", "collect_tool_2" })
         profile.nodes.collect_rate_1 = true
         profile.nodes.collect_tool_2 = true
-        T.expect(TreePurchase.visible(profile)).toEqual({ "tank_1", "collect_rate_2", "collect_tool_3" })
+        T.expect(TreePurchase.visible(profile)).toEqual({ "tank_1", "luck_1", "collect_rate_2", "sell_1", "collect_tool_3" })
     end)
 
     T.it("PurchaseNode nimmt nur eine bekannte Knoten-ID, keinen Preis", function()
