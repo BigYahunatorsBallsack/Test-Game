@@ -183,7 +183,15 @@ function SkillTree.Start()
     local gui = Instance.new("ScreenGui")
     gui.Name = "DuneBaronTree"
     gui.ResetOnSpawn = false
-    gui.ScreenInsets = Enum.ScreenInsets.CoreUISafe -- nichts unter dem Roblox-Menü oder der Notch
+    -- Nichts unter dem Roblox-Menü oder der Notch. Ältere Studio-Versionen kennen CoreUISafe nicht
+    -- (Fehler "CoreUISafe is not a valid member of Enum.ScreenInsets" hat den Baum verhindert), dann
+    -- gilt der Standard des Spiels.
+    local insetsOk, coreUiSafe = pcall(function(): any
+        return (Enum.ScreenInsets :: any).CoreUISafe
+    end)
+    if insetsOk and coreUiSafe ~= nil then
+        gui.ScreenInsets = coreUiSafe
+    end
     gui.DisplayOrder = 5
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- ZIndex gilt über die ganze Oberfläche
 
