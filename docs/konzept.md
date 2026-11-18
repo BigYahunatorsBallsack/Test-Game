@@ -21,7 +21,7 @@ Ein Durchlauf dauert 20 bis 40 Sekunden und endet immer mit einer Belohnung: sam
 2. **Verkaufen:** Am Händlerstand wird der Tank zu Münzen. Die Sandsorte der Zone bestimmt den Preis.
 3. **Aufrüsten:** Münzen gehen in den Skilltree (Rate, Tank, Verkaufspreis, Glück). Es sind immer nur die nächsten Knoten sichtbar.
 4. **Fundstücke:** Beim Graben tauchen gelegentlich Fundstücke auf, mit Reveal und Seltenheit. Sie füllen die Sammlung.
-5. **Sandsturm (Prestige):** Ab Zone 3 setzt du Münzen und Werkzeug zurück und bekommst Windkristalle für einen dauerhaften Bonus.
+5. **Sandsturm (Prestige):** Ab Zone 3 setzt du Münzen, Werkzeug, Upgrades und freie Zonen zurück und bekommst Windkristalle für einen dauerhaften Bonus. Sammlung und Skins bleiben.
 
 **Die ersten 2 Minuten:** Das erste Upgrade ist nach etwa 20 Sekunden bezahlbar, die Schaufel nach etwa 2 Minuten. Das zählt mehr als jede Feinheit der Balance.
 
@@ -62,7 +62,7 @@ Fünf Zonen mit je eigener Sandsorte: Je weiter du kommst, desto mehr bringt jed
 | Oase | Roter Sand (x3) | Meilenstein Sammeln 1 | Regen erhöht die Fundchance |
 | Canyon | Weißer Sand (x10) | Meilenstein Sammeln 2 | Tiefe Schichten mit seltenen Funden |
 | Salzsee | Kristallsand (x40) | Meilenstein Sammeln 3 | Nebel versteckt Fundstellen |
-| Ruinenstadt | Schwarzer Sand (x150) | Nach dem ersten Sandsturm | Mythische Funde |
+| Ruinenstadt | Schwarzer Sand (x150) | Nach dem ersten Sandsturm: Knoten "Ruinenkarte", in jedem Lauf neu | Mythische Funde |
 
 **Fundstücke:** Beim Graben taucht gelegentlich ein Fundstück auf, mit Reveal. Jede Zone hat 30 Fundstücke in Sets zu je 5.
 

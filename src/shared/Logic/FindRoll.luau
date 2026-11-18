@@ -9,14 +9,16 @@
 --  3. Seltenheit nach der Quotentabelle der Zone. Glück ändert nur die Chance, nie die Verteilung.
 --  4. Fundstück gleich verteilt unter den Funden der Zone mit dieser Seltenheit (fehlt sie, die
 --     nächst tiefere Stufe).
---  5. Wert = findBaseValue x Sandfaktor x Grundrate des Werkzeugs x Wertfaktor der Seltenheit,
---     beim Fund festgeschrieben. Kein Knoten-Bonus, damit Horten sich nicht lohnt.
+--  5. Wert = findBaseValue x Sandfaktor x Grundrate des Werkzeugs x Wertfaktor der Seltenheit
+--     x Windkristall-Faktor (Paket 2.7), beim Fund festgeschrieben. Kein Knoten-Bonus, damit
+--     Horten sich nicht lohnt.
 --  6. Erster Fund sicher: noch kein bekannter Fund und genug Sitzungssekunden, dann ein
 --     Gewöhnlicher Fund.
 
 local BigNum = require("./BigNum")
 local Collection = require("./Collection")
 local TreeEffects = require("./TreeEffects")
+local Wind = require("./Wind")
 local WeatherLogic = require("./Weather")
 local FindOddsData = require("../Data/FindOdds")
 local FindsData = require("../Data/Finds")
@@ -186,10 +188,13 @@ function FindRoll.roll(input: Input, data: any?): Roll?
         return nil
     end
     local toolRate = TreeEffects.of(profile).tool.sandPerSecond
+    -- Windkristalle (Paket 2.7) gelten für alle Münzen, auch für den Fundwert. Das ist kein
+    -- Horten-Anreiz: der Wert ist beim Fund festgeschrieben und ein Duplikat wird sofort verkauft.
+    local value = BigNum.floor(BigNum.mulNumber(FindRoll.valueOf(zoneId, find.rarityId, toolRate, data), Wind.multiplier(profile)))
     return {
         find = find,
         rarityId = find.rarityId,
-        value = FindRoll.valueOf(zoneId, find.rarityId, toolRate, data),
+        value = value,
         forced = forced,
     }
 end

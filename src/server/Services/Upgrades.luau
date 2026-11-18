@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local TreePurchase = require(shared:WaitForChild("Logic"):WaitForChild("TreePurchase") :: ModuleScript) :: any
+local Sandstorm = require(shared:WaitForChild("Logic"):WaitForChild("Sandstorm") :: ModuleScript) :: any
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -53,6 +54,46 @@ local function onPurchaseNode(player: Player, nodeId: string): any
     return { ok = false, reason = reason }
 end
 
+-- Sandsturm auslösen (Paket 2.7). Der Client schickt nichts, die Kristalle rechnet allein der Server.
+-- Alles bis `Sandstorm.apply` läuft ohne Warten in einem Aufruf: ein zweiter schneller Aufruf trifft
+-- auf das schon zurückgesetzte Profil und bekommt "requires". Fehler in der Nacharbeit (Zone,
+-- Anzeige) dürfen den schon gebuchten Sturm nicht als Fehlschlag melden.
+local function onPrestige(player: Player): any
+    local profile = PlayerData.get(player)
+    if profile == nil then
+        return { ok = false, reason = "unknown" }
+    end
+    -- Das offene Sammelfenster zählt noch zum alten Lauf (Sand im Tank, Fundzeit).
+    local settled, settleErr = pcall(Sand.settle, player)
+    if not settled then
+        warn(`[Upgrades] Abrechnung vor dem Sandsturm fehlgeschlagen: {tostring(settleErr)}`)
+    end
+    local result, reason = Sandstorm.apply(profile)
+    if result == nil then
+        return { ok = false, reason = reason }
+    end
+    local worked, err = pcall(function()
+        Sand.resetAfterStorm(player)
+        ZoneService.resetAfterStorm(player)
+        Net.fire(player, "Notify", {
+            kind = "sandstorm",
+            crystals = result.crystals,
+            total = result.total,
+            bonusBp = result.bonusBpAfter,
+            prestiges = result.prestiges,
+            first = result.first,
+        })
+    end)
+    if not worked then
+        warn(`[Upgrades] Nacharbeit nach dem Sandsturm fehlgeschlagen: {tostring(err)}`)
+    end
+    local refreshed, refreshErr = pcall(Sand.refresh, player)
+    if not refreshed then
+        warn(`[Upgrades] Anzeige nach dem Sandsturm fehlgeschlagen: {tostring(refreshErr)}`)
+    end
+    return { ok = true, crystals = result.crystals, total = result.total, first = result.first }
+end
+
 function Upgrades.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
@@ -62,6 +103,7 @@ end
 
 function Upgrades.Start()
     Net.on("PurchaseNode", onPurchaseNode)
+    Net.on("Prestige", onPrestige)
 end
 
 return Upgrades

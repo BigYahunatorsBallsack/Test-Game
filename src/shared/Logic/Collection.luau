@@ -10,6 +10,7 @@
 -- bucht ihn auf `profile.coins`.
 
 local BigNum = require("./BigNum")
+local Wind = require("./Wind")
 local FindsData = require("../Data/Finds")
 local CollectionData = require("../Data/Collection")
 
@@ -151,7 +152,7 @@ function Collection.summary(profile: any, data: any?): any
 end
 
 -- Bucht einen Fund: Zähler +1; ist er schon bekannt, werden `value` Münzen gutgeschrieben (sofort
--- verkauft). Gibt nil zurück, wenn der Fund unbekannt ist. Ändert `profile.finds` und `profile.coins`.
+-- verkauft). Gibt nil zurück, wenn der Fund unbekannt ist. Ändert `profile.finds`, `profile.coins` und `profile.runEarned`.
 function Collection.record(profile: any, findId: string, value: BigNum.BigNum, data: any?): Recorded?
     local finds = if data and data.Finds then data.Finds else FindsData
     local find = finds.byId[findId]
@@ -170,7 +171,7 @@ function Collection.record(profile: any, findId: string, value: BigNum.BigNum, d
     local coins: BigNum.BigNum? = nil
     if before > 0 then
         coins = value
-        profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), value))
+        Wind.credit(profile, value) -- zählt auch für die Kristalle des nächsten Sturms
     end
 
     local setHave, setSize, setComplete = 0, 0, false

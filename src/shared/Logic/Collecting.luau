@@ -27,6 +27,7 @@ local Economy = require("../Data/Economy")
 local UpgradeTree = require("../Data/UpgradeTree")
 local TreeEffects = require("./TreeEffects")
 local Collection = require("./Collection")
+local Wind = require("./Wind")
 
 export type State = {
     holding: boolean,
@@ -99,6 +100,7 @@ function Collecting.pricePerSand(profile: any): number
         * sandType.priceFactor
         * TreeEffects.sellMultiplier(profile)
         * Collection.bonusMultiplier(profile)
+        * Wind.multiplier(profile)
 end
 
 -- Alle Schreibzugriffe auf den Tank laufen über addSand und clearTank, damit `tank` und `tankMix`
@@ -123,6 +125,7 @@ function Collecting.priceOf(profile: any, sandTypeId: string): number
         * sandType.priceFactor
         * TreeEffects.sellMultiplier(profile)
         * Collection.bonusMultiplier(profile)
+        * Wind.multiplier(profile)
 end
 
 -- Die Sandsorte der aktuellen Zone.
@@ -246,15 +249,13 @@ function Collecting.setZone(state: State, profile: any, zoneId: string, now: num
     return result
 end
 
--- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
--- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
--- Tank. Ändert profile.coins, profile.tank und profile.tankMix.
-function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
-    Collecting.update(state, profile, now, options)
+-- Münzen, die der Tank jetzt beim Verkauf brächte (ganze Münzen). Jede Sandsorte im Tank wird mit
+-- ihrem eigenen Faktor bezahlt. Ändert nichts. Auch der Sandsturm (Paket 2.7) nutzt das für seine
+-- Vorschau, damit Anzeige und Verkauf dieselbe Rechnung haben.
+function Collecting.tankValue(profile: any): BigNum.BigNum
     local tank = tankOf(profile)
     if tank.m <= 0 then
-        Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
-        return nil, nil
+        return BigNum.zero()
     end
     local mix = mixOf(profile)
     -- Billigste Sorte zuerst und nie mehr als der Tank: Ein zu großer Mix (kaputte oder
@@ -284,11 +285,24 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
     end
     -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis.
     if remaining.m > 0 then
-        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile) * Collection.bonusMultiplier(profile)))
+        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile) * Collection.bonusMultiplier(profile) * Wind.multiplier(profile)))
     end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
-    earned = BigNum.floor(earned)
-    profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned))
+    return BigNum.floor(earned)
+end
+
+-- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
+-- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
+-- Tank. Ändert profile.coins, profile.runEarned, profile.tank und profile.tankMix.
+function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
+    Collecting.update(state, profile, now, options)
+    local tank = tankOf(profile)
+    if tank.m <= 0 then
+        Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
+        return nil, nil
+    end
+    local earned = Collecting.tankValue(profile)
+    Wind.credit(profile, earned)
     Collecting.clearTank(profile)
     return earned, tank
 end

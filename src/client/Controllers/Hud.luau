@@ -43,6 +43,14 @@ local function displayNumber(value: number): string
     return BigNum.format(BigNum.new(value))
 end
 
+-- Hundertstel-Prozent als Text mit deutschem Komma (200 -> "2", 250 -> "2,5").
+local function percentText(bp: number): string
+    local value = bp / 100
+    local text = if value % 1 == 0 then tostring(math.floor(value)) else string.format("%.1f", value)
+    local replaced = string.gsub(text, "%.", ",")
+    return replaced
+end
+
 local function label(parent: Instance, name: string, position: UDim2, size: UDim2): TextLabel
     local l = Instance.new("TextLabel")
     l.Name = name
@@ -102,6 +110,10 @@ function Hud.Start()
     local toolLabel = label(gui, "Tool", UDim2.new(0, 28, 0, 104), UDim2.new(0, 320, 0, 22))
     toolLabel.Text = ""
 
+    -- Windkristalle (Paket 2.7), nur sichtbar ab dem ersten Kristall
+    local windLabel = label(gui, "Wind", UDim2.new(0, 28, 0, 126), UDim2.new(0, 320, 0, 22))
+    windLabel.Text = ""
+
     local toast = label(gui, "Toast", UDim2.new(0.5, -200, 0.75, 0), UDim2.new(0, 400, 0, 36))
     toast.TextXAlignment = Enum.TextXAlignment.Center
     toast.TextTransparency = 1
@@ -116,6 +128,7 @@ function Hud.Start()
         local zone = Zones.byId[snapshot.zoneId]
         local zoneText = if zone ~= nil then `{zone.name} · ` else ""
         toolLabel.Text = if tool ~= nil then `{zoneText}{tool.name} · {displayNumber(snapshot.rate)}/s` else zoneText
+        windLabel.Text = if type(snapshot.windCrystals) == "number" and snapshot.windCrystals > 0 then `Windkristalle: {displayNumber(snapshot.windCrystals)} · +{percentText(snapshot.windBonusBp)} %` else ""
         local tank = BigNum.toNumber(BigNum.deserialize(snapshot.tank))
         local capacity = math.max(snapshot.capacity, 1)
         local ratio = math.clamp(tank / capacity, 0, 1)

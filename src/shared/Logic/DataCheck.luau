@@ -19,6 +19,7 @@ local EFFECT_KINDS = {
     sellBonus = true,
     luckBonus = true,
     grantedBySandstorm = true,
+    zoneKey = true,
 }
 -- Welche Wirkung in welchen Ast gehört (Konzept: Sammeln = Rate, Tank = Kapazität,
 -- Verkauf = Preisfaktor, Glück = Fundchance).
@@ -29,6 +30,7 @@ local BRANCH_OF_EFFECT = {
     sellBonus = "sell",
     luckBonus = "luck",
     grantedBySandstorm = "sandstorm",
+    zoneKey = "sandstorm",
 }
 local BP_EFFECTS = { rateBonus = true, sellBonus = true, luckBonus = true }
 local CONDITION_KINDS = { tankAtLeast = true, sold = true, node = true }
@@ -355,6 +357,14 @@ local function checkZones(errors: { string }, data: DataSet)
             table.insert(errors, `{label}: requires muss "start" oder eine Knoten-ID sein`)
         elseif type(tree) ~= "table" or type(tree.byId) ~= "table" or tree.byId[zone.requires] == nil then
             table.insert(errors, `{label}: Knoten "{zone.requires}" fehlt in UpgradeTree`)
+        else
+            -- Der Sandsturm (Paket 2.7) setzt die Zonen zurück und vergibt nur seine eigenen Knoten.
+            -- Verlangt eine Zone einen vergebenen Knoten, ist sie nach dem Reset nie mehr zu öffnen,
+            -- wenn kein Sturm sie vergibt; sie darf also nur einen kaufbaren Knoten verlangen.
+            local required = tree.byId[zone.requires]
+            if type(required) == "table" and (required.granted == true or (type(required.effect) == "table" and required.effect.kind == "grantedBySandstorm")) then
+                table.insert(errors, `{label}: verlangt den vergebenen Knoten "{zone.requires}", eine Zone braucht einen kaufbaren Knoten`)
+            end
         end
     end
     if not hasStart then
@@ -559,6 +569,47 @@ local function checkFinds(errors: { string }, data: DataSet)
                 table.insert(errors, `Finds: Set "{find.setId}" hat zu viele Fundstücke`)
             end
         end
+    end
+end
+
+-- Sandsturm (Paket 2.7): Economy.sandstorm. Die Grenzen sind Schutz gegen Tippfehler, keine Balance.
+local MAX_CRYSTAL_CAP = 10_000_000
+local MAX_CRYSTAL_BONUS_BP = 1_000_000_000
+local MAX_CRYSTAL_SCALE = 1000
+
+local function checkSandstorm(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    local cfg = economy.sandstorm
+    if type(cfg) ~= "table" then
+        table.insert(errors, "Economy.sandstorm: Tabelle fehlt")
+        return
+    end
+    local tree = data.UpgradeTree
+    local node = if type(cfg.requiresNode) == "string" and type(tree) == "table" and type(tree.byId) == "table" then tree.byId[cfg.requiresNode] else nil
+    if node == nil then
+        table.insert(errors, "Economy.sandstorm.requiresNode: Knoten fehlt in UpgradeTree")
+    elseif node.granted == true or (type(node.effect) == "table" and node.effect.kind == "grantedBySandstorm") then
+        table.insert(errors, "Economy.sandstorm.requiresNode: der Knoten darf nicht vom Sturm vergeben werden")
+    end
+    if not isFinite(cfg.crystalUnit) or cfg.crystalUnit <= 0 then
+        table.insert(errors, "Economy.sandstorm.crystalUnit muss eine Zahl über 0 sein")
+    end
+    if not isFinite(cfg.crystalExponent) or cfg.crystalExponent <= 0 or cfg.crystalExponent > 1 then
+        table.insert(errors, "Economy.sandstorm.crystalExponent muss in (0, 1] liegen")
+    end
+    if not isFinite(cfg.crystalScale) or cfg.crystalScale <= 0 or cfg.crystalScale > MAX_CRYSTAL_SCALE then
+        table.insert(errors, `Economy.sandstorm.crystalScale muss in (0, {MAX_CRYSTAL_SCALE}] liegen`)
+    end
+    if not isInt(cfg.maxCrystals) or cfg.maxCrystals < 1 or cfg.maxCrystals > MAX_CRYSTAL_CAP then
+        table.insert(errors, `Economy.sandstorm.maxCrystals muss eine ganze Zahl von 1 bis {MAX_CRYSTAL_CAP} sein`)
+    elseif isInt(economy.windCrystalBonusBp) and cfg.maxCrystals * economy.windCrystalBonusBp > MAX_CRYSTAL_BONUS_BP then
+        table.insert(errors, "Economy.sandstorm: maxCrystals mal windCrystalBonusBp ergibt einen unsinnig hohen Bonus")
+    end
+    if not isInt(cfg.minCrystals) or cfg.minCrystals < 1 or (isInt(cfg.maxCrystals) and cfg.minCrystals > cfg.maxCrystals) then
+        table.insert(errors, "Economy.sandstorm.minCrystals muss eine ganze Zahl ab 1 und höchstens maxCrystals sein")
     end
 end
 
@@ -1671,6 +1722,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkFinds(errors, data)
     checkCollection(errors, data)
     checkEconomy(errors, data)
+    checkSandstorm(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

@@ -19,7 +19,27 @@ export type Snapshot = {
     sellBonusBp: number, -- Summe des Verkauf-Asts (Hundertstel-Prozent, Paket 2.1)
     luckBonusBp: number, -- Summe des Glück-Asts (Hundertstel-Prozent, Paket 2.1)
     collectionBonusBp: number, -- Summe der fertigen Sets (Hundertstel-Prozent, Paket 2.6)
+    windCrystals: number, -- Windkristalle (Paket 2.7)
+    windBonusBp: number, -- ihr Bonus auf alle Münzen (Hundertstel-Prozent)
+    storm: Storm, -- Vorschau des Sandsturms
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
+}
+
+-- Vorschau des Sandsturms (Paket 2.7), vom Server berechnet (Logic/Sandstorm.preview).
+export type Storm = {
+    unlocked: boolean, -- der Knoten für den Sturm ist da: der Knopf wird sichtbar
+    ready: boolean, -- der Sturm ginge jetzt
+    reason: string?, -- "requires" oder "tooFew", wenn er nicht geht
+    runEarned: { m: number, e: number }, -- Einnahmen des Laufs inklusive Tankwert
+    gain: number, -- Kristalle, die der Sturm jetzt gäbe
+    needed: { m: number, e: number }, -- Einnahmen, ab denen der Sturm sich lohnt (minCrystals)
+    minCrystals: number,
+    crystalsNow: number,
+    crystalsAfter: number,
+    bonusBpNow: number,
+    bonusBpAfter: number,
+    prestiges: number,
+    first: boolean,
 }
 
 -- Die Sammlung (CollectionSync, Paket 2.6): Zähler je Fund, Bonus und fertige Zonenbücher.

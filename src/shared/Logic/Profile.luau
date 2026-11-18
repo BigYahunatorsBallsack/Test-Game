@@ -27,6 +27,7 @@ export type Profile = {
     finds: { [string]: number }, -- Fundstück-ID -> Anzahl
     windCrystals: number,
     prestiges: number,
+    runEarned: BigNum.Serialized, -- Münzen aus Verkäufen seit dem letzten Sandsturm (Paket 2.7)
     pity: { [string]: Pity }, -- Kisten-ID -> Zähler
     inventory: {
         skins: { [string]: number },
@@ -85,6 +86,7 @@ function Profile.default(now: number?): Profile
         finds = {},
         windCrystals = 0,
         prestiges = 0,
+        runEarned = BigNum.serialize(BigNum.zero()),
         pity = { gold = { sinceEpic = 0, sinceLegendary = 0 } },
         inventory = { skins = {}, companions = {}, toolVariants = {} },
         receipts = {},
@@ -153,7 +155,7 @@ end
 -- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
 local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
-local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true }
+local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true, runEarned = true }
 
 local function warn(warnings: { string }, path: string, text: string)
     warnings[#warnings + 1] = `{path}: {text}`
@@ -254,6 +256,22 @@ function Profile.sanitize(profile: Profile, now: number?): { string }
                 end
             end
         end
+    end
+    -- Sandsturm (Paket 2.7): Kristalle sind ganze Zahlen ab 0, Einnahmen des Laufs nie negativ.
+    if type(data.windCrystals) == "number" and data.windCrystals ~= math.floor(data.windCrystals) then
+        data.windCrystals = math.max(math.floor(data.windCrystals), 0)
+    end
+    if type(data.windCrystals) == "number" and data.windCrystals < 0 then
+        warn(warnings, "windCrystals", "negativ, auf 0 gesetzt")
+        data.windCrystals = 0
+    end
+    if type(data.prestiges) == "number" and data.prestiges < 0 then
+        warn(warnings, "prestiges", "negativ, auf 0 gesetzt")
+        data.prestiges = 0
+    end
+    if type(data.runEarned) == "table" and data.runEarned.m < 0 then
+        warn(warnings, "runEarned", "negativ, auf 0 gesetzt")
+        data.runEarned = BigNum.serialize(BigNum.zero())
     end
     -- Funde (Paket 2.6): jeder Zähler ist eine ganze Zahl ab 1. Alles andere wird entfernt, ein
     -- Bruch wird abgerundet. Unbekannte IDs bleiben, sie zählen nur nicht.

@@ -199,7 +199,7 @@ T.describe("Datentabellen (0.1)", function()
         T.expect(Zones.byId.oasis.requires).toBe("collect_tool_3")
         T.expect(Zones.byId.canyon.requires).toBe("collect_tool_4")
         T.expect(Zones.byId.salt_lake.requires).toBe("collect_tool_5")
-        T.expect(Zones.byId.ruins.requires).toBe("sandstorm_1")
+        T.expect(Zones.byId.ruins.requires).toBe("sandstorm_ruins")
 
         local data = freshDataSet()
         data.Zones.byId.oasis.sandTypeId = "pink"

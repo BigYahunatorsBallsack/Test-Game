@@ -2,7 +2,9 @@
 -- Die fünf Zonen (Konzept: "Welt und Zonen").
 -- `requires` ist "start" oder die ID eines Knotens aus UpgradeTree, nie eine feste Zahl.
 -- Meilenstein Sammeln 1/2/3 = Werkzeugknoten collect_tool_3/4/5.
--- Die Ruinenstadt verlangt den Knoten sandstorm_1, den der erste Sandsturm vergibt.
+-- Die Ruinenstadt verlangt den Knoten sandstorm_ruins (Paket 2.7): er setzt den ersten Sandsturm
+-- (sandstorm_1) voraus und wird in jedem Lauf neu gekauft. Eine Zone verlangt nie einen vergebenen
+-- Knoten, sonst bliebe sie nach dem Reset des Sturms für immer gesperrt (DataCheck).
 
 export type Zone = {
     id: string,
@@ -45,7 +47,7 @@ local list: { Zone } = {
         id = "ruins",
         name = "Ruinenstadt",
         sandTypeId = "black",
-        requires = "sandstorm_1",
+        requires = "sandstorm_ruins",
         note = "Mythische Funde",
     },
 }

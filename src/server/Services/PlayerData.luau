@@ -128,6 +128,12 @@ local function connectStudioHelper(player: Player)
         end
         if attribute == DEBUG_COINS_ATTRIBUTE then
             profile.coins = BigNum.serialize(BigNum.new(math.max(value, 0)))
+            -- Sandsturm (Paket 2.7): Die Einnahmen des Laufs steigen mit, damit sich der Sturm testen
+            -- lässt (nur wenn sie niedriger sind, sie sinken nie).
+            local earned = BigNum.deserialize(profile.runEarned)
+            if BigNum.compare(earned, BigNum.deserialize(profile.coins)) < 0 then
+                profile.runEarned = BigNum.serialize(BigNum.deserialize(profile.coins))
+            end
         else
             profile.gems = math.max(math.floor(value), 0)
         end
