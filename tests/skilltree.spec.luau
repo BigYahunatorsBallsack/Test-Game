@@ -253,6 +253,39 @@ T.describe("Kauf im ganzen Baum", function()
     end)
 end)
 
+T.describe("Kaputte Profile", function()
+    T.it("Knoten-Werte außer true zählen nicht als gekauft, ein kaputtes nodes-Feld bucht nichts ab", function()
+        local profile = withCoins(1000)
+        profile.nodes = { tank_1 = 1, collect_tool_2 = "ja", collect_rate_1 = {} }
+        T.expect(TreePurchase.nodeState(profile, "tank_1")).toBe("available")
+        T.expect(TreePurchase.nodeState(profile, "tank_2")).toBe("fog")
+        T.expect(Collecting.toolOf(profile).id).toBe("hand")
+        T.expect(#Profile.ownedKnownNodes(profile, UpgradeTree.byId)).toBe(0)
+        local broken = withCoins(1000)
+        broken.nodes = "kaputt"
+        local ok = TreePurchase.buy(broken, "tank_1")
+        T.expect(ok).toBe(false)
+        T.expect(coinsOf(broken)).toBe(1000)
+    end)
+
+    T.it("DataCheck lehnt einen Preis mit Nachkommastellen ab", function()
+        local data: any = DataCheck.defaults()
+        local list = table.clone(data.UpgradeTree.list)
+        local byId = table.clone(data.UpgradeTree.byId)
+        local node = table.clone(byId.tank_1)
+        node.cost = 20.5
+        byId.tank_1 = node
+        for i, n in list do
+            if n.id == "tank_1" then
+                list[i] = node
+            end
+        end
+        data.UpgradeTree = { list = list, byId = byId }
+        local text = table.concat(DataCheck.run(data), "\n")
+        T.expect(string.find(text, "cost muss eine ganze Zahl", 1, true) ~= nil).toBe(true)
+    end)
+end)
+
 T.describe("Sichtbarkeit (Nebel)", function()
     T.it("am Anfang sind nur Knoten ohne Voraussetzung kaufbar, der Rest liegt im Nebel", function()
         local state = TreePurchase.treeState(withCoins(0))
@@ -321,6 +354,19 @@ T.describe("Wirkung", function()
         local expected = math.floor(7 * Collecting.pricePerSand(profile))
         T.expect(BigNum.toNumber(earned :: any)).toBe(expected)
         T.expect(coinsOf(profile)).toBe(expected)
+    end)
+
+    T.it("Verkaufen ohne Bonus verliert keine Münze (115, 230, 1150 Sand)", function()
+        for _, amount in { 115, 230, 1150, 7, 999_999 } do
+            local profile = withCoins(0)
+            profile.tank = BigNum.serialize(BigNum.new(amount))
+            Collecting.sell(Collecting.newState(NOW), profile, NOW)
+            T.expect(coinsOf(profile)).toBe(amount)
+        end
+        T.expect(BigNum.toNumber(BigNum.floor(BigNum.new(115)))).toBe(115)
+        T.expect(BigNum.toNumber(BigNum.floor(BigNum.new(2.3 * 100)))).toBe(230)
+        T.expect(BigNum.toNumber(BigNum.floor(BigNum.new(16.5)))).toBe(16)
+        T.expect(BigNum.toNumber(BigNum.floor(BigNum.new(-1.5)))).toBe(-2)
     end)
 
     T.it("Glück-Knoten erhöhen den Fundchancen-Faktor, Boni addieren sich", function()

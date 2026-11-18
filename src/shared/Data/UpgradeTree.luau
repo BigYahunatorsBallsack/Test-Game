@@ -18,7 +18,8 @@
 --
 -- Gespeichert werden nur die gekauften IDs. Knoten dürfen hinzukommen, wegfallen oder neue
 -- Werte bekommen, ohne Migration (siehe Logic/TreeEffects). Nur eine umbenannte ID braucht
--- einen Schritt in Logic/Migrations.
+-- einen Schritt in Logic/Migrations. Eine entfernte ID nie für einen anderen Knoten
+-- wiederverwenden: Alte Profile tragen sie noch und bekämen den neuen Knoten geschenkt.
 
 -- Wirkungen (berechnet in Logic/TreeEffects, nie im Profil gespeichert):
 --   setTool            schaltet ein Werkzeug frei (toolId), das höchste zählt

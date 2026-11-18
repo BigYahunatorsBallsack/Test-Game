@@ -58,6 +58,15 @@ local function stateOf(player: Player): any
     return state
 end
 
+-- Rechnet das offene Sammelfenster mit der bisherigen Rate ab. Upgrades ruft das vor einem
+-- Kauf auf, damit eine neue Rate (oder ein neuer Tank) nicht rückwirkend gilt.
+function Sand.settle(player: Player)
+    local profile = PlayerData.get(player)
+    if profile ~= nil then
+        Collecting.update(stateOf(player), profile, now())
+    end
+end
+
 -- Zustand für die Anzeige beim Client. Der Client rechnet damit nichts Maßgebliches.
 function Sand.snapshot(player: Player): any?
     local profile = PlayerData.get(player)

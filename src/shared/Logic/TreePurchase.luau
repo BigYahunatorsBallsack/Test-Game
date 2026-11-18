@@ -20,7 +20,7 @@ export type NodeState = "owned" | "available" | "fog"
 local TreePurchase = {}
 
 local function owns(profile: any, nodeId: string): boolean
-    return profile.nodes[nodeId] == true
+    return type(profile.nodes) == "table" and profile.nodes[nodeId] == true
 end
 
 -- Ist der Knoten kaufbar (Voraussetzungen erfüllt, nicht gekauft, nicht vergeben)?
@@ -65,6 +65,9 @@ function TreePurchase.buy(profile: any, nodeId: string): (boolean, Reason?)
     local reason = TreePurchase.check(profile, nodeId)
     if reason ~= nil then
         return false, reason
+    end
+    if type(profile.nodes) ~= "table" then
+        return false, "unknown" -- kaputtes Profil: nichts abbuchen
     end
     local node = UpgradeTree.byId[nodeId]
     local coins = BigNum.deserialize(profile.coins)

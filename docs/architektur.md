@@ -140,6 +140,8 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - Gespeichert werden nur die gekauften IDs (`profile.nodes`), nie Werte. Baum-Updates brauchen darum keine Migration: Entfernte IDs bleiben gespeichert und wirken nicht (keine Erstattung), neue Knoten werden kaufbar, sobald ihre Voraussetzungen erfüllt sind, ein gekaufter Knoten wirkt auch, wenn ein Update ihm eine neue Voraussetzung gibt, und geänderte Werte gelten sofort. Nur das Umbenennen einer ID braucht einen Schritt in `Migrations`.
 - `TreePurchase.nodeState` und `treeState` liefern für den Baum in 2.2 den Zustand jedes Knotens: `owned`, `available` (Voraussetzungen erfüllt, Geld egal) oder `fog`. Vergebene Knoten sind nie `available`.
 - `StateSync` hat zwei neue Felder: `sellBonusBp` und `luckBonusBp`. `pricePerSand` enthält den Verkauf-Ast schon.
+- Vor jedem Kauf rechnet `Upgrades` über `Sand.settle(player)` das offene Sammelfenster mit der alten Rate ab, damit eine neue Rate nicht rückwirkend gilt (offener Punkt b aus 1.6 damit erledigt).
+- Security-Review 2.1: kein kritischer oder hoher Befund. Eingearbeitet: `BigNum.floor` lässt ganze Zahlen ganz (vorher kostete das Abrunden beim Verkauf bei 115 Sand eine Münze), `TreePurchase` bucht bei kaputtem `nodes`-Feld nichts ab, `Profile.ownedKnownNodes` zählt nur `true`, `DataCheck` verlangt ganze Preise, entfernte Knoten-IDs werden nie wiederverwendet. Bekannt: Profile, die unter dem Baum aus 1.6 schon Mini-Bagger oder später gekauft haben (nur Studio-Tests), behalten sie und umgehen die neuen Raten-Sperren. Offen bleiben (a) Rundung kleiner Preise ab etwa 1,5e16 Münzen (harmlos) und (c) Verkaufen per Teleport (Paket 6.1).
 
 ## Zahlentyp
 

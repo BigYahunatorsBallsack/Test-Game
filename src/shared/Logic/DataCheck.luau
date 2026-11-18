@@ -359,8 +359,8 @@ local function checkUpgradeTree(errors: { string }, data: DataSet)
         if BRANCHES[node.branch] == nil then
             table.insert(errors, `{label}: unbekannter Ast "{tostring(node.branch)}"`)
         end
-        if not isFinite(node.cost) or node.cost < 0 then
-            table.insert(errors, `{label}: cost muss eine Zahl ab 0 sein`)
+        if not isInt(node.cost) or node.cost < 0 then
+            table.insert(errors, `{label}: cost muss eine ganze Zahl ab 0 sein`)
         end
         if type(node.effect) == "table" and (node.effect.kind == "grantedBySandstorm") ~= (node.granted == true) then
             table.insert(errors, `{label}: "grantedBySandstorm" und granted = true gehören zusammen`)
