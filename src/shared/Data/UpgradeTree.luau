@@ -10,9 +10,10 @@
 -- Meilensteine: collect_tool_3 (Eimerkette) = Meilenstein 1, schaltet die Oase frei.
 --               collect_tool_4 (Mini-Bagger) = Meilenstein 2, schaltet den Canyon frei.
 --               collect_tool_5 (Saugroboter) = Meilenstein 3, schaltet den Salzsee frei.
--- Sperren: Mini-Bagger, Saugroboter und Großmaschine verlangen zusätzlich den teuersten
--- Raten-Knoten ihrer Phase (collect_rate_6, _8, _10), damit die späten, günstigen Werkzeuge
--- nicht zu früh kommen (docs/balance/skilltree_2_1.md, Befunde).
+-- Werkzeuge verlangen nur das vorige Werkzeug. Die späten Werkzeuge sind im Verhältnis zu
+-- günstig und kommen darum früh (Saugroboter und Großmaschine kurz nach dem Mini-Bagger).
+-- Entscheidung von Waltuh (18.11.2026): keine Sperren über Raten-Knoten, stattdessen hebt
+-- Paket 6.4 die Werkzeugpreise an (docs/balance/skilltree_2_1.md, Befunde).
 -- sandstorm_1 wird vom ersten Sandsturm vergeben (nicht gekauft) und schaltet die
 -- Ruinenstadt frei.
 --
@@ -226,7 +227,7 @@ local list: { Node } = {
         name = "Mini-Bagger",
         description = "Werkzeug: Mini-Bagger, Fahrzeug mit Staubwolke",
         branch = "collect",
-        requires = { "collect_tool_3", "collect_rate_6" },
+        requires = { "collect_tool_3" },
         cost = 7500,
         effect = { kind = "setTool", toolId = "mini_digger" },
         milestone = 2,
@@ -299,7 +300,7 @@ local list: { Node } = {
         name = "Saugroboter",
         description = "Werkzeug: Saugroboter, saugt die Fläche leer",
         branch = "collect",
-        requires = { "collect_tool_4", "collect_rate_8" },
+        requires = { "collect_tool_4" },
         cost = 90_000,
         effect = { kind = "setTool", toolId = "vacuum_robot" },
         milestone = 3,
@@ -363,7 +364,7 @@ local list: { Node } = {
         name = "Großmaschine",
         description = "Werkzeug: Großmaschine, frisst ganze Dünen",
         branch = "collect",
-        requires = { "collect_tool_5", "collect_rate_10" },
+        requires = { "collect_tool_5" },
         cost = 1_100_000,
         effect = { kind = "setTool", toolId = "mega_machine" },
     },
