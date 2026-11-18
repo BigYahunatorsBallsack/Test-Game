@@ -10,7 +10,7 @@ src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindO
 src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard, TreePurchase, Tutorial)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, UpgradeList, Tutorial)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, SkillTree, Tutorial)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -40,7 +40,7 @@ Regeln:
 
 ### Controllers (Client)
 
-`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4). `UpgradeList` zeigt die kaufbaren Knoten (Paket 1.6, schlichte Fassung bis zum Baum in 2.2), `Tutorial` zeigt Hinweistext, Strahl und Markierung der ersten 2 Minuten.
+`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4). `SkillTree` zeigt den Skilltree als Vollbild-Ebene (Paket 2.2, siehe unten), `Tutorial` zeigt Hinweistext, Strahl und Markierung der ersten 2 Minuten.
 
 ## Datenfluss
 
@@ -126,7 +126,7 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - Kauf in `Logic/TreePurchase.luau` (rein): `check` und `buy` prüfen bekannt, nicht vergeben, nicht gekauft, Voraussetzungen, Münzen (in dieser Reihenfolge) und liefern den Grund (`unknown`, `granted`, `owned`, `requires`, `coins`). Der Kauf läuft ohne Warten im selben Aufruf, ein Doppelklick trifft deshalb auf `owned`. `Upgrades` hängt `PurchaseNode` daran, nach Erfolg ruft es `Sand.refresh(player)` (Tutorial neu bewerten, Zustand senden). 2.1 baut den ganzen Baum auf diesem Kauf auf.
 - `StateSync` hat zwei neue Felder: `nodes` (gekaufte, bekannte Knoten) und `tutorialStep`.
 - Tutorial: Schritte und Texte in `Data/Tutorial.luau`, Fortschritt in `Logic/Tutorial.luau` (rein), gespeichert als `profile.tutorial.step` (1 bis 4 = Schritt, 5 = fertig, nie zurück). Bedingungen: `tankAtLeast` (15 Sand), `sold` (Ereignis vom Server), `node` (zählt auch beim Laden, erledigte Schritte entfallen). Das Feld wird bei alten Spielständen von `Profile.migrate` mit Schritt 1 gefüllt, die Profilversion bleibt 1.
-- Anzeige: `Tutorial` (Client) zeigt Text oben und einen Strahl zum Ziel (Teile mit dem Tag `World.sandField.tag` bzw. `World.sellStand.tag`, sonst das Platzhalter-Sandfeld aus `Data/Terrain`). `UpgradeList` erscheint ab `Tutorial.showUpgradesFromStep`, zeigt höchstens 4 kaufbare Knoten nach Preis, graut zu teure aus und lässt den Knoten des aktuellen Schritts leuchten.
+- Anzeige: `Tutorial` (Client) zeigt Text oben und einen Strahl zum Ziel (Teile mit dem Tag `World.sandField.tag` bzw. `World.sellStand.tag`, sonst das Platzhalter-Sandfeld aus `Data/Terrain`). Der Knopf "Baum" (`SkillTree`) erscheint ab `Tutorial.showUpgradesFromStep`, pulsiert, solange der Schritt auf einen Baumknoten zeigt, und im Baum leuchtet der Knoten des aktuellen Schritts (`highlightNodeId`). Das Tutorial-Ziel `tree` zeigt keinen Strahl.
 - Zielzeiten: Eine Lune-Simulation mit den echten Regeln (5 s Weg je Richtung, billigsten sichtbaren Knoten kaufen) ergibt das erste Upgrade nach 20 s und die Schaufel nach 120 s, wie `Economy.targetSeconds`.
 - Das Tutorial schickt schon bei 15 Sand zum Verkauf, auch bei größerem Tank (zum Beispiel mit dem Gamepass "Großer Tank", 4.4). Verkaufen geht mit jedem nicht leeren Tank, der Server prüft die Reichweite zum Händlerstand wie in 1.2.
 
@@ -142,6 +142,17 @@ Weitere Regeln: Unbekannte Felder und unbekannte Knoten-IDs bleiben gespeichert 
 - `StateSync` hat zwei neue Felder: `sellBonusBp` und `luckBonusBp`. `pricePerSand` enthält den Verkauf-Ast schon.
 - Vor jedem Kauf rechnet `Upgrades` über `Sand.settle(player)` das offene Sammelfenster mit der alten Rate ab, damit eine neue Rate nicht rückwirkend gilt (offener Punkt b aus 1.6 damit erledigt).
 - Security-Review 2.1: kein kritischer oder hoher Befund. Eingearbeitet: `BigNum.floor` lässt ganze Zahlen ganz (vorher kostete das Abrunden beim Verkauf bei 115 Sand eine Münze), `TreePurchase` bucht bei kaputtem `nodes`-Feld nichts ab, `Profile.ownedKnownNodes` zählt nur `true`, `DataCheck` verlangt ganze Preise, entfernte Knoten-IDs werden nie wiederverwendet. Bekannt: Profile, die unter dem Baum aus 1.6 schon Mini-Bagger oder später gekauft haben (nur Studio-Tests), behalten sie und umgehen die neuen Raten-Sperren. Offen bleiben (a) Rundung kleiner Preise ab etwa 1,5e16 Münzen (harmlos) und (c) Verkaufen per Teleport (Paket 6.1).
+
+## Skilltree-Ansicht (Paket 2.2)
+
+Der Baum entsteht aus den Daten. Keine neue Remote, kein neues Profilfeld: Der Client schickt weiter nur `PurchaseNode(id)`, alle Werte kommen aus `StateSync`.
+
+- `Data/TreeLayout.luau`: Spalte je Wirkung (Glück, Tank, Werkzeuge in der Mitte, Rate, Verkauf, Sandsturm), Abstände, Knotengröße, Zoomgrenzen, Tipp-Schwelle und die Platzhalter-Zeichen und -Farben (bis Stil-Guide 0.4 und Icons 3.1). Ein neuer Ast braucht hier eine Spalte, ein neuer Knoten nichts. `UpgradeTree`-Knoten dürfen ein optionales `pos = { column, row }` tragen, das den Platz festnagelt.
+- `Logic/TreeLayout.luau` (rein): rechnet aus `UpgradeTree` den Platz jedes Knotens. Spalte aus der Wirkung, Band aus dem höchsten verlangten Werkzeug (jedes Werkzeug öffnet ein Band), Reihe über den Voraussetzungen derselben Spalte. Die Bänder stapeln sich von unten nach oben, darum verschiebt ein neuer Knoten oben nie die Knoten darunter. Koordinaten: x nach rechts, y nach unten, der Start liegt bei (0, 0).
+- `Logic/TreeView.luau` (rein): Zustand je Knoten aus `TreePurchase.nodeState` und den Münzen: `owned`, `affordable`, `expensive`, `silhouette` (im Nebel, aber alle Voraussetzungen gekauft oder kaufbar, ohne Name und Preis) oder `hidden` (dazu vergebene Knoten wie `sandstorm_1`). Dazu die Linien (nur gerade, senkrecht, innerhalb einer Spalte: `lit`, `dim`, `dashed`), die Bandlinien, "Braucht" je Knoten, der Zähler bezahlbarer Knoten und der Fokus-Knoten beim Öffnen (Tutorial-Knoten, sonst billigster bezahlbarer, sonst billigster kaufbarer, sonst Start).
+- `Logic/TreeCamera.luau` (rein): Zoom um einen Punkt, Pinch, Verschieben mit Randbegrenzung (kleiner Baum steht mittig), Tippen (unter `tapMaxMovePixels`) oder Ziehen, Treffertest, Zentrieren.
+- `Controllers/SkillTree.luau` zeichnet nur: Vollbild-Ebene, Baumfläche mit `UIScale`, Knoten als Frames (Treffer per eigenem Test, nicht per Knopf), gerade Linien, Nebel als Verlauf über dem obersten sichtbaren Knoten, Karte mit Kaufen-Knopf (unten am Handy, rechts am PC), Plus/Minus, Mausrad und Zwei-Finger-Geste. Gekauft wird nur über den Kaufen-Knopf. Solange der Baum offen ist, pausiert `Input.setSuspended` das Sammeln. Die Freischalt-Animation kommt in Paket 2.3.
+- `DataCheck` prüft die Layout-Zahlen (eindeutige Spalten, Zoomgrenzen, Mindest-Tippgröße) und `pos` (Spalte, Reihe, Kollision).
 
 ## Zahlentyp
 
