@@ -319,8 +319,22 @@ Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Fu
 
 ## 2.7 Sandsturm (Prestige)
 
+Plan: Claude-Dokument "Paket 2.7: Sandsturm (Prestige), Plan". Der Punkt zu den Zonen gilt für Variante A (Zonen neu, Ruinenstadt am Laufende) und wird nach der Entscheidung angepasst.
+
 - [ ] [Lune] Der Reset setzt Münzen und Werkzeugstufe zurück, behält aber Sammlung und Skins.
 - [ ] [Lune] Die Windkristalle werden einmal gutgeschrieben, auch bei zwei schnellen Aufrufen.
+- [ ] [Lune] Ohne `collect_tool_4` gibt der Sturm `requires`, mit dem Knoten aber 0 Kristallen `tooFew`. In beiden Fällen bleibt das Profil unverändert.
+- [ ] [Lune] Jedes Feld aus `Profile.default` steht genau in einer der Listen "zurücksetzen" oder "behalten".
+- [ ] [Lune] Gems, Belege, Pity, Boosts, Daily, Tutorial und Inventar sind nach dem Sturm gleich wie vorher.
+- [ ] [Lune] Die Kristallformel ist monoton, rundet ab, gibt unter einer Einheit 0 und bleibt bei 10^300 Münzen endlich und unter der Obergrenze.
+- [ ] [Lune] `runEarned` zählt Sandverkäufe und verkaufte Duplikate, nicht Knotenkäufe, und steht nach dem Sturm auf 0.
+- [ ] [Lune] Der erste Sturm vergibt `sandstorm_1`, ein zweiter behält ihn; `prestiges` zählt hoch.
+- [ ] [Lune] Mit N Kristallen ist der Preis pro Sand das (1 + N x 2 %)-Fache, zusammen mit Verkauf-Ast und Sammlungsbonus multipliziert; der Fundwert steigt genauso.
+- [ ] [Lune] Nach dem Sturm ist die Oase gesperrt, bis die Eimerkette gekauft ist; die Ruinenstadt braucht `sandstorm_ruins`; `Zone.resolve` liefert "reset" für einen Spieler, der im Canyon stand.
+- [ ] [Lune] Ein altes Profil (Version 2) bekommt `runEarned`; ein kaputtes `runEarned` wird 0.
+- [ ] [Lune] DataCheck meldet einen unbekannten oder vergebenen `requiresNode` und Formelwerte außerhalb der Grenzen.
+- [ ] [Studio] Vor dem Canyon kein Sturm-Knopf, danach erscheint er; das Fenster zeigt die Kristall-Vorschau.
+- [ ] [Studio] Nach dem Sturm: Hand, 0 Münzen, Spawn im Dünenmeer, Sammlungsbuch unverändert, Kristalle in der Anzeige, höherer Preis pro Sand.
 
 ## 5.1 Daily Reward
 
