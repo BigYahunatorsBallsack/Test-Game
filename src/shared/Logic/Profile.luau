@@ -255,6 +255,18 @@ function Profile.sanitize(profile: Profile, now: number?): { string }
             end
         end
     end
+    -- Funde (Paket 2.6): jeder Zähler ist eine ganze Zahl ab 1. Alles andere wird entfernt, ein
+    -- Bruch wird abgerundet. Unbekannte IDs bleiben, sie zählen nur nicht.
+    if type(data.finds) == "table" then
+        for findId, count in data.finds do
+            if type(count) ~= "number" or count < 1 then
+                warn(warnings, `finds.{tostring(findId)}`, "ungültiger Zähler, entfernt")
+                data.finds[findId] = nil
+            elseif count ~= math.floor(count) then
+                data.finds[findId] = math.floor(count)
+            end
+        end
+    end
     return warnings
 end
 

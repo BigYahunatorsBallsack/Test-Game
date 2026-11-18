@@ -18,14 +18,24 @@ export type Snapshot = {
     zonesUnlocked: { [string]: boolean }, -- freie Zonen (Paket 2.5)
     sellBonusBp: number, -- Summe des Verkauf-Asts (Hundertstel-Prozent, Paket 2.1)
     luckBonusBp: number, -- Summe des Glück-Asts (Hundertstel-Prozent, Paket 2.1)
+    collectionBonusBp: number, -- Summe der fertigen Sets (Hundertstel-Prozent, Paket 2.6)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
+}
+
+-- Die Sammlung (CollectionSync, Paket 2.6): Zähler je Fund, Bonus und fertige Zonenbücher.
+export type Collection = {
+    counts: { [string]: number },
+    bonusBp: number,
+    books: { [string]: boolean },
 }
 
 local State = {}
 
 local current: Snapshot? = nil
+local currentCollection: Collection? = nil
 local changedCallbacks: { (Snapshot) -> () } = {}
 local notifyCallbacks: { (any) -> () } = {}
+local collectionCallbacks: { (Collection) -> () } = {}
 
 function State.get(): Snapshot?
     return current
@@ -42,6 +52,17 @@ function State.onNotify(callback: (any) -> ())
     table.insert(notifyCallbacks, callback)
 end
 
+function State.getCollection(): Collection?
+    return currentCollection
+end
+
+function State.onCollectionChanged(callback: (Collection) -> ())
+    table.insert(collectionCallbacks, callback)
+    if currentCollection ~= nil then
+        task.spawn(callback, currentCollection)
+    end
+end
+
 function State.Init() end
 
 function State.Start()
@@ -55,6 +76,21 @@ function State.Start()
         current = snapshot
         for _, callback in changedCallbacks do
             task.spawn(callback, snapshot)
+        end
+    end)
+    local collectionSync = remotes:WaitForChild("CollectionSync") :: RemoteEvent
+    collectionSync.OnClientEvent:Connect(function(summary: any)
+        if type(summary) ~= "table" or type(summary.counts) ~= "table" or type(summary.books) ~= "table" then
+            return
+        end
+        local collection: Collection = {
+            counts = summary.counts,
+            bonusBp = if type(summary.bonusBp) == "number" then summary.bonusBp else 0,
+            books = summary.books,
+        }
+        currentCollection = collection
+        for _, callback in collectionCallbacks do
+            task.spawn(callback, collection)
         end
     end)
     notify.OnClientEvent:Connect(function(payload: any)

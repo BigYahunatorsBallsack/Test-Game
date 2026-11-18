@@ -11,6 +11,7 @@
 --   lastTick  Server-Zeit, bis zu der schon abgerechnet wurde
 --   holdUntil bis wann das letzte SetCollecting(true) gilt (Frist gegen hängende Clients)
 --   carry     Bruchteil eines Korns aus der letzten Abrechnung (Tank enthält nur ganze Körner)
+--   findSeconds Sekunden, in denen wirklich Sand floss, je Zone (für die Fundchance, Paket 2.6)
 -- Gespeichert wird nur profile.tank, profile.tankMix und profile.coins (Zahlentyp BigNum).
 --
 -- Gemischter Tank (Paket 2.5): `tank` ist die Gesamtmenge, `tankMix` merkt sich je Sandsorte, wie
@@ -25,12 +26,15 @@ local SandTypes = require("../Data/SandTypes")
 local Economy = require("../Data/Economy")
 local UpgradeTree = require("../Data/UpgradeTree")
 local TreeEffects = require("./TreeEffects")
+local Collection = require("./Collection")
 
 export type State = {
     holding: boolean,
     lastTick: number,
     holdUntil: number,
     carry: number,
+    -- Echte Sammelzeit je Zone, die der Finds-Service noch nicht abgeholt hat (Paket 2.6).
+    findSeconds: { [string]: number },
 }
 
 export type UpdateResult = {
@@ -86,11 +90,15 @@ function Collecting.zoneOf(profile: any): Zones.Zone
     return zone
 end
 
--- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1).
--- Boni aus Windkristallen, Freunden und Boosts kommen mit ihren Paketen dazu.
+-- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1)
+-- mal Sammlungsbonus (Paket 2.6). Boni aus Windkristallen, Freunden und Boosts kommen mit ihren
+-- Paketen dazu.
 function Collecting.pricePerSand(profile: any): number
     local sandType = SandTypes.byId[Collecting.zoneOf(profile).sandTypeId]
-    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
+    return Economy.baseCoinsPerSand
+        * sandType.priceFactor
+        * TreeEffects.sellMultiplier(profile)
+        * Collection.bonusMultiplier(profile)
 end
 
 -- Alle Schreibzugriffe auf den Tank laufen über addSand und clearTank, damit `tank` und `tankMix`
@@ -111,7 +119,10 @@ function Collecting.priceOf(profile: any, sandTypeId: string): number
     if sandType == nil then
         return 0
     end
-    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
+    return Economy.baseCoinsPerSand
+        * sandType.priceFactor
+        * TreeEffects.sellMultiplier(profile)
+        * Collection.bonusMultiplier(profile)
 end
 
 -- Die Sandsorte der aktuellen Zone.
@@ -145,7 +156,7 @@ function Collecting.clearTank(profile: any)
 end
 
 function Collecting.newState(now: number): State
-    return { holding = false, lastTick = now, holdUntil = now, carry = 0 }
+    return { holding = false, lastTick = now, holdUntil = now, carry = 0, findSeconds = {} }
 end
 
 local function tankOf(profile: any): BigNum.BigNum
@@ -174,7 +185,8 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     local capacity = Collecting.capacityOf(profile, options)
     local space = math.max(capacity - math.max(BigNum.toNumber(tank), 0), 0)
 
-    local accrued = Collecting.rateOf(profile) * dt + state.carry
+    local carryBefore = state.carry
+    local accrued = Collecting.rateOf(profile) * dt + carryBefore
     local whole = math.floor(accrued)
     state.carry = accrued - whole
     local added = math.min(whole, math.floor(space))
@@ -182,6 +194,17 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
         Collecting.addSand(profile, added)
     end
     result.added = added
+    -- Echte Sammelzeit für die Fundchance: läuft der Tank in diesem Fenster voll, zählt nur die
+    -- Zeit bis "voll".
+    local rate = Collecting.rateOf(profile)
+    local flowSeconds = dt
+    if rate > 0 and whole > space then
+        flowSeconds = math.clamp((space - carryBefore) / rate, 0, dt)
+    end
+    if flowSeconds > 0 then
+        local zoneId = Collecting.zoneOf(profile).id
+        state.findSeconds[zoneId] = (state.findSeconds[zoneId] or 0) + flowSeconds
+    end
     state.lastTick = now
 
     if added >= space then
@@ -276,6 +299,15 @@ function Collecting.inRange(dx: number, dy: number, dz: number, range: number): 
         return false
     end
     return squared <= range * range
+end
+
+-- Holt die gesammelte Sammelzeit je Zone ab (und setzt sie zurück). Der Finds-Service ruft das in
+-- jedem Tick auf. Zeit aus allen Aufrufen von `update` (Sammeln, Verkaufen, Kaufen, Zonenwechsel)
+-- landet hier, nichts geht verloren.
+function Collecting.takeFindSeconds(state: State): { [string]: number }
+    local taken = state.findSeconds
+    state.findSeconds = {}
+    return taken
 end
 
 return Collecting

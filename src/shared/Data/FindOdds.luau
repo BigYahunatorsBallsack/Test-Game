@@ -32,6 +32,20 @@ return {
         ruins = 20000,
     } :: { [string]: number },
 
+    -- Quotentabelle je Zone (Name aus `tables`). Heute zeigen alle auf "base"; Gewicht nach Zone
+    -- ändert nur die Chance (zoneFindChanceFactor), nicht die Verteilung (Entscheidung 17.11.2026).
+    zoneOddsTable = {
+        dunes = "base",
+        oasis = "base",
+        canyon = "base",
+        salt_lake = "base",
+        ruins = "base",
+    } :: { [string]: string },
+
+    -- Erster Fund sicher (Paket 2.6): Hat ein Spieler noch keinen Fund und sammelt er in der Sitzung
+    -- so viele Sekunden, kommt ein Gewöhnlicher Fund. Danach gilt die Regel nie wieder.
+    firstFindGuaranteeSeconds = 60,
+
     -- Grundwert eines Fundstücks in Münzen. Formel (docs/balance/phase0_startwerte.md):
     -- Wert = findBaseValue × Preisfaktor der Sandsorte × Grundrate des Werkzeugs (ohne Knoten-Boni)
     --        × Wertfaktor der Seltenheit. Der Server schreibt den Wert beim Fund fest.

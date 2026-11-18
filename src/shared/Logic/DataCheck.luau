@@ -57,6 +57,7 @@ export type DataSet = {
     TreeSounds: any,
     ToolLooks: any,
     Weather: any,
+    Collection: any,
 }
 
 local DataCheck = {}
@@ -83,6 +84,7 @@ function DataCheck.defaults(): DataSet
         TreeSounds = require("../Data/TreeSounds"),
         ToolLooks = require("../Data/ToolLooks"),
         Weather = require("../Data/Weather"),
+        Collection = require("../Data/Collection"),
     }
 end
 
@@ -1450,6 +1452,93 @@ local function checkSandMaterials(errors: { string }, data: DataSet)
     end
 end
 
+-- Fundliste und Sammlung (Paket 2.6): ID-Muster, vollständige Sets, jede Seltenheit in jeder Zone,
+-- Set-Boni, Zonenbücher und die Quotentabelle je Zone.
+local function checkCollection(errors: { string }, data: DataSet)
+    local finds, zones, rarities, odds, collection = data.Finds, data.Zones, data.Rarities, data.FindOdds, data.Collection
+    if type(finds) ~= "table" or not isList(finds.list) or not isList(finds.sets) then
+        return -- checkFinds meldet das
+    end
+    if type(zones) ~= "table" or not isList(zones.list) or type(rarities) ~= "table" or not isList(rarities.list) then
+        return
+    end
+
+    -- Jedes Set hat genau `size` Fundstücke, die IDs folgen dem Muster "<Zone>_s<Set>_<Slot>".
+    local perSet: { [string]: number } = {}
+    local perZoneRarity: { [string]: { [string]: boolean } } = {}
+    for _, find in finds.list do
+        perSet[find.setId] = (perSet[find.setId] or 0) + 1
+        local findSet = finds.setsById[find.setId]
+        if findSet ~= nil then
+            local prefix = `{findSet.zoneId}_s{findSet.index}_`
+            if string.sub(tostring(find.id), 1, #prefix) ~= prefix then
+                table.insert(errors, `Finds "{tostring(find.id)}": ID muss mit "{prefix}" beginnen`)
+            end
+        end
+        perZoneRarity[find.zoneId] = perZoneRarity[find.zoneId] or {}
+        perZoneRarity[find.zoneId][find.rarityId] = true
+        if type(find.name) ~= "string" or find.name == "" then
+            table.insert(errors, `Finds "{tostring(find.id)}": Name fehlt`)
+        end
+    end
+    for _, findSet in finds.sets do
+        if perSet[findSet.id] ~= findSet.size then
+            table.insert(errors, `Finds: Set "{tostring(findSet.id)}" braucht genau {findSet.size} Fundstücke`)
+        end
+    end
+    -- Jede Zone hat jede Seltenheit (sonst fiele ein Fund auf eine tiefere Stufe zurück).
+    for _, zone in zones.list do
+        for _, rarity in rarities.list do
+            if not (perZoneRarity[zone.id] and perZoneRarity[zone.id][rarity.id]) then
+                table.insert(errors, `Finds: Zone "{zone.id}" hat kein Fundstück der Seltenheit "{rarity.id}"`)
+            end
+        end
+    end
+
+    -- Quotentabelle je Zone und der sichere erste Fund.
+    if type(odds) == "table" then
+        local names = odds.zoneOddsTable
+        if type(names) ~= "table" then
+            table.insert(errors, "FindOdds.zoneOddsTable fehlt")
+        else
+            for _, zone in zones.list do
+                local name = names[zone.id]
+                if type(name) ~= "string" or type(odds.tables) ~= "table" or odds.tables[name] == nil then
+                    table.insert(errors, `FindOdds.zoneOddsTable für Zone "{zone.id}" zeigt auf keine bekannte Tabelle`)
+                end
+            end
+        end
+        positive(errors, "FindOdds.firstFindGuaranteeSeconds", odds.firstFindGuaranteeSeconds)
+    end
+
+    -- Set-Boni je Set-Nummer und ein Zonenbuch je Zone.
+    if type(collection) ~= "table" or type(collection.setBonusBp) ~= "table" or not isList(collection.zoneBooks) then
+        table.insert(errors, "Collection: setBonusBp und zoneBooks fehlen")
+        return
+    end
+    for index = 1, finds.SETS_PER_ZONE do
+        local bonus = collection.setBonusBp[index]
+        if not isInt(bonus) or bonus < 0 then
+            table.insert(errors, `Collection.setBonusBp[{index}] muss eine ganze Zahl ab 0 sein`)
+        end
+    end
+    local booked: { [string]: boolean } = {}
+    for _, book in collection.zoneBooks do
+        if type(zones.byId) == "table" and zones.byId[book.zoneId] == nil then
+            table.insert(errors, `Collection.zoneBooks: unbekannte Zone "{tostring(book.zoneId)}"`)
+        end
+        if type(book.title) ~= "string" or book.title == "" or type(book.toolSkinId) ~= "string" or book.toolSkinId == "" then
+            table.insert(errors, `Collection.zoneBooks "{tostring(book.zoneId)}": Titel und Skin fehlen`)
+        end
+        booked[book.zoneId] = true
+    end
+    for _, zone in zones.list do
+        if not booked[zone.id] then
+            table.insert(errors, `Collection.zoneBooks: Zone "{zone.id}" hat kein Zonenbuch`)
+        end
+    end
+end
+
 -- Wetter (Paket 2.5): bekannte Zonen und Arten, gültige Zeiten.
 local function checkWeather(errors: { string }, data: DataSet)
     local weather = data.Weather
@@ -1530,6 +1619,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkGemPacks(errors, data)
     checkProducts(errors, data)
     checkFinds(errors, data)
+    checkCollection(errors, data)
     checkEconomy(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)

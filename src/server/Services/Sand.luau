@@ -36,6 +36,7 @@ local Zones = loadShared("Logic", "Zones")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
+local Collection = loadShared("Logic", "Collection")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -69,6 +70,16 @@ function Sand.settle(player: Player)
     end
 end
 
+-- Holt die Sammelzeit je Zone ab, die der Finds-Service noch nicht gewürfelt hat (Paket 2.6).
+-- Gibt eine leere Tabelle zurück, wenn der Spieler keinen Zustand hat.
+function Sand.takeFindSeconds(player: Player): { [string]: number }
+    local state = states[player]
+    if state == nil then
+        return {}
+    end
+    return Collecting.takeFindSeconds(state)
+end
+
 -- Zustand für die Anzeige beim Client. Der Client rechnet damit nichts Maßgebliches.
 function Sand.snapshot(player: Player): any?
     local profile = PlayerData.get(player)
@@ -91,6 +102,7 @@ function Sand.snapshot(player: Player): any?
         zonesUnlocked = Zones.unlockedMap(profile),
         sellBonusBp = effects.sellBonusBp,
         luckBonusBp = effects.luckBonusBp,
+        collectionBonusBp = Collection.bonusBp(profile), -- Summe der fertigen Sets (Paket 2.6)
         tutorialStep = Tutorial.stepOf(profile),
     }
 end

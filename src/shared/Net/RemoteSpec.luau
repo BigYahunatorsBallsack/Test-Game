@@ -84,6 +84,12 @@ local list: { RemoteDef } = {
         description = "Server schickt dem Client den aktuellen Spielzustand zur Anzeige.",
     },
     {
+        name = "CollectionSync",
+        kind = "Event",
+        direction = "ServerToClient",
+        description = "Server schickt die Sammlung (Zähler je Fund, Bonus, fertige Zonenbücher) zur Anzeige.",
+    },
+    {
         name = "Notify",
         kind = "Event",
         direction = "ServerToClient",

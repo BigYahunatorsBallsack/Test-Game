@@ -262,9 +262,9 @@ T.describe("Datentabellen (0.1)", function()
         expectError(DataCheck.run(data4), "bundle")
     end)
 
-    T.it("Finds: 6 Sets zu je 5 pro Zone, Fundliste vorerst leer", function()
+    T.it("Finds: 6 Sets zu je 5 pro Zone, 150 Fundstücke", function()
         T.expect(#Finds.sets).toBe(#Zones.list * 6)
-        T.expect(#Finds.list).toBe(0)
+        T.expect(#Finds.list).toBe(#Zones.list * 30)
         for _, findSet in Finds.sets do
             T.expect(Zones.byId[findSet.zoneId] ~= nil).toBe(true)
             T.expect(findSet.size).toBe(5)
