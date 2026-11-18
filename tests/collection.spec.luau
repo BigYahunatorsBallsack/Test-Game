@@ -10,6 +10,7 @@ local DataCheck = require("../src/shared/Logic/DataCheck")
 local CollectionData = require("../src/shared/Data/Collection")
 local Finds = require("../src/shared/Data/Finds")
 local Zones = require("../src/shared/Data/Zones")
+local Migrations = require("../src/shared/Logic/Migrations")
 
 local NOW = 1_700_000_000
 
@@ -284,7 +285,7 @@ T.describe("Profil und Daten", function()
             broken(function(data)
                 data.Finds.list[1].id = "falsche_id"
             end),
-            "ID muss mit"
+            "ID muss"
         )
         expectFragment(
             broken(function(data)
@@ -326,6 +327,152 @@ T.describe("Profil und Daten", function()
             end),
             "firstFindGuaranteeSeconds"
         )
+    end)
+end)
+
+T.describe("Sicherheits-Review 2.6", function()
+    local function broken(change: (data: any) -> ()): string
+        local data: any = deepCopy(DataCheck.defaults())
+        change(data)
+        return table.concat(DataCheck.run(data), " | ")
+    end
+    local function expectFragment(text: string, fragment: string)
+        T.expect(string.find(text, fragment, 1, true) ~= nil).toBe(true)
+    end
+
+    T.it("die 150 Fund-IDs sind fest: <Zone>_s<Set>_<Slot>, in Reihenfolge", function()
+        local expected: { string } = {}
+        for _, zone in Zones.list do
+            for setIndex = 1, 6 do
+                for slot = 1, 5 do
+                    table.insert(expected, `{zone.id}_s{setIndex}_{slot}`)
+                end
+            end
+        end
+        T.expect(#Finds.list).toBe(#expected)
+        for index, find in Finds.list do
+            T.expect(find.id).toBe(expected[index])
+        end
+    end)
+
+    T.it("DataCheck lehnt eine umbenannte Fund-ID mit gültigem Präfix ab", function()
+        expectFragment(
+            broken(function(data)
+                data.Finds.list[1].id = "dunes_s1_skarabaeus"
+            end),
+            `ID muss "dunes_s1_1" lauten`
+        )
+        expectFragment(
+            broken(function(data)
+                data.Finds.list[2].id = data.Finds.list[1].id -- doppelte ID
+            end),
+            "doppelt"
+        )
+        expectFragment(
+            broken(function(data)
+                data.Finds.list[3].setId = "oasis_set_1" -- Zone passt nicht zum Set
+            end),
+            "Zone passt nicht zum Set"
+        )
+        expectFragment(
+            broken(function(data)
+                data.Finds.list[4].rarityId = "gibt_es_nicht"
+            end),
+            "unbekannte Seltenheit"
+        )
+    end)
+
+    T.it("DataCheck wirft bei einem Eintrag ohne ID nicht, sondern meldet ihn", function()
+        local text = broken(function(data)
+            data.Finds.list[5].id = nil
+        end)
+        expectFragment(text, "braucht id, setId, zoneId und rarityId als Text")
+    end)
+
+    T.it("DataCheck begrenzt Fundchance, Wetter-Bonus, Wert und Sammlungsbonus gegen Tippfehler", function()
+        expectFragment(
+            broken(function(data)
+                data.FindOdds.findChancePerSecond = 20000
+            end),
+            "findChancePerSecond darf höchstens"
+        )
+        expectFragment(
+            broken(function(data)
+                data.FindOdds.zoneFindChanceFactor.oasis = 900000
+            end),
+            "zoneFindChanceFactor"
+        )
+        expectFragment(
+            broken(function(data)
+                data.Weather.zones.oasis.findChanceBonusBp = 5000000
+            end),
+            "findChanceBonusBp darf höchstens"
+        )
+        expectFragment(
+            broken(function(data)
+                data.Rarities.byId.mythic.valueFactor = 1e9
+            end),
+            "valueFactor darf höchstens"
+        )
+        expectFragment(
+            broken(function(data)
+                data.Collection.setBonusBp[6] = 90000
+            end),
+            "Gesamtbonus aller Zonen"
+        )
+    end)
+
+    T.it("die Seltenheiten je Zone: 6 Gewöhnlich, 9 Ungewöhnlich, 8 Selten, 4 Episch, 2 Legendär, 1 Mythisch", function()
+        for _, zone in Zones.list do
+            local counts: { [string]: number } = {}
+            for _, find in Finds.list do
+                if find.zoneId == zone.id then
+                    counts[find.rarityId] = (counts[find.rarityId] or 0) + 1
+                end
+            end
+            T.expect(counts).toEqual({ common = 6, uncommon = 9, rare = 8, epic = 4, legendary = 2, mythic = 1 })
+        end
+    end)
+
+    T.it("Migration: ein Profil der Version 1 mit Funden behält sie, ein kaputtes finds-Feld wird ersetzt", function()
+        local old: any = fresh()
+        old.version = 1
+        old.tankMix = nil
+        old.finds = { dunes_s1_1 = 2 }
+        local migrated, status = Profile.migrate(old, nil, NOW)
+        T.expect(status).toBe("ok")
+        T.expect((migrated :: any).finds).toEqual({ dunes_s1_1 = 2 })
+
+        local broken1: any = fresh()
+        broken1.finds = "kaputt"
+        local fixed = Profile.migrate(broken1, nil, NOW)
+        Profile.sanitize(fixed, NOW)
+        T.expect((fixed :: any).finds).toEqual({})
+        T.expect(Migrations.CURRENT_VERSION).toBe(2)
+    end)
+
+    T.it("der Zähler eines Fundstücks ist bei 2^31 gedeckelt", function()
+        local profile = fresh()
+        profile.finds[findId("dunes", 1, 1)] = 2 ^ 31
+        local recorded = Collection.record(profile, findId("dunes", 1, 1), BigNum.new(1)) :: Collection.Recorded
+        T.expect(recorded.count).toBe(2 ^ 31)
+        T.expect(profile.finds[findId("dunes", 1, 1)]).toBe(2 ^ 31)
+    end)
+
+    T.it("Sand ohne Mix-Eintrag bekommt den Sammlungsbonus wie der übrige Sand", function()
+        local profile = fresh()
+        fill(profile, "dunes", 1)
+        profile.tank = BigNum.serialize(BigNum.new(100)) -- Debug-Wert ohne Mix
+        local state = Collecting.newState(NOW)
+        local earned = Collecting.sell(state, profile, NOW) :: BigNum.BigNum
+        local bonus = 1 + CollectionData.setBonusBp[1] / 10000
+        T.expect(BigNum.toNumber(earned)).toBe(math.floor(100 * bonus))
+    end)
+
+    T.it("Fundwert mit Bruchteil wird zu ganzen Münzen abgerundet", function()
+        local FindRoll = require("../src/shared/Logic/FindRoll")
+        local value = FindRoll.valueOf("dunes", "common", 1.5) -- 3 x 1 x 1,5 x 1 = 4,5
+        T.expect(BigNum.toNumber(value)).toBe(4)
     end)
 end)
 

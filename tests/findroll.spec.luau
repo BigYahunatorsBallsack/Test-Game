@@ -400,4 +400,42 @@ T.describe("Sammelzeit aus Collecting", function()
     end)
 end)
 
+T.describe("Tank mit Nachkommastellen (Review M1)", function()
+    T.it("ein Bruchteil im Tank hält das Sammeln nicht endlos offen, es endet bei voll", function()
+        local profile = fresh()
+        local capacity = Collecting.capacityOf(profile)
+        profile.tank = BigNum.serialize(BigNum.new(capacity - 0.5))
+        local s = Collecting.newState(NOW)
+        Collecting.setHolding(s, profile, true, NOW)
+        local result = Collecting.update(s, profile, NOW + 2)
+        T.expect(result.full).toBe(true)
+        T.expect(s.holding).toBe(false)
+        -- Danach kommt keine weitere Sammelzeit mehr dazu.
+        Collecting.takeFindSeconds(s)
+        Collecting.update(s, profile, NOW + 10)
+        T.expect(next(Collecting.takeFindSeconds(s))).toBeNil()
+    end)
+
+    T.it("ein voller Tank ohne neues Halten gibt keine Sammelzeit", function()
+        local profile = fresh()
+        profile.tank = BigNum.serialize(BigNum.new(Collecting.capacityOf(profile)))
+        local s = Collecting.newState(NOW)
+        s.holding = true -- Halten lief schon (zum Beispiel nach einem Sandsturm)
+        s.holdUntil = NOW + 100
+        Collecting.update(s, profile, NOW + 2)
+        T.expect(next(Collecting.takeFindSeconds(s))).toBeNil()
+        T.expect(s.holding).toBe(false)
+    end)
+
+    T.it("kaputte Daten mit Chance über 100 % geben höchstens einen Fund je Aufruf", function()
+        local data: any = { FindOdds = deepCopy(FindOdds) }
+        data.FindOdds.findChancePerSecond = 20000
+        local profile = fresh()
+        profile.finds.dunes_s1_1 = 1
+        local roll = FindRoll.roll(input(profile, "dunes", 1, sequence({ 0.999, 0, 0 })), data)
+        T.expect(roll ~= nil).toBe(true) -- Chance gedeckelt auf 100 %, nie mehr als ein Fund
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, data)).toBe(1)
+    end)
+end)
+
 T.finish()

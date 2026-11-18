@@ -14,11 +14,11 @@ export type ZoneBook = {
 
 -- Bonus je Set-Nummer (1 bis SETS_PER_ZONE), in jeder Zone gleich.
 local setBonusBp: { [number]: number } = {
-    [1] = 200,
-    [2] = 200,
-    [3] = 300,
-    [4] = 300,
-    [5] = 500,
+    [1] = 300,
+    [2] = 300,
+    [3] = 400,
+    [4] = 400,
+    [5] = 600,
     [6] = 1000,
 }
 

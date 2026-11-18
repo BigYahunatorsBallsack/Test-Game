@@ -537,6 +537,9 @@ local function checkFinds(errors: { string }, data: DataSet)
     local ids: { [string]: boolean } = {}
     local perSet: { [string]: number } = {}
     for _, find in finds.list do
+        if type(find.id) ~= "string" or type(find.setId) ~= "string" then
+            continue -- checkCollection meldet fehlende Felder, hier nur nicht werfen
+        end
         if ids[find.id] then
             table.insert(errors, `Finds: id "{tostring(find.id)}" ist doppelt`)
         end
@@ -1452,6 +1455,14 @@ local function checkSandMaterials(errors: { string }, data: DataSet)
     end
 end
 
+-- Obergrenzen für Fundchance, Wetter-Bonus, Wert und Sammlungsbonus (gegen Tippfehler in den Daten).
+local MAX_FIND_CHANCE_PER_SECOND_BP = 1000 -- 10 % pro Sekunde (heute 2 %)
+local MAX_ZONE_FIND_FACTOR_BP = 50000 -- x5 (heute bis x2)
+local MAX_FIND_BASE_VALUE = 100
+local MAX_WEATHER_FIND_BONUS_BP = 20000 -- +200 % (heute +15 %)
+local MAX_RARITY_VALUE_FACTOR = 100000 -- heute bis 1500
+local MAX_COLLECTION_BONUS_BP = 50000 -- +500 % über alle Zonen (heute +125 % bis +160 %)
+
 -- Fundliste und Sammlung (Paket 2.6): ID-Muster, vollständige Sets, jede Seltenheit in jeder Zone,
 -- Set-Boni, Zonenbücher und die Quotentabelle je Zone.
 local function checkCollection(errors: { string }, data: DataSet)
@@ -1467,12 +1478,18 @@ local function checkCollection(errors: { string }, data: DataSet)
     local perSet: { [string]: number } = {}
     local perZoneRarity: { [string]: { [string]: boolean } } = {}
     for _, find in finds.list do
+        if type(find.id) ~= "string" or type(find.setId) ~= "string" or type(find.zoneId) ~= "string" or type(find.rarityId) ~= "string" then
+            table.insert(errors, "Finds: ein Eintrag braucht id, setId, zoneId und rarityId als Text")
+            continue
+        end
         perSet[find.setId] = (perSet[find.setId] or 0) + 1
         local findSet = finds.setsById[find.setId]
         if findSet ~= nil then
-            local prefix = `{findSet.zoneId}_s{findSet.index}_`
-            if string.sub(tostring(find.id), 1, #prefix) ~= prefix then
-                table.insert(errors, `Finds "{tostring(find.id)}": ID muss mit "{prefix}" beginnen`)
+            -- Feste IDs "<Zone>_s<Set>_<Slot>" (Slot = Reihenfolge im Set): Eine Umbenennung ließe
+            -- gespeicherte Sammlungen still ihren Slot verlieren.
+            local expected = `{findSet.zoneId}_s{findSet.index}_{perSet[find.setId]}`
+            if find.id ~= expected then
+                table.insert(errors, `Finds "{tostring(find.id)}": ID muss "{expected}" lauten`)
             end
         end
         perZoneRarity[find.zoneId] = perZoneRarity[find.zoneId] or {}
@@ -1509,6 +1526,32 @@ local function checkCollection(errors: { string }, data: DataSet)
             end
         end
         positive(errors, "FindOdds.firstFindGuaranteeSeconds", odds.firstFindGuaranteeSeconds)
+        -- Obergrenzen gegen Tippfehler (zum Beispiel 20000 statt 200 ergäbe vier Funde pro Sekunde).
+        if isFinite(odds.findChancePerSecond) and odds.findChancePerSecond > MAX_FIND_CHANCE_PER_SECOND_BP then
+            table.insert(errors, `FindOdds.findChancePerSecond darf höchstens {MAX_FIND_CHANCE_PER_SECOND_BP} sein`)
+        end
+        if type(odds.zoneFindChanceFactor) == "table" then
+            for zoneId, factor in odds.zoneFindChanceFactor do
+                if isFinite(factor) and factor > MAX_ZONE_FIND_FACTOR_BP then
+                    table.insert(errors, `FindOdds.zoneFindChanceFactor "{tostring(zoneId)}" darf höchstens {MAX_ZONE_FIND_FACTOR_BP} sein`)
+                end
+            end
+        end
+        if isFinite(odds.findBaseValue) and odds.findBaseValue > MAX_FIND_BASE_VALUE then
+            table.insert(errors, `FindOdds.findBaseValue darf höchstens {MAX_FIND_BASE_VALUE} sein`)
+        end
+    end
+    if type(data.Weather) == "table" and type(data.Weather.zones) == "table" then
+        for zoneId, schedule in data.Weather.zones do
+            if type(schedule) == "table" and isFinite(schedule.findChanceBonusBp) and schedule.findChanceBonusBp > MAX_WEATHER_FIND_BONUS_BP then
+                table.insert(errors, `Weather.zones "{tostring(zoneId)}".findChanceBonusBp darf höchstens {MAX_WEATHER_FIND_BONUS_BP} sein`)
+            end
+        end
+    end
+    for _, rarity in rarities.list do
+        if isFinite(rarity.valueFactor) and rarity.valueFactor > MAX_RARITY_VALUE_FACTOR then
+            table.insert(errors, `Rarities "{tostring(rarity.id)}".valueFactor darf höchstens {MAX_RARITY_VALUE_FACTOR} sein`)
+        end
     end
 
     -- Set-Boni je Set-Nummer und ein Zonenbuch je Zone.
@@ -1516,11 +1559,18 @@ local function checkCollection(errors: { string }, data: DataSet)
         table.insert(errors, "Collection: setBonusBp und zoneBooks fehlen")
         return
     end
+    local bonusTotal = 0
     for index = 1, finds.SETS_PER_ZONE do
         local bonus = collection.setBonusBp[index]
         if not isInt(bonus) or bonus < 0 then
             table.insert(errors, `Collection.setBonusBp[{index}] muss eine ganze Zahl ab 0 sein`)
+        else
+            bonusTotal += bonus
         end
+    end
+    -- Alle Zonen zusammen dürfen den Gesamtbonus nicht über die Grenze heben.
+    if bonusTotal * #zones.list > MAX_COLLECTION_BONUS_BP then
+        table.insert(errors, `Collection.setBonusBp: der Gesamtbonus aller Zonen darf höchstens {MAX_COLLECTION_BONUS_BP} sein`)
     end
     local booked: { [string]: boolean } = {}
     for _, book in collection.zoneBooks do

@@ -59,8 +59,8 @@ end
 
 -- Fortschritt je Set (in der Reihenfolge von `Finds.sets`). `data` ist für Tests überschreibbar.
 function Collection.progress(profile: any, data: any?): { SetProgress }
-    local finds = if data then data.Finds else FindsData
-    local bonuses = if data then data.Collection.setBonusBp else CollectionData.setBonusBp
+    local finds = if data and data.Finds then data.Finds else FindsData
+    local bonuses = if data and data.Collection then data.Collection.setBonusBp else CollectionData.setBonusBp
     local have: { [string]: number } = {}
     for _, find in finds.list do
         if Collection.countOf(profile, find.id) > 0 then
@@ -100,7 +100,7 @@ end
 
 -- Welche Zonenbücher sind fertig (alle Sets der Zone fertig)? Zone-ID -> true.
 function Collection.completedBooks(profile: any, data: any?): { [string]: boolean }
-    local finds = if data then data.Finds else FindsData
+    local finds = if data and data.Finds then data.Finds else FindsData
     local complete: { [string]: number } = {}
     for _, set in Collection.progress(profile, data) do
         if set.complete then
@@ -118,7 +118,7 @@ end
 
 -- Wie viele verschiedene bekannte Fundstücke hat der Spieler?
 function Collection.distinctFound(profile: any, data: any?): number
-    local finds = if data then data.Finds else FindsData
+    local finds = if data and data.Finds then data.Finds else FindsData
     local total = 0
     for _, find in finds.list do
         if Collection.countOf(profile, find.id) > 0 then
@@ -130,7 +130,7 @@ end
 
 -- Zustand für die Anzeige beim Client: Anzahl je bekanntem Fund (nur > 0), Bonus und Bücher.
 function Collection.summary(profile: any, data: any?): any
-    local finds = if data then data.Finds else FindsData
+    local finds = if data and data.Finds then data.Finds else FindsData
     local counts: { [string]: number } = {}
     for _, find in finds.list do
         local count = Collection.countOf(profile, find.id)
@@ -153,7 +153,7 @@ end
 -- Bucht einen Fund: Zähler +1; ist er schon bekannt, werden `value` Münzen gutgeschrieben (sofort
 -- verkauft). Gibt nil zurück, wenn der Fund unbekannt ist. Ändert `profile.finds` und `profile.coins`.
 function Collection.record(profile: any, findId: string, value: BigNum.BigNum, data: any?): Recorded?
-    local finds = if data then data.Finds else FindsData
+    local finds = if data and data.Finds then data.Finds else FindsData
     local find = finds.byId[findId]
     if find == nil then
         return nil

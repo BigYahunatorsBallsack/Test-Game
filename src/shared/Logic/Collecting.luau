@@ -183,7 +183,8 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     end
     local tank = tankOf(profile)
     local capacity = Collecting.capacityOf(profile, options)
-    local space = math.max(capacity - math.max(BigNum.toNumber(tank), 0), 0)
+    -- Ganze Körner: ein Tank mit Bruchteil (Altdaten, spätere Pakete) darf das Halten nie ewig offen lassen.
+    local space = math.max(math.floor(capacity - math.max(BigNum.toNumber(tank), 0)), 0)
 
     local carryBefore = state.carry
     local accrued = Collecting.rateOf(profile) * dt + carryBefore
@@ -283,7 +284,7 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
     end
     -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis.
     if remaining.m > 0 then
-        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile)))
+        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile) * Collection.bonusMultiplier(profile)))
     end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
     earned = BigNum.floor(earned)

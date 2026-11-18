@@ -30,7 +30,7 @@ Regeln:
 | PlayerData | Profil laden, halten, speichern (ProfileStore) | 1.1 |
 | Economy | Münzen und Gems buchen, Verkaufspreis, Boni | 1.2, 1.3 |
 | Sand | Sammeln, Tank, Verkaufen | 1.2 |
-| Finds | Fundstücke, Sammlung, Sets | 2.6 |
+| Finds | Fundstücke, Sammlung, Sets | 2.6 (fertig) |
 | Upgrades | Skilltree-Käufe (Mini-Kauf seit 1.6), Zonen-Freischaltung, Sandsturm | 1.6, 2.1, 2.5, 2.7 |
 | Crates | Kisten öffnen, Quoten, Pity | 4.2, 4.3 |
 | Shop | Käufe, Gamepasses, Policy-Funktionen | 4.1, 4.4, 4.6 |
@@ -207,3 +207,16 @@ Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durc
 - **Wetter:** `Data/Weather` (Zeitplan und Aussehen je Zone) und das reine Modul `Logic/Weather.stateAt(zoneId, serverZeit)`: ein fester Zyklus aus der Serverzeit, alle Clients sehen dasselbe ohne Remote. `Controllers/Weather` zeigt Regen und Staubwind als Partikel um die Kamera und Nebel/Dunst über Atmosphäre und Farbkorrektur, mit weichen Übergängen. In 2.5 ist das Wetter nur Optik, `findChanceBonusBp` liest Paket 2.6.
 - **Client:** `Controllers/ZoneMenu` (Knopf "Zonen", Liste mit Sandsorte, Status und Reisen-Knopf, Tor-Anzeigen mit Schild). `Hud` zeigt Zone, Werkzeug und Rate und die Meldungen `zoneUnlocked`, `zoneEntered` und `zoneLocked`.
 - **Offen für Paket 2.7:** Soll ein Sandsturm Zonen 2 bis 4 wieder sperren? Zonen stehen im Profil und hängen nicht mehr nur an Knoten, damit 2.7 beides kann.
+
+## Fundstücke, Reveal und Sammlung (Paket 2.6)
+
+- **Funde entstehen nur aus echter Sammelzeit.** `Collecting.update` zählt in `state.findSeconds` (je Zone), wie lange Sand wirklich in den Tank floss. Läuft der Tank in einem Fenster voll, zählt nur die Zeit bis "voll". Alle Aufrufe (Halten, Verkaufen, Kaufen, Zonenwechsel) landen im selben Zähler, `Collecting.takeFindSeconds` holt ihn ab. Es gibt keine neue Remote vom Client zum Server.
+- **Würfeln (`Logic/FindRoll`, rein, Zufall als Funktion):** Chance pro Sekunde = `findChancePerSecond` × `zoneFindChanceFactor` × Glück-Ast × (1 + Regen-Bonus mal Stärke). Im Fenster 1 − (1 − p)^t. Die Seltenheit kommt aus `FindOdds.zoneOddsTable` (heute alle `base`), danach ein gleichverteilter Fund der Zone mit dieser Seltenheit (fehlt sie, die nächst tiefere). Glück ändert nur die Chance. Wert = `findBaseValue` × Sandfaktor × Grundrate des Werkzeugs × Wertfaktor, beim Fund festgeschrieben (kein Knoten-Bonus, kein Sammlungsbonus).
+- **Erster Fund sicher:** Ohne bekannten Fund und nach `firstFindGuaranteeSeconds` (60) Sitzungs-Sammelzeit kommt ein Gewöhnlicher Fund.
+- **Sammlung (`Logic/Collection`, `Data/Collection`):** Gespeichert wird nur `profile.finds` (ID → Anzahl, keine Migration). Slots, Sets, Bonus und Zonenbücher werden daraus berechnet. Der Bonus (`setBonusBp` je Set-Nummer) ist ein eigener Faktor auf die Münzen pro Sand (`Collecting.pricePerSand` und `priceOf`), wirkt in allen Zonen und nicht auf Fundwerte. Ein Zonenbuch (6 von 6 Sets) nennt Titel und Werkzeug-Skin, beides ist in 2.6 nur Anzeige.
+- **Doppelte Funde** werden sofort für ihren festen Wert verkauft (Entscheidung 18.11.2026): `Collection.record` zählt hoch und bucht die Münzen als BigNum.
+- **Fundliste:** 150 Platzhalter mit festen IDs `<zone>_s<set>_<slot>`. Paket 3.3 ändert nur Namen und Beschreibungen. `DataCheck.checkCollection` prüft: 5 Funde je Set, ID-Muster, jede Seltenheit in jeder Zone, Set-Boni, Zonenbücher, `zoneOddsTable`.
+- **Server (`Services/Finds`):** Alle 0,25 s `Sand.takeFindSeconds` abholen, würfeln, `Collection.record`, dann `Notify { kind = "find", ... }` (Fund, Seltenheit, neu oder doppelt, Münzen, Set-Stand, `setCompleted`, `zoneBookCompleted`, Bonus), `CollectionSync` (Zähler, Bonus, Bücher) und `Sand.refresh`. Studio-Hilfe: Attribute `DebugFindSet` und `DebugFindZone` am Spieler füllen ein Set oder eine Zone (nur in Studio).
+- **Client:** `Controllers/Reveal` (Warteschlange, Objekt im Sand, kleine Karte bis Ungewöhnlich, große Karte mit Aufladen und Lichtstoß ab Selten, Blitz bei Mythisch, Banner für Set und Zonenbuch, Tipp überspringt, ohne Effekte im Rückfallmodus) und `Controllers/CollectionBook` (Knopf "Sammlung", Reiter je Zone, 6 Sets mit 5 Slots, Bonus). `State` hält die Sammlung (`getCollection`, `onCollectionChanged`). Sounds sind leere IDs bis Paket 3.5.
+- **Client-Start:** `init.client` startet jeden Controller in `pcall`, damit ein Fehler (zum Beispiel ein in Studio fehlender Enum-Wert) die folgenden Controller nicht verhindert.
+- **Offen:** Fundstellen im Nebel des Salzsees, Offline-Funde (5.3), Starterpaket-Auslöser (4.5), Titel über dem Kopf und Werkzeug-Skin als Optik.

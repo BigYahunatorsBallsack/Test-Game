@@ -11,7 +11,7 @@
 -- Collecting.update misst (Sand floss wirklich in den Tank). Es gibt darum keine Remote vom
 -- Client zum Server. Das Wetter liest der Server aus seiner eigenen Zeit (GetServerTimeNow).
 --
--- Studio-Hilfe (nur in Studio): Am Spieler das Attribut "DebugFindSet" auf eine Set-ID setzen
+-- Studio-Hilfe (nur in Studio, in der Befehlszeile der Ansicht "Server"): Am Spieler das Attribut "DebugFindSet" auf eine Set-ID setzen
 -- (z. B. "dunes_set_1") oder "DebugFindZone" auf eine Zonen-ID (z. B. "oasis"), dann trägt der
 -- Server alle Fundstücke dieses Sets oder der Zone in die Sammlung ein.
 

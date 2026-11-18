@@ -244,7 +244,8 @@ function CollectionBook.Start()
                     local rarity = if find ~= nil then Rarities.byId[find.rarityId] else nil
                     local color = if rarity ~= nil then Color3.fromHex(rarity.colorHex) else MUTED_COLOR
                     slotRow.stroke.Color = color
-                    local found = find ~= nil and (counts[find.id] or 0) > 0
+                    local count = if find ~= nil then counts[find.id] else nil
+                    local found = type(count) == "number" and count > 0
                     if found then
                         have += 1
                         slotRow.name.Text = find.name

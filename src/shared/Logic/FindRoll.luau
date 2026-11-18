@@ -50,7 +50,7 @@ end
 function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: number, data: any?): number
     local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
     local zoneFactor = (odds.zoneFindChanceFactor[zoneId] or 0) / 10000
-    local weather = WeatherLogic.stateAt(zoneId, serverTime, if data then data.Weather else nil)
+    local weather = WeatherLogic.stateAt(zoneId, serverTime, if data and data.Weather then data.Weather else nil)
     local weatherFactor = 1 + weather.findChanceBonusBp * weather.strength / 10000
     local p = (odds.findChancePerSecond / 10000) * zoneFactor * TreeEffects.luckMultiplier(profile) * weatherFactor
     if not isGoodNumber(p) then
@@ -117,8 +117,8 @@ end
 
 -- Wählt ein Fundstück der Zone mit der Seltenheit; fehlt sie dort, die nächst tiefere Stufe.
 function FindRoll.pickFind(zoneId: string, rarityId: string, r: number, data: any?): any?
-    local finds = if data then data.Finds else FindsData
-    local rarities = if data then data.Rarities else RaritiesData
+    local finds = if data and data.Finds then data.Finds else FindsData
+    local rarities = if data and data.Rarities then data.Rarities else RaritiesData
     local perZone = indexOf(finds)[zoneId]
     if perZone == nil then
         return nil
@@ -139,16 +139,17 @@ end
 -- Wert eines Fundstücks in Münzen. `toolRate` ist die Grundrate des Werkzeugs (ohne Knoten-Boni).
 function FindRoll.valueOf(zoneId: string, rarityId: string, toolRate: number, data: any?): BigNum.BigNum
     local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
-    local rarities = if data then data.Rarities else RaritiesData
-    local sandTypes = if data then data.SandTypes else SandTypesData
-    local zones = if data then data.Zones else ZonesData
+    local rarities = if data and data.Rarities then data.Rarities else RaritiesData
+    local sandTypes = if data and data.SandTypes then data.SandTypes else SandTypesData
+    local zones = if data and data.Zones then data.Zones else ZonesData
     local zone = zones.byId[zoneId]
     local sandType = if zone then sandTypes.byId[zone.sandTypeId] else nil
     local rarity = rarities.byId[rarityId]
     if sandType == nil or rarity == nil or not isGoodNumber(toolRate) or toolRate <= 0 then
         return BigNum.zero()
     end
-    return BigNum.new(odds.findBaseValue * sandType.priceFactor * toolRate * rarity.valueFactor)
+    -- Ganze Münzen: ein Fundwert mit Bruchteil (Faktoren aus Datenänderungen) wird abgerundet.
+    return BigNum.floor(BigNum.new(odds.findBaseValue * sandType.priceFactor * toolRate * rarity.valueFactor))
 end
 
 -- Würfelt für das Fenster. Gibt nil zurück, wenn kein Fund fällt. `data` ist für Tests überschreibbar
@@ -177,7 +178,7 @@ function FindRoll.roll(input: Input, data: any?): Roll?
         if input.random() >= chance then
             return nil
         end
-        rarityId = FindRoll.pickRarity(oddsTable, input.random(), if data then data.Rarities else nil)
+        rarityId = FindRoll.pickRarity(oddsTable, input.random(), if data and data.Rarities then data.Rarities else nil)
     end
 
     local find = FindRoll.pickFind(zoneId, rarityId, input.random(), data)

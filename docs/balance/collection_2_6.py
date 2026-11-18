@@ -26,6 +26,7 @@ import os
 import random
 import sys
 
+sys.dont_write_bytecode = True  # kein __pycache__ in docs/balance
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import skilltree_2_1 as st  # noqa: E402
 
@@ -262,14 +263,15 @@ def lam_of(zone, luck):
 # ---------------------------------------------------------------------------
 
 class FindPlayer(st.Player):
-    def __init__(self, rng, layout, bonus, newfirst=False, find_rate_mult=1.0, **kw):
+    def __init__(self, rng, layout, bonus, newfirst=False, dunes_find_mult=1.0, **kw):
         kw.setdefault("buy_luck", True)
         super().__init__(**kw)
         self.rng = rng
         self.layout = layout
         self.bonus = bonus
         self.newfirst = newfirst
-        self.find_rate_mult = find_rate_mult
+        self.dunes_find_mult = dunes_find_mult
+        self.first_find_wall = None
         self.weather_offset = rng.uniform(0, RAIN["cycle"])
         self.cum_gather = 0.0
         self.found = {}            # (zone, set, slot) -> Anzahl
@@ -300,6 +302,8 @@ class FindPlayer(st.Player):
 
     def _find(self, zone, rarity, t):
         self.finds += 1
+        if self.first_find_wall is None:
+            self.first_find_wall = t
         slots = self.by_rarity[rarity]
         if self.newfirst:
             miss = [s for s in slots if (zone,) + s not in self.found]
@@ -323,7 +327,7 @@ class FindPlayer(st.Player):
     def _gather_finds(self, zone, t_start, dur):
         """Funde in einem Sammelfenster [t_start, t_start + dur] (Wanduhr)."""
         coins = 0.0
-        base = FIND_CHANCE * ZONE_FACTOR[zone] * self.luck * self.find_rate_mult
+        base = FIND_CHANCE * ZONE_FACTOR[zone] * self.luck * (self.dunes_find_mult if zone == "dunes" else 1.0)
         top = base * (1 + RAIN["bonus"] if zone == "oasis" else 1)
         events = []
         x = 0.0
@@ -491,27 +495,32 @@ def main():
     print("  Referenz ohne Tore (heutige UpgradeTree.luau):   " +
           ", ".join(f"{st.MILESTONE_LABEL[m]} {st.fmt_t(ref_n[m])}" for m in MS))
 
+    ALL = ("aus", "Start", FINAL, "Stress x4")
+    SHORT = ("aus", FINAL)
+    V1 = "V1 (Set 1 = 5c)"
     variants = [
-        ("Tore, Entwurf", dict(), ref_g),
-        ("Tore, Entwurf, 2x Münzen", dict(coin_mult=2.0), None),
-        ("Tore, Entwurf, Auto-Dig (obere Schranke)", dict(autodig=True), None),
-        ("Tore, V1 (Set 1 = 5c)", dict(layout="V1 (Set 1 = 5c)"), ref_g),
-        ("Tore, V1 + neu zuerst", dict(layout="V1 (Set 1 = 5c)", newfirst=True), ref_g),
-        ("Ohne Tore (heute), Entwurf", dict(nodes=st.NODES_NO_GATES), ref_n),
-        ("Ohne Tore (heute), V1 + neu zuerst", dict(nodes=st.NODES_NO_GATES, layout="V1 (Set 1 = 5c)",
-                                                    newfirst=True), ref_n),
+        ("Tore, Entwurf", dict(), ref_g, ALL),
+        ("Tore, Entwurf, 2x Münzen", dict(coin_mult=2.0), None, ALL),
+        ("Tore, Entwurf, Auto-Dig (obere Schranke)", dict(autodig=True), None, ALL),
+        ("Tore, Entwurf, Großer Tank", dict(big_tank=True), None, SHORT),
+        ("Tore, V1 (Set 1 = 5c)", dict(layout=V1), ref_g, ALL),
+        ("Tore, V1 + neu zuerst", dict(layout=V1, newfirst=True), ref_g, ALL),
+        ("Tore, V1 + neu zuerst + Dünenmeer x1,5", dict(layout=V1, newfirst=True, dunes_find_mult=1.5), ref_g, SHORT),
+        ("Tore, V1 + Dünenmeer x2", dict(layout=V1, dunes_find_mult=2.0), ref_g, SHORT),
+        ("Ohne Tore (heute), Entwurf", dict(nodes=st.NODES_NO_GATES), ref_n, ALL),
+        ("Ohne Tore (heute), V1 + neu zuerst", dict(nodes=st.NODES_NO_GATES, layout=V1, newfirst=True), ref_n, ALL),
     ]
     summary = {}
-    for vname, kw, ref in variants:
+    for vname, kw, ref, bonus_list in variants:
         print(f"\n  --- {vname} ({TRIALS_RUN} Läufe, Seeds 1000 ff.) ---")
         batches = {}
-        for b in ("aus", "Start", FINAL, "Stress x4"):
+        for b in bonus_list:
             batches[b] = run_batch(TRIALS_RUN, 1000, bonus=b, **kw)
         base = batches["aus"]
         tb = [st.times(p) for p in base]
         print(f"  {'Bonus':<11}{'Meilenstein':<14}{'Zeit (Mittel)':>14}{'ggü. Bonus aus: Mittel':>24}"
               f"{'P90':>9}{'Max':>9}{'ggü. 2.1':>11}")
-        for b in ("aus", "Start", FINAL, "Stress x4"):
+        for b in bonus_list:
             tt = [st.times(p) for p in batches[b]]
             for m in MS[2:]:
                 vals = [x[m] for x in tt]
@@ -554,6 +563,10 @@ def main():
             if s:
                 line.append(f"{st.TOOL_NAME[tool]} {fmt_pct(d / (d + s))}")
         print("  Anteil Duplikat-Münzen je Werkzeug (echt, Final): " + ", ".join(line))
+        play_h = sum(p.t for p in ps) / len(ps) / 3600
+        ffw = [p.first_find_wall for p in ps]
+        print(f"  Funde pro Spielstunde {sum(finds) / len(finds) / play_h:.1f}; erster Fund (Wanduhr) Mittel "
+              f"{fmt_dur(sum(ffw) / len(ffw))}, spätestens {fmt_dur(max(ffw))}")
         summary[(vname, "gather")] = gz
         summary[(vname, "luck")] = lg
         summary[(vname, "play")] = sum(p.t for p in ps) / len(ps)
@@ -615,6 +628,17 @@ def main():
             print(f"    {lab:<10} {fmt_dur(m):>11} ({fmt_dur(q)})  Spiel {fmt_dur(pm):>11} ({fmt_dur(pq)})"
                   f"  Läufe {pm / play:5.1f} ({pq / play:5.1f})  Tage {pm / 60 / PLAY_MIN_PER_DAY:5.1f}"
                   f" ({pq / 60 / PLAY_MIN_PER_DAY:5.1f})")
+    print("\n  Erwarteter Sammlungsbonus nach N Läufen nach dem ersten Sturm (nur Ruinenstadt-Sets, Entwurf):")
+    rates = set_rates(LAYOUTS["Entwurf"], lam_of("ruins", luck_avg))
+    g_run = gather_all
+    print(f"  {'Bonus':<10}" + "".join(f"{'N=' + str(n):>9}" for n in (1, 2, 5, 10, 20, 40, 80)))
+    for b in ("Start", FINAL):
+        vals = []
+        for n in (1, 2, 5, 10, 20, 40, 80):
+            e = sum(BONUS[b][i] * cdf_max(r, n * g_run) for i, r in enumerate(rates))
+            vals.append(f"{e / 100:>8.1f}%")
+        print(f"  {b:<10}" + "".join(vals))
+
     print("\n  Dünenmeer: Sammelzeit dort fällt nur im ersten Lauf an (danach ist die Ruinenstadt besser).")
     g_d = summary[(v, "gather")]["dunes"]
     rates = set_rates(LAYOUTS["Entwurf"], lam_of("dunes", 1.05))
@@ -653,8 +677,10 @@ def main():
     # Goldkiste Legendär oder besser (Kontrolle, unverändert)
     p_l = 0.045 + 0.005
     e_open = (1 - (1 - p_l) ** 60) / p_l
+    g1 = f"{e_open * 400:,.0f}".replace(",", ".")
+    g10 = f"{e_open * 400 * 10 / 11:,.0f}".replace(",", ".")
     print(f"  Kontrolle Goldkiste: Legendär oder besser im Mittel nach {e_open:.2f} Öffnungen, "
-          f"{e_open * 400:,.0f} Gems einzeln, {e_open * 400 * 10 / 11:,.0f} Gems im 10er-Paket".replace(",", "."))
+          f"{g1} Gems einzeln, {g10} Gems im 10er-Paket")
     # Erster Legendär-oder-besser-Fund
     for z in ("dunes", "ruins"):
         for luck in (1.0, 2.0):
