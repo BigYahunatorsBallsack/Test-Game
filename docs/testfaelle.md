@@ -161,11 +161,24 @@ Entscheidung von Waltuh (17.11.2026): 1.6 bringt einen Mini-Kauf mit. Neue Knote
 
 ## 2.1 Skilltree-Daten und Kauf-Server
 
-- [ ] [Lune] Ein Kauf ohne Voraussetzung wird abgelehnt.
-- [ ] [Lune] Ein Doppelklick (zwei schnelle `PurchaseNode(id)`) kauft nicht zweimal.
-- [ ] [Lune] Zu wenig Geld wird abgelehnt. [Studio] Der Client zeigt den Fehler.
-- [ ] [Studio] Der Spielstand lädt nach einem Neustart korrekt.
-- [ ] [Lune] Ein Baum-Update (Knoten hinzugefügt oder entfernt) zerstört keinen alten Spielstand.
+Paket 2.1 füllt den ganzen Baum für den ersten Lauf (Hand bis Großmaschine) mit den Ästen Sammeln (Rate), Tank (Kapazität), Verkauf (Preisfaktor) und Glück (Fundchance). Zahlen von `balance-analyst` in `docs/balance/skilltree_2_1.md`. Verkauf und Glück erscheinen erst nach der Schaufel, damit die ersten 2 Minuten gleich bleiben. Neue Wirkungen `sellBonus` und `luckBonus` (Hundertstel-Prozent, Boni addieren sich). Die Wirkung aller Knoten berechnet das reine Modul `src/shared/Logic/TreeEffects.luau` bei jedem Aufruf aus den gekauften IDs und der aktuellen Tabelle, gespeichert werden nur die IDs. `TreePurchase` (aus 1.6) kauft weiter und liefert neu den Zustand jedes Knotens (`owned`, `available`, `fog`) für den Baum in 2.2. Der Fundchancen-Faktor wirkt ab Paket 2.6. Tests in `tests/skilltree.spec.luau`. Ergebnis der Simulation: Eimerkette 7:10, Mini-Bagger 11:23, Saugroboter 17:34, Großmaschine 22:06, längste Pause 75 s.
+
+- [x] [Lune] Ein Kauf ohne Voraussetzung wird abgelehnt, für jeden Knoten des Baums mit Voraussetzung. Münzen und Knoten bleiben gleich.
+- [x] [Lune] Ein Doppelklick (zwei schnelle `PurchaseNode(id)`) kauft nicht zweimal, für jeden kaufbaren Knoten: Der zweite Aufruf meldet "schon gekauft" und bucht nichts ab.
+- [x] [Lune] Zu wenig Geld wird abgelehnt (Preis minus 1), für jeden kaufbaren Knoten. Genau der Preis geht auf 0. [Studio] Der Client zeigt den Fehler.
+- [x] [Lune] Laden: Knoten kaufen, Sitzung beenden, auf einem neuen Server laden (Fake-Speicher). Knoten, Münzen und alle Wirkungen (Werkzeug, Rate, Tank, Preis, Glück) sind gleich. [Studio] Der Spielstand lädt nach einem Neustart korrekt.
+- [x] [Lune] Baum-Update, Knoten entfernt: Das Profil lädt, die ID bleibt gespeichert, wirkt aber nicht, es gibt keine Erstattung, und Folgekäufe gehen weiter.
+- [x] [Lune] Baum-Update, Knoten hinzugefügt: Ein altes Profil (nur Knoten aus 1.6) lädt, und der neue Knoten ist kaufbar, sobald seine Voraussetzungen erfüllt sind.
+- [x] [Lune] Baum-Update, neue Voraussetzung vor einem gekauften Knoten: Der gekaufte Knoten wirkt weiter, die neue Voraussetzung ist kaufbar.
+- [x] [Lune] Baum-Update, geänderte Werte: Die Wirkung folgt der neuen Tabelle, eine Preisänderung bucht nichts nach.
+- [x] [Lune] Wirkung: Verkauf-Knoten erhöhen die Münzen pro Sand (Boni addieren sich, Bruchteile beim Verkauf verfallen), Glück-Knoten den Fundchancen-Faktor. Rate und Tank wie in 1.6. Unbekannte Knoten-IDs ändern nichts.
+- [x] [Lune] Sichtbarkeit: Am Anfang sind nur Knoten ohne Voraussetzung kaufbar, alle anderen im Nebel. Nach einem Kauf werden die Folgeknoten kaufbar. Der Sandsturm-Knoten ist nie kaufbar.
+- [x] [Lune] Jeder kaufbare Knoten ist erreichbar: Ein Käufer mit unbegrenzt Münzen kauft nacheinander den ganzen Baum (ohne Knoten hinter `sandstorm_1`).
+- [x] [Lune] Zeit-Simulation des ganzen Laufs mit den echten Regeln (Sammeln, 5 s Weg je Richtung, beste Zone, billigsten sichtbaren Knoten kaufen): erstes Upgrade nach etwa 20 s und Schaufel nach etwa 2 Minuten wie in 1.6, die Werkzeuge kommen zu den Zeiten aus `docs/balance/skilltree_2_1.md` (je ±15 %), und keine Pause zwischen zwei Käufen ist länger als die dort genannte Grenze.
+- [x] [Lune] `DataCheck`: Jede Wirkung steht in ihrem Ast, `sellBonus` und `luckBonus` brauchen bp über 0, Meilensteine sind ganze Zahlen. Eine kaputte Fassung schlägt fehl.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Upgrade-Liste nach der Schaufel: Verkauf- und Glück-Knoten erscheinen. Ein Verkauf-Knoten erhöht sofort die Münzen beim nächsten Verkauf.
+- [ ] [Studio] Ein Klick auf einen zu teuren Knoten zeigt "Zu wenig Münzen". Nach einem Rejoin sind alle gekauften Knoten und ihre Wirkung noch da.
 
 ## 2.5 Zonen-Freischaltung
 

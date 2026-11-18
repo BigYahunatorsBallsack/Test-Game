@@ -28,6 +28,7 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local Collecting = loadShared("Logic", "Collecting")
+local TreeEffects = loadShared("Logic", "TreeEffects")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
@@ -65,6 +66,7 @@ function Sand.snapshot(player: Player): any?
     end
     local state = stateOf(player)
     local zone = Collecting.zoneOf(profile)
+    local effects = TreeEffects.of(profile)
     return {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
         tank = BigNum.serialize(BigNum.deserialize(profile.tank)),
@@ -75,6 +77,8 @@ function Sand.snapshot(player: Player): any?
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile),
         nodes = Collecting.ownedNodes(profile),
+        sellBonusBp = effects.sellBonusBp,
+        luckBonusBp = effects.luckBonusBp,
         tutorialStep = Tutorial.stepOf(profile),
     }
 end
