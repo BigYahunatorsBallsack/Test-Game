@@ -10,7 +10,7 @@ src/shared/Data/         Datentabellen (Rarities, Tools, SandTypes, Zones, FindO
 src/shared/Logic/        Reine Logik ohne Roblox-API (DataCheck, Validate, RateLimiter, Profile, Migrations, BigNum, PlayerSession, Collecting, SandDig, PerfGuard, TreePurchase, Tutorial)
 src/shared/Net/          RemoteSpec: Liste aller Remotes mit Schema und Rate-Limit
 src/server/              init.server.luau (Bootstrap), Services/ (8 Services), Net/Net.luau
-src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, SkillTree, UnlockPlayer, Tutorial; UnlockPlayer ist ein Hilfsmodul von SkillTree)
+src/client/              init.client.luau (Bootstrap), Controllers/ (State, Input, Hud, Dig, ToolVisual, SkillTree, UnlockPlayer, Tutorial; UnlockPlayer ist ein Hilfsmodul von SkillTree)
 ServerPackages/          Wally-Pakete für den Server (ProfileStore), eingecheckt
 wally.toml               Wally-Abhängigkeiten
 tests/                   Lune-Tests (*.spec.luau), run.luau (Testläufer), lib/expect.luau
@@ -184,3 +184,14 @@ Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durc
 - `mkdir -p build` und dann `rojo build -o build/test.rbxl` baut die Platzdatei (Rojo legt den Ordner nicht selbst an; `build/` wird nicht eingecheckt).
 - `rojo serve` startet den Sync mit Studio (Rojo-Plugin verbinden). Playtest: Server und Client drucken je eine Startzeile.
 - Format und Stil: `stylua src tests`, `selene src tests` (für selene einmal `selene generate-roblox-std` ausführen).
+
+## Sichtbare Werkzeugstufen (Paket 2.4)
+
+- Die Wirkung der Stufen (Rate, Tank, Preis, Werkzeug) rechnet der Server seit 2.1 aus dem Baum (`TreeEffects`). 2.4 macht die Stufen für alle Spieler sichtbar.
+- **Server:** `Sand` setzt bei jedem Sync die Spieler-Attribute `ToolId` (aus `TreeEffects`, über `ToolLook.attributesFor`) und `Collecting`. Roblox repliziert sie an alle Clients. Es gibt keine neue Remote, und der Client sendet dazu keinen Wert.
+- `Data/ToolLooks.luau`: je Stufe `footprint`, Modellteile (vor und neben dem Charakter, nie im Kamera-Gang), `workPoint` (dort entsteht das Loch), `motions` (swing, spin, bob, slide, nur beim Sammeln), `sandFlow` (spray, conveyor, cloud, suction, eruption: Partikel von `from` nach `to`), Staub, Kamera-Bonus und `loopSoundId` (leer = Platzhalter bis 3.5). Dazu `change` (Wechsel-Animation), `view` (Sichtweite) und `limits`. Jede Stufe ist mindestens 1,25-fach größer als die vorige.
+- `Logic/ToolLook.luau` (rein): `of`, `change` (`none`, `upgrade`, `silent`), `bounds`, `clearOfCharacter`, `clearOfCameraLane`, `holeClear`, `workPointOf`, `motionAt`, `flowLoad`, `attributesFor`. `DataCheck` prüft die Struktur, `tests/toollook.spec.luau` die Geometrie.
+- `Controllers/ToolVisual.luau`: je Spieler ein Modell im Ordner `workspace.ToolModels`. Alle Teile sind verankert und werden pro Bild mit `BulkMoveTo` bewegt (kein Physik-Zug). Herauswachsen über die Teilegröße, nicht über `ScaleTo`, weil die Lage selbst gesetzt wird. Weit entfernte Spieler (`view.motionDistanceStuds`) aktualisieren seltener und ohne Bewegung und Sandfluss. Bei der Rückfallvariante von `Dig` entfällt der eigene Sandfluss. Nur der eigene Charakter bekommt den gleitenden Kameraabstand (`CameraMinZoomDistance`).
+- `Dig` gräbt an `ToolLook.workPointOf` statt fest `dig.forwardStuds` (nicht mehr genutzt). Der Strahl ignoriert den Ordner `ToolModels`. Staubmenge und -größe kommen aus `ToolLooks`.
+- `Hud` zeigt Werkzeugname und Rate unter dem Panel.
+- Abweichung vom Plan: Statt `Motor6D` bewegt `BulkMoveTo` alle Teile direkt, weil der Charakter-Körper nichts mit den Maschinenteilen zu tun hat und verankerte Teile billiger sind.

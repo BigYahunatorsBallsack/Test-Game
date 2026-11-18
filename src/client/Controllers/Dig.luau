@@ -17,15 +17,12 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 -- Partikel
-local PARTICLE_COUNT_FULL = 10
 local PARTICLE_COUNT_FALLBACK = 14
 local PARTICLE_LIFETIME = NumberRange.new(0.35, 0.7)
 local PARTICLE_SPEED = NumberRange.new(5, 11)
 local PARTICLE_SPREAD_DEGREES = 55
-local PARTICLE_SIZE = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0.45),
-    NumberSequenceKeypoint.new(1, 0.15),
-})
+local PARTICLE_SIZE_START_FACTOR = 1 -- Startgröße = Staubgröße der Stufe (Data/ToolLooks)
+local PARTICLE_SIZE_END_FACTOR = 0.33
 local PARTICLE_TRANSPARENCY = NumberSequence.new({
     NumberSequenceKeypoint.new(0, 0.1),
     NumberSequenceKeypoint.new(1, 1),
@@ -51,6 +48,7 @@ local OVERLAY_SIZE = UDim2.new(0, 240, 0, 22)
 local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 
 local DIG_MODE_ATTRIBUTE = "DigMode"
+local TOOL_MODELS_FOLDER = "ToolModels" -- Ordner von Controllers/ToolVisual, Teile blockieren den Strahl nicht
 local DEFAULT_SAND_COLOR = Color3.fromRGB(230, 200, 117)
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
@@ -62,6 +60,7 @@ local Zones = loadShared("Data", "Zones")
 local SandTypes = loadShared("Data", "SandTypes")
 local SandDig = loadShared("Logic", "SandDig")
 local PerfGuard = loadShared("Logic", "PerfGuard")
+local ToolLook = loadShared("Logic", "ToolLook")
 local BigNum = loadShared("Logic", "BigNum")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
@@ -150,13 +149,17 @@ local function wantsDig(): boolean
 end
 
 -- Trefferpunkt auf grabbarem Terrain vor dem Charakter, sonst nil.
-local function findGround(root: BasePart): RaycastResult?
+local function findGround(root: BasePart, toolId: string?): RaycastResult?
     local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
     if look.Magnitude < 1e-3 then
         return nil
     end
     local dig = TerrainData.dig
-    local origin = root.Position + look.Unit * dig.forwardStuds + Vector3.new(0, dig.rayUpStuds, 0)
+    -- Das Loch entsteht an der Arbeitsspitze des Werkzeugs (Data/ToolLooks), z unter 0 = vorn.
+    local workPoint = ToolLook.workPointOf(toolId)
+    local forward = look.Unit
+    local right = forward:Cross(Vector3.yAxis)
+    local origin = root.Position - forward * workPoint.z + right * workPoint.x + Vector3.new(0, dig.rayUpStuds, 0)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     local exclude: { Instance } = {}
@@ -165,6 +168,10 @@ local function findGround(root: BasePart): RaycastResult?
     end
     if discFolder ~= nil then
         table.insert(exclude, discFolder)
+    end
+    local toolModels = workspace:FindFirstChild(TOOL_MODELS_FOLDER)
+    if toolModels ~= nil then
+        table.insert(exclude, toolModels)
     end
     params.FilterDescendantsInstances = exclude
     params.IgnoreWater = true
@@ -175,10 +182,15 @@ local function findGround(root: BasePart): RaycastResult?
     return result
 end
 
-local function emitParticles(position: Vector3, count: number)
+local function emitParticles(position: Vector3, count: number, toolId: string?)
     if emitter == nil or emitterAttachment == nil then
         return
     end
+    local size = ToolLook.of(toolId).dust.size
+    emitter.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, size * PARTICLE_SIZE_START_FACTOR),
+        NumberSequenceKeypoint.new(1, size * PARTICLE_SIZE_END_FACTOR),
+    })
     emitterAttachment.WorldPosition = position
     emitter.Color = ColorSequence.new(sandColor())
     emitter:Emit(count)
@@ -202,7 +214,7 @@ local function digTerrain(now: number, hit: RaycastResult, toolId: string?)
             baselines[ref.key] = nil
         end
     end
-    emitParticles(hit.Position, PARTICLE_COUNT_FULL)
+    emitParticles(hit.Position, ToolLook.dustCount(toolId), toolId)
 end
 
 local function regrowChunk(action: any)
@@ -270,7 +282,7 @@ local function digFallback(now: number, hit: RaycastResult, toolId: string?)
         end)
         fade:Play()
     end)
-    emitParticles(hit.Position, PARTICLE_COUNT_FALLBACK)
+    emitParticles(hit.Position, PARTICLE_COUNT_FALLBACK, toolId)
 end
 
 local function readForcedMode()
@@ -303,7 +315,7 @@ local function createEffects()
     e.Speed = PARTICLE_SPEED
     e.SpreadAngle = Vector2.new(PARTICLE_SPREAD_DEGREES, PARTICLE_SPREAD_DEGREES)
     e.EmissionDirection = Enum.NormalId.Top
-    e.Size = PARTICLE_SIZE
+    e.Size = NumberSequence.new(ToolLook.of(nil).dust.size)
     e.Transparency = PARTICLE_TRANSPARENCY
     e.Acceleration = Vector3.new(0, -workspace.Gravity * PARTICLE_GRAVITY_FACTOR, 0)
     e.LightInfluence = 1
@@ -340,6 +352,11 @@ local function overlayText(): string
     local fps = PerfGuard.fps(perf)
     local fpsText = if fps ~= nil then tostring(math.floor(fps + 0.5)) else "--"
     return `Graben: {modeText} | {fpsText} FPS | Blöcke {SandDig.openCount(digState)}/{TerrainData.regrow.maxDirtyChunks}`
+end
+
+-- Läuft gerade die Rückfallvariante (schwaches Gerät)? ToolVisual spart dann den Sandfluss.
+function Dig.isFallback(): boolean
+    return perf ~= nil and PerfGuard.mode(perf) == "fallback"
 end
 
 function Dig.Init()
@@ -381,10 +398,10 @@ function Dig.Start()
                 regrowChunk(action)
             end
             if root ~= nil and wantsDig() then
-                local hit = findGround(root)
+                local snapshot = State.get()
+                local toolId = if snapshot ~= nil then snapshot.toolId else nil
+                local hit = findGround(root, toolId)
                 if hit ~= nil then
-                    local snapshot = State.get()
-                    local toolId = if snapshot ~= nil then snapshot.toolId else nil
                     if mode == "full" then
                         digTerrain(t, hit, toolId)
                     else

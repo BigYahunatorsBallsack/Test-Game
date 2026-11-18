@@ -55,6 +55,7 @@ export type DataSet = {
     TreeLayout: any,
     UnlockAnimation: any,
     TreeSounds: any,
+    ToolLooks: any,
 }
 
 local DataCheck = {}
@@ -79,6 +80,7 @@ function DataCheck.defaults(): DataSet
         TreeLayout = require("../Data/TreeLayout"),
         UnlockAnimation = require("../Data/UnlockAnimation"),
         TreeSounds = require("../Data/TreeSounds"),
+        ToolLooks = require("../Data/ToolLooks"),
     }
 end
 
@@ -1114,6 +1116,230 @@ local function checkTutorial(errors: { string }, data: DataSet)
     end
 end
 
+local SHAPES = { Block = true, Cylinder = true, Ball = true }
+
+-- Aussehen der Werkzeugstufen (Paket 2.4): jede Stufe vorhanden, deutlich größer als die vorige.
+local function checkToolLooks(errors: { string }, data: DataSet)
+    local looks = data.ToolLooks
+    if type(looks) ~= "table" or type(looks.list) ~= "table" or type(looks.byToolId) ~= "table" then
+        table.insert(errors, "ToolLooks: list und byToolId fehlen")
+        return
+    end
+    local limits = looks.limits
+    if type(limits) ~= "table" then
+        table.insert(errors, "ToolLooks.limits fehlt")
+        return
+    end
+    for _, field in { "maxCameraBonusStuds", "maxParticlesPerEmit", "minStepFactor", "maxParts", "maxFlowParticles" } do
+        positive(errors, `ToolLooks.limits.{field}`, limits[field])
+    end
+    local function nameSet(label: string, names: any): { [string]: boolean }
+        local set: { [string]: boolean } = {}
+        if type(names) ~= "table" or #names == 0 then
+            table.insert(errors, `ToolLooks.limits.{label} fehlt`)
+            return set
+        end
+        for _, name in names do
+            if type(name) == "string" then
+                set[name] = true
+            end
+        end
+        return set
+    end
+    local flowKinds = nameSet("flowKinds", limits.flowKinds)
+    local motionKinds = nameSet("motionKinds", limits.motionKinds)
+    local view = looks.view
+    if type(view) ~= "table" then
+        table.insert(errors, "ToolLooks.view fehlt")
+    else
+        positive(errors, "ToolLooks.view.motionDistanceStuds", view.motionDistanceStuds)
+        positive(errors, "ToolLooks.view.farUpdateSeconds", view.farUpdateSeconds)
+    end
+    local change = looks.change
+    if type(change) ~= "table" then
+        table.insert(errors, "ToolLooks.change fehlt")
+    else
+        for _, field in { "popSeconds", "popStartScale", "cameraSeconds" } do
+            positive(errors, `ToolLooks.change.{field}`, change[field])
+        end
+        if isFinite(change.popStartScale) and change.popStartScale >= 1 then
+            table.insert(errors, "ToolLooks.change.popStartScale muss unter 1 liegen")
+        end
+        if not isInt(change.burstCount) or change.burstCount < 0 then
+            table.insert(errors, "ToolLooks.change.burstCount muss eine ganze Zahl ab 0 sein")
+        end
+    end
+    local tools = if type(data.Tools) == "table" and type(data.Tools.list) == "table" then data.Tools.list else {}
+    local known: { [string]: boolean } = {}
+    local previous: any = nil
+    for _, tool in tools do
+        if type(tool) ~= "table" or type(tool.id) ~= "string" then
+            continue
+        end
+        known[tool.id] = true
+        local look = looks.byToolId[tool.id]
+        local label = `ToolLooks "{tool.id}"`
+        if type(look) ~= "table" then
+            table.insert(errors, `{label}: Werkzeug hat kein Aussehen`)
+            previous = nil
+            continue
+        end
+        positive(errors, `{label}.footprint`, look.footprint)
+        if type(look.parts) ~= "table" then
+            table.insert(errors, `{label}.parts fehlt`)
+        else
+            if isFinite(limits.maxParts) and #look.parts > limits.maxParts then
+                table.insert(errors, `{label}: mehr als {limits.maxParts} Teile`)
+            end
+            if tool.tier > 1 and #look.parts == 0 then
+                table.insert(errors, `{label}: braucht mindestens ein Teil`)
+            end
+            if tool.tier == 1 and #look.parts > 0 then
+                table.insert(errors, `{label}: die Hand hat kein Modell`)
+            end
+            for index, part in look.parts do
+                local partLabel = `{label}.parts[{index}]`
+                if type(part) ~= "table" then
+                    table.insert(errors, `{partLabel} muss eine Tabelle sein`)
+                    continue
+                end
+                if type(part.shape) ~= "string" or not SHAPES[part.shape] then
+                    table.insert(errors, `{partLabel}.shape muss Block, Cylinder oder Ball sein`)
+                end
+                if type(part.size) ~= "table" then
+                    table.insert(errors, `{partLabel}.size fehlt`)
+                else
+                    for _, axis in { "x", "y", "z" } do
+                        positive(errors, `{partLabel}.size.{axis}`, part.size[axis])
+                    end
+                end
+                if type(part.offset) ~= "table" then
+                    table.insert(errors, `{partLabel}.offset fehlt`)
+                else
+                    for _, axis in { "x", "y", "z" } do
+                        if not isFinite(part.offset[axis]) then
+                            table.insert(errors, `{partLabel}.offset.{axis} muss eine Zahl sein`)
+                        end
+                    end
+                end
+                if type(part.colorHex) ~= "string" or not string.match(part.colorHex, HEX_PATTERN) then
+                    table.insert(errors, `{partLabel}.colorHex muss Hex-Text wie #RRGGBB sein`)
+                end
+                if type(part.material) ~= "string" or part.material == "" then
+                    table.insert(errors, `{partLabel}.material fehlt`)
+                end
+            end
+        end
+        local dust = look.dust
+        if type(dust) ~= "table" then
+            table.insert(errors, `{label}.dust fehlt`)
+        else
+            positive(errors, `{label}.dust.count`, dust.count)
+            positive(errors, `{label}.dust.size`, dust.size)
+            local burst = if type(change) == "table" and isFinite(change.burstCount) then change.burstCount else 0
+            if isFinite(dust.count) and isFinite(limits.maxParticlesPerEmit) and dust.count + burst > limits.maxParticlesPerEmit then
+                table.insert(errors, `{label}: Staub plus Wechsel-Wolke übersteigt das Partikelbudget`)
+            end
+        end
+        if type(look.workPoint) ~= "table" or not isFinite(look.workPoint.x) or not isFinite(look.workPoint.z) then
+            table.insert(errors, `{label}.workPoint braucht x und z`)
+        elseif look.workPoint.z >= 0 then
+            table.insert(errors, `{label}.workPoint muss vor dem Charakter liegen (z unter 0)`)
+        end
+        if type(look.loopSoundId) ~= "string" or (look.loopSoundId ~= "" and not string.match(look.loopSoundId, "^rbxassetid://%d+$")) then
+            table.insert(errors, `{label}.loopSoundId muss leer oder rbxassetid:// plus Ziffern sein`)
+        end
+        local partCount = if type(look.parts) == "table" then #look.parts else 0
+        if type(look.motions) ~= "table" then
+            table.insert(errors, `{label}.motions fehlt`)
+        else
+            for index, motion in look.motions do
+                local mLabel = `{label}.motions[{index}]`
+                if type(motion) ~= "table" then
+                    table.insert(errors, `{mLabel} muss eine Tabelle sein`)
+                    continue
+                end
+                if not isInt(motion.part) or motion.part < 1 or motion.part > partCount then
+                    table.insert(errors, `{mLabel}.part verweist auf kein Teil`)
+                end
+                if type(motion.kind) ~= "string" or not motionKinds[motion.kind] then
+                    table.insert(errors, `{mLabel}.kind ist unbekannt`)
+                end
+                positive(errors, `{mLabel}.period`, motion.period)
+                if not isFinite(motion.amplitude) or motion.amplitude < 0 then
+                    table.insert(errors, `{mLabel}.amplitude muss eine Zahl ab 0 sein`)
+                end
+                if motion.kind == "slide" then
+                    local v = motion.vector
+                    if type(v) ~= "table" or not isFinite(v.x) or not isFinite(v.y) or not isFinite(v.z) then
+                        table.insert(errors, `{mLabel}.vector fehlt`)
+                    end
+                elseif motion.axis ~= "x" and motion.axis ~= "y" and motion.axis ~= "z" then
+                    table.insert(errors, `{mLabel}.axis muss x, y oder z sein`)
+                end
+            end
+        end
+        local flow = look.sandFlow
+        if type(flow) ~= "table" then
+            table.insert(errors, `{label}.sandFlow fehlt`)
+        else
+            if type(flow.kind) ~= "string" or not flowKinds[flow.kind] then
+                table.insert(errors, `{label}.sandFlow.kind ist unbekannt`)
+            end
+            for _, point in { "from", "to" } do
+                local v = flow[point]
+                if type(v) ~= "table" or not isFinite(v.x) or not isFinite(v.y) or not isFinite(v.z) then
+                    table.insert(errors, `{label}.sandFlow.{point} braucht x, y und z`)
+                end
+            end
+            positive(errors, `{label}.sandFlow.speed`, flow.speed)
+            positive(errors, `{label}.sandFlow.lifetime`, flow.lifetime)
+            positive(errors, `{label}.sandFlow.size`, flow.size)
+            if not isFinite(flow.rate) or flow.rate < 0 then
+                table.insert(errors, `{label}.sandFlow.rate muss eine Zahl ab 0 sein`)
+            elseif isFinite(flow.lifetime) and isFinite(limits.maxFlowParticles) and flow.rate * flow.lifetime > limits.maxFlowParticles then
+                table.insert(errors, `{label}.sandFlow übersteigt das Partikelbudget`)
+            end
+            if not isFinite(flow.spread) or flow.spread < 0 or flow.spread > 180 then
+                table.insert(errors, `{label}.sandFlow.spread muss zwischen 0 und 180 liegen`)
+            end
+            if tool.tier >= 3 and isFinite(flow.rate) and flow.rate <= 0 then
+                table.insert(errors, `{label}.sandFlow: ab der Eimerkette muss der Sand sichtbar fließen (rate über 0)`)
+            end
+            if type(previous) == "table" and type(previous.sandFlow) == "table" and tool.tier >= 3 and previous.sandFlow.kind == flow.kind then
+                table.insert(errors, `{label}.sandFlow.kind gleicht der Stufe davor`)
+            end
+        end
+        local bonus = look.cameraBonusStuds
+        if not isFinite(bonus) or bonus < 0 then
+            table.insert(errors, `{label}.cameraBonusStuds muss eine Zahl ab 0 sein`)
+        elseif isFinite(limits.maxCameraBonusStuds) and bonus > limits.maxCameraBonusStuds then
+            table.insert(errors, `{label}.cameraBonusStuds liegt über dem Höchstwert`)
+        end
+        if type(previous) == "table" and type(look.dust) == "table" and type(previous.dust) == "table" then
+            local factor = if isFinite(limits.minStepFactor) then limits.minStepFactor else 1
+            if isFinite(look.footprint) and isFinite(previous.footprint) and look.footprint < previous.footprint * factor then
+                table.insert(errors, `{label}: footprint steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(dust.count) and isFinite(previous.dust.count) and dust.count < previous.dust.count * factor then
+                table.insert(errors, `{label}: dust.count steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(dust.size) and isFinite(previous.dust.size) and dust.size < previous.dust.size * factor then
+                table.insert(errors, `{label}: dust.size steigt nicht um den Faktor {factor}`)
+            end
+            if isFinite(bonus) and isFinite(previous.cameraBonusStuds) and bonus < previous.cameraBonusStuds then
+                table.insert(errors, `{label}: cameraBonusStuds darf nicht sinken`)
+            end
+        end
+        previous = look
+    end
+    for toolId in looks.byToolId do
+        if not known[toolId] then
+            table.insert(errors, `ToolLooks "{tostring(toolId)}": kein Werkzeug mit dieser ID`)
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -1124,6 +1350,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
     checkUnlockAnimation(errors, data)
+    checkToolLooks(errors, data)
     checkTools(errors, data)
     checkSandTypes(errors, data)
     checkZones(errors, data)
