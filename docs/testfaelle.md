@@ -180,6 +180,41 @@ Paket 2.1 füllt den ganzen Baum für den ersten Lauf (Hand bis Großmaschine) m
 - [ ] [Studio] Upgrade-Liste nach der Schaufel: Verkauf- und Glück-Knoten erscheinen. Ein Verkauf-Knoten erhöht sofort die Münzen beim nächsten Verkauf.
 - [ ] [Studio] Ein Klick auf einen zu teuren Knoten zeigt "Zu wenig Münzen". Nach einem Rejoin sind alle gekauften Knoten und ihre Wirkung noch da.
 
+## 2.2 Tree-UI mit Zoom, Zuständen, Linien, Nebel
+
+Paket 2.2 ersetzt die Upgrade-Liste aus 1.6 durch den Skilltree als Vollbild-Ebene (Knopf "Baum" am HUD mit Zähler für bezahlbare Knoten, ab Tutorial-Schritt 3). Die Koordinaten rechnet das reine Modul `src/shared/Logic/TreeLayout.luau` aus `UpgradeTree`: Spalte aus dem Ast (`src/shared/Data/TreeLayout.luau`, Glück, Tank, Werkzeuge in der Mitte, Rate, Verkauf), ein Band pro Werkzeug, Reihe über der Voraussetzung in derselben Spalte, optional festgenagelt per `pos`. `src/shared/Logic/TreeView.luau` liefert den Zustand je Knoten (gekauft, kaufbar, zu teuer, Silhouette, verborgen) und je Linie, den Zähler und den Fokus-Knoten. `src/shared/Logic/TreeCamera.luau` rechnet Zoom, Verschieben, Tippen oder Ziehen. Linien nur senkrecht innerhalb einer Spalte (keine gedrehten Rahmen), Werkzeug-Sperren aus anderen Ästen erscheinen als Bandlinie und "Braucht" auf der Karte. Gekauft wird nur über den Knopf auf der Karte. Keine neue Remote, kein neues Profilfeld. Freischalt-Animation und Sound kommen in 2.3.
+
+- [ ] [Lune] Layout: Jeder Knoten bekommt genau eine Position, keine zwei Knoten teilen eine Zelle.
+- [ ] [Lune] Layout: Ein Knoten liegt immer höher als seine Voraussetzungen in derselben Spalte.
+- [ ] [Lune] Layout: Werkzeuge stehen in der Mitte, Tank und Glück links, Rate und Verkauf rechts.
+- [ ] [Lune] Layout: Ein Knoten, der ein Werkzeug verlangt (direkt oder über seine Voraussetzungen), liegt im Band dieses Werkzeugs oder darüber.
+- [ ] [Lune] Layout: Gleiche Daten ergeben immer dieselben Koordinaten.
+- [ ] [Lune] Layout bei Baum-Update: Ein neuer Knoten am Ende eines Asts bekommt einen freien Platz, Knoten früherer Bänder verschieben sich nicht. Ein Knoten mit `pos` behält seinen Platz.
+- [ ] [Lune] Layout: Die Fläche umschließt alle Knoten mit Rand.
+- [ ] [Lune] Ansicht: Neuer Spieler mit 0 Münzen: `collect_rate_1`, `tank_1` und Schaufel sind "zu teuer", ihre Nachfolger Silhouetten, alles andere verborgen, `sandstorm_1` verborgen.
+- [ ] [Lune] Ansicht: Mit genug Münzen wird ein Knoten "kaufbar", auch bei sehr großen Werten (1e20) über den Zahlentyp.
+- [ ] [Lune] Ansicht: Nach einem Kauf ist der Knoten "gekauft", seine Nachfolger werden kaufbar oder zu teuer, die Reihe dahinter wird Silhouette.
+- [ ] [Lune] Ansicht: Silhouetten liefern keinen Namen und keinen Preis.
+- [ ] [Lune] Ansicht: Linien gekauft zu gekauft hell, gekauft zu kaufbar gedämpft, zu Silhouetten gestrichelt, zu Verborgenem keine. Werkzeug-Sperren aus anderen Ästen erscheinen als "Braucht", nicht als Linie.
+- [ ] [Lune] Ansicht: Der Zähler am Knopf ist die Zahl der kaufbaren und bezahlbaren Knoten.
+- [ ] [Lune] Ansicht: Fokus beim Öffnen ist der Tutorial-Knoten, sonst der billigste bezahlbare, sonst der billigste kaufbare, sonst der Start.
+- [ ] [Lune] Ansicht: Unbekannte oder entfernte IDs im Profil werden nicht gezeichnet und ändern nichts.
+- [ ] [Lune] Kamera: Der Zoom bleibt zwischen den Grenzen aus `Data/TreeLayout`, auch bei extremen Pinch-Werten.
+- [ ] [Lune] Kamera: Pinch und Mausrad zoomen um den Fingermittelpunkt bzw. Mauszeiger, der Punkt darunter bleibt stehen.
+- [ ] [Lune] Kamera: Verschieben stoppt am Rand, ein Baum kleiner als das Bild steht mittig.
+- [ ] [Lune] Kamera: Unter 10 px Bewegung ist Tippen, darüber Ziehen, und Ziehen öffnet keine Karte.
+- [ ] [Lune] Kamera: Zentrieren setzt einen Knoten in die Bildmitte, soweit der Rand es erlaubt.
+- [ ] [Lune] Kamera: Knotengröße mal kleinster Zoom ist mindestens 44 px (Tippziel am Handy).
+- [ ] [Lune] `DataCheck` prüft `TreeLayout` (jeder Ast hat eine eindeutige Spalte, gültige Zoomgrenzen) und `pos` (ganze Zahlen, keine Kollision). Eine kaputte Fassung schlägt fehl.
+- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Knopf "Baum" erscheint ab Tutorial-Schritt 3 mit Zähler. Öffnen und Schließen per Knopf, X und Escape.
+- [ ] [Studio] Der Baum zeigt alle Zustände, Silhouetten gestrichelt, Nebel über dem sichtbaren Teil.
+- [ ] [Studio] Tippen öffnet die Karte, Kaufen wirkt sofort (HUD), Nachfolger tauchen auf. Zu wenig Münzen zeigt die Meldung.
+- [ ] [Studio] Tutorial Schritt 3: Der Knopf pulsiert, `collect_rate_1` leuchtet und steht beim Öffnen in der Mitte.
+- [ ] [Studio] Geräte-Simulator (kleines Android quer, iPhone SE): Pinch, Ziehen und Tippen gehen, Ziehen kauft nie, nichts liegt unter dem Roblox-Menü oder der Notch.
+- [ ] [Studio] Echtes schwaches Handy: Öffnen ohne Ruckler, Ziehen flüssig (Fertig, wenn).
+- [ ] [Studio] Nach einem Rejoin zeigt der Baum alle gekauften Knoten.
+
 ## 2.5 Zonen-Freischaltung
 
 - [ ] [Lune] Eine Zone wird frei, sobald ihr `requires`-Knoten (zum Beispiel `collect_milestone_1`) gekauft ist, sonst nicht.
