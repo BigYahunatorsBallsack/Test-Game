@@ -60,6 +60,9 @@
 -- (die ProductIds sind bis zur Anlage im Creator Dashboard 0) und läuft danach durch denselben
 -- Ablauf. Das geht nur mit `allowDebug = true` (der Shop setzt das nur in Studio), und die PurchaseId
 -- bekommt immer das Präfix DEBUG_PREFIX. Der Echtpfad `process` prüft die ProductId unverändert.
+-- `processDebug(userId, datenId, purchaseId)` (Paket 4.4) ist dieselbe Hilfe für Gem-Pakete UND für
+-- registrierte Produkte aus Data/Products mit Handler (zum Beispiel "coin_boost"), gleiche Regeln.
+-- Gamepasses gehen nie über diesen Weg: Sie stehen gar nicht in der Produktliste von Purchases.
 
 local Gems = require("./Gems")
 local Profile = require("./Profile")
@@ -138,6 +141,7 @@ export type Deps = {
 export type Purchases = {
     process: (receipt: any) -> Decision,
     processPack: (userId: number, packId: string, purchaseId: string) -> Decision,
+    processDebug: (userId: number, dataId: string, purchaseId: string) -> Decision,
     register: (productId: string, handler: Handler) -> (),
     missingHandlers: () -> { string },
     forget: (userId: number) -> (),
@@ -713,8 +717,9 @@ function Purchases.new(deps: Deps): Purchases
         return if result == GRANTED then GRANTED else NOT_PROCESSED
     end
 
-    -- Studio-Hilfe: Gem-Paket über die Paket-ID, PurchaseId mit DEBUG_PREFIX. Nur mit allowDebug.
-    function purchases.processPack(userId: number, packId: string, purchaseId: string): Decision
+    -- Gemeinsamer Ablauf der Studio-Hilfen: gesperrt ohne allowDebug, PurchaseId mit DEBUG_PREFIX,
+    -- das Produkt sucht `find` über die ID aus den Daten (nil = unbekannt, der Grund steht in `why`).
+    local function processStudio(userId: number, dataId: string, purchaseId: string, find: (id: string) -> (Product?, string?)): Decision
         if deps.allowDebug ~= true then
             log("Studio-Kauf abgelehnt: die Studio-Hilfe ist auf diesem Server gesperrt")
             return NOT_PROCESSED
@@ -725,9 +730,9 @@ function Purchases.new(deps: Deps): Purchases
                 log(`Studio-Kauf mit ungültiger PlayerId oder PurchaseId ({tostring(userId)}, {tostring(purchaseId)})`)
                 return NOT_PROCESSED
             end
-            local product = if type(packId) == "string" and packIds[packId] then byId[packId] else nil
+            local product, why = find(dataId)
             if product == nil then
-                log(`Studio-Kauf von Spieler {userId}: unbekanntes Gem-Paket "{tostring(packId)}"`)
+                log(`Studio-Kauf von Spieler {userId}: {why or "unbekannt"} "{tostring(dataId)}"`)
                 return NOT_PROCESSED
             end
             return runLocked(userId, fullId :: string, product)
@@ -737,6 +742,33 @@ function Purchases.new(deps: Deps): Purchases
             return NOT_PROCESSED
         end
         return if result == GRANTED then GRANTED else NOT_PROCESSED
+    end
+
+    -- Studio-Hilfe: Gem-Paket über die Paket-ID, PurchaseId mit DEBUG_PREFIX. Nur mit allowDebug.
+    function purchases.processPack(userId: number, packId: string, purchaseId: string): Decision
+        return processStudio(userId, packId, purchaseId, function(id: string): (Product?, string?)
+            if type(id) == "string" and packIds[id] then
+                return byId[id], nil
+            end
+            return nil, "unbekanntes Gem-Paket"
+        end)
+    end
+
+    -- Studio-Hilfe (Paket 4.4): Gem-Paket oder registriertes Produkt aus Data/Products über die ID aus
+    -- den Daten, PurchaseId mit DEBUG_PREFIX, danach derselbe Ablauf wie ein echter Beleg. Nur mit
+    -- allowDebug und nur für Produkte mit Handler. Gamepasses stehen nicht in `byId` und kommen so nie
+    -- durch (ihr Besitz läuft über den Passes-Service, nicht über ProcessReceipt).
+    function purchases.processDebug(userId: number, dataId: string, purchaseId: string): Decision
+        return processStudio(userId, dataId, purchaseId, function(id: string): (Product?, string?)
+            local product = if type(id) == "string" then byId[id] else nil
+            if product == nil then
+                return nil, "unbekanntes Produkt (oder Gamepass)"
+            end
+            if handlers[id] == nil then
+                return nil, "kein Handler für das Produkt"
+            end
+            return product, nil
+        end)
     end
 
     -- Vergisst ausstehende Meldungen eines Spielers (beim Verlassen des Servers).

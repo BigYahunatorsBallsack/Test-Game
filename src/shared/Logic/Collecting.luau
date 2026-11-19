@@ -18,6 +18,11 @@
 -- viel davon wo gesammelt wurde. Verkaufen zahlt jede Sorte mit ihrem eigenen Faktor, an
 -- jedem Stand, und nie mehr als `tank` hergibt (billigste Sorte zuerst). Was in `tank` steht,
 -- aber nicht in `tankMix` (alte Daten, Debug-Werte), zählt zum billigsten Preis.
+--
+-- Gamepasses und Münz-Boost (Paket 4.4): `Options` trägt den Tank-Faktor ("Großer Tank") und den
+-- Münz-Faktor ("2x Münzen" mal Münz-Boost), beide aus Logic/Perks.options. Der Münz-Faktor wirkt
+-- auf pricePerSand, priceOf, tankValue (auch auf Sand ohne Mix-Eintrag) und sell, also auf alles,
+-- was Wind.credit bucht. Ohne Options (oder mit Faktor 1) rechnet alles genau wie vor Paket 4.4.
 
 local BigNum = require("./BigNum")
 local Tools = require("../Data/Tools")
@@ -45,14 +50,31 @@ export type UpdateResult = {
 }
 
 export type Options = {
-    -- Faktor auf die Tankgröße (z. B. Gamepass "Großer Tank", Paket 4.4). Standard 1.
+    -- Faktor auf die Tankgröße (z. B. Gamepass "Großer Tank", Paket 4.4). Standard 1; kaputte Werte
+    -- (kein number, NaN, unendlich, 0 oder negativ) zählen als 1.
     capacityMultiplier: number?,
+    -- Faktor auf alle Münzen aus Verkäufen (Gamepass "2x Münzen" mal Münz-Boost, Paket 4.4).
+    -- Standard 1; kaputte Werte (kein number, NaN, unendlich, 0 oder negativ) zählen als 1.
+    coinMultiplier: number?,
 }
 
 -- Fallback, wenn die Zone im Profil unbekannt ist (sollte nach sanitize nicht vorkommen).
 local FALLBACK_ZONE_ID = "dunes"
 
 local Collecting = {}
+
+-- Faktor aus `options` (Paket 4.4). Kaputte Werte (kein number, NaN, unendlich, 0 oder negativ) zählen
+-- als 1, damit ein Fehler nie Münzen oder Tankplatz vernichtet oder ins Unendliche treibt.
+local function factor(value: any): number
+    if type(value) == "number" and value == value and value > 0 and value < math.huge then
+        return value
+    end
+    return 1
+end
+
+local function coinFactor(options: Options?): number
+    return factor(if options ~= nil then options.coinMultiplier else nil)
+end
 
 -- Das höchste Werkzeug, dessen Knoten der Spieler besitzt. Unbekannte Knoten zählen nicht.
 function Collecting.toolOf(profile: any): Tools.Tool
@@ -70,8 +92,7 @@ end
 -- Faktor aus `options` (zum Beispiel Gamepass "Großer Tank", Paket 4.4).
 function Collecting.capacityOf(profile: any, options: Options?): number
     local base = TreeEffects.of(profile).tankCapacity
-    local multiplier = if options and options.capacityMultiplier then options.capacityMultiplier else 1
-    return math.floor(base * multiplier)
+    return math.floor(base * factor(if options ~= nil then options.capacityMultiplier else nil))
 end
 
 -- Gekaufte Knoten, die der Baum kennt, als Menge (ID -> true) für die Anzeige beim Client.
@@ -94,15 +115,16 @@ function Collecting.zoneOf(profile: any): Zones.Zone
 end
 
 -- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1)
--- mal Sammlungsbonus (Paket 2.6). Boni aus Windkristallen, Freunden und Boosts kommen mit ihren
--- Paketen dazu.
-function Collecting.pricePerSand(profile: any): number
+-- mal Sammlungsbonus (Paket 2.6) mal Windkristalle (Paket 2.7) mal Münz-Faktor aus `options`
+-- (Gamepass "2x Münzen" und Münz-Boost, Paket 4.4). Freunde-Bonus folgt mit seinem Paket.
+function Collecting.pricePerSand(profile: any, options: Options?): number
     local sandType = SandTypes.byId[Collecting.zoneOf(profile).sandTypeId]
     return Economy.baseCoinsPerSand
         * sandType.priceFactor
         * TreeEffects.sellMultiplier(profile)
         * Collection.bonusMultiplier(profile)
         * Wind.multiplier(profile)
+        * coinFactor(options)
 end
 
 -- Alle Schreibzugriffe auf den Tank laufen über addSand und clearTank, damit `tank` und `tankMix`
@@ -117,8 +139,9 @@ local function cheapestFactor(): number
     return if lowest == math.huge then 1 else lowest
 end
 
--- Münzen pro Sand einer bestimmten Sandsorte (Grundpreis mal Faktor der Sorte mal Verkauf-Ast).
-function Collecting.priceOf(profile: any, sandTypeId: string): number
+-- Münzen pro Sand einer bestimmten Sandsorte (Grundpreis mal Faktor der Sorte mal Verkauf-Ast mal
+-- Sammlungsbonus mal Windkristalle mal Münz-Faktor aus `options`).
+function Collecting.priceOf(profile: any, sandTypeId: string, options: Options?): number
     local sandType = SandTypes.byId[sandTypeId]
     if sandType == nil then
         return 0
@@ -128,6 +151,7 @@ function Collecting.priceOf(profile: any, sandTypeId: string): number
         * TreeEffects.sellMultiplier(profile)
         * Collection.bonusMultiplier(profile)
         * Wind.multiplier(profile)
+        * coinFactor(options)
 end
 
 -- Die Sandsorte der aktuellen Zone.
@@ -171,6 +195,14 @@ end
 function Collecting.isFull(profile: any, options: Options?): boolean
     local capacity = BigNum.new(Collecting.capacityOf(profile, options))
     return BigNum.compare(tankOf(profile), capacity) >= 0
+end
+
+-- Ganze Körner, die noch in den Tank passen (dieselbe Rechnung wie in `update`). 0 heißt: Sammeln
+-- würde sofort als "voll" enden, auch wenn der Tank einen Bruchteil unter der Grenze steht. Auto-Dig
+-- (Paket 4.4) prüft damit, ob es starten darf, damit ein Bruchteil kein Melden pro Takt auslöst.
+function Collecting.space(profile: any, options: Options?): number
+    local capacity = Collecting.capacityOf(profile, options)
+    return math.max(math.floor(capacity - math.max(BigNum.toNumber(tankOf(profile)), 0)), 0)
 end
 
 -- Rechnet die Zeit seit dem letzten Aufruf ab. Ändert `state` und `profile.tank`.
@@ -253,8 +285,8 @@ end
 
 -- Münzen, die der Tank jetzt beim Verkauf brächte (ganze Münzen). Jede Sandsorte im Tank wird mit
 -- ihrem eigenen Faktor bezahlt. Ändert nichts. Auch der Sandsturm (Paket 2.7) nutzt das für seine
--- Vorschau, damit Anzeige und Verkauf dieselbe Rechnung haben.
-function Collecting.tankValue(profile: any): BigNum.BigNum
+-- Vorschau, damit Anzeige und Verkauf dieselbe Rechnung haben (mit denselben `options`, Paket 4.4).
+function Collecting.tankValue(profile: any, options: Options?): BigNum.BigNum
     local tank = tankOf(profile)
     if tank.m <= 0 then
         return BigNum.zero()
@@ -281,13 +313,20 @@ function Collecting.tankValue(profile: any): BigNum.BigNum
         local amount = BigNum.deserialize(mix[typeId])
         if amount.m > 0 and remaining.m > 0 then
             local take = BigNum.min(amount, remaining)
-            earned = BigNum.add(earned, BigNum.mulNumber(take, Collecting.priceOf(profile, typeId)))
+            earned = BigNum.add(earned, BigNum.mulNumber(take, Collecting.priceOf(profile, typeId, options)))
             remaining = BigNum.sub(remaining, take)
         end
     end
-    -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis.
+    -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis, mit denselben
+    -- Faktoren wie priceOf (auch dem Münz-Faktor).
     if remaining.m > 0 then
-        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile) * Collection.bonusMultiplier(profile) * Wind.multiplier(profile)))
+        local price = Economy.baseCoinsPerSand
+            * cheapestFactor()
+            * TreeEffects.sellMultiplier(profile)
+            * Collection.bonusMultiplier(profile)
+            * Wind.multiplier(profile)
+            * coinFactor(options)
+        earned = BigNum.add(earned, BigNum.mulNumber(remaining, price))
     end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
     return BigNum.floor(earned)
@@ -295,7 +334,8 @@ end
 
 -- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
 -- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
--- Tank. Ändert profile.coins, profile.runEarned, profile.tank und profile.tankMix.
+-- Tank. Ändert profile.coins, profile.runEarned, profile.tank und profile.tankMix. Der Münz-Faktor aus
+-- `options` (Paket 4.4) steckt im gebuchten Betrag, `runEarned` (Sandsturm) zählt ihn also mit.
 function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
     Collecting.update(state, profile, now, options)
     local tank = tankOf(profile)
@@ -303,7 +343,7 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
         Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
         return nil, nil
     end
-    local earned = Collecting.tankValue(profile)
+    local earned = Collecting.tankValue(profile, options)
     Wind.credit(profile, earned)
     Collecting.clearTank(profile)
     return earned, tank

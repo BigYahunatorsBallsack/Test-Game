@@ -8,7 +8,8 @@
 --     `profile.runEarned` plus der Wert des vollen Tanks (er wird mitgezählt, nichts geht verloren).
 --  3. Zurück geht alles, was zum Lauf gehört: Münzen, Tank, alle Knoten (also Werkzeug), Zonen
 --     und die Einnahmen des Laufs. Es bleiben Sammlung, Skins und Inventar, Gems, Belege,
---     Kaufprotokoll und Ausgaben (Paket 4.1), Pity, Boosts, Daily und Tutorial. Vergebene Knoten
+--     Kaufprotokoll und Ausgaben (Paket 4.1), Pity, Boosts, Gamepasses und Einstellungen (Paket 4.4),
+--     Daily und Tutorial. Vergebene Knoten
 --     (`sandstorm_1`) werden neu vergeben.
 --  4. Die Zonen starten neu: nur das Dünenmeer ist frei, die Ruinenstadt braucht in jedem Lauf den
 --     Knoten `sandstorm_ruins`. So führt jeder Lauf durch alle Zonen und alle Bücher bleiben im Spiel.
@@ -16,6 +17,11 @@
 -- `apply` rechnet zuerst alles aus und schreibt erst dann ins Profil. Es gibt dabei keine Wartezeit,
 -- ein zweiter schneller Aufruf trifft schon auf das zurückgesetzte Profil ("requires") und
 -- schreibt nie ein zweites Mal Kristalle gut.
+--
+-- Gamepasses und Münz-Boost (Paket 4.4): `runTotal`, `preview`, `check` und `apply` nehmen optional
+-- die Collecting.Options des Spielers (Logic/Perks.options) und geben sie an Collecting.tankValue
+-- weiter. So rechnen Vorschau, Sturm und Verkauf den Tank mit demselben Münz-Faktor. Pässe,
+-- Einstellungen und Boost bleiben beim Sturm (KEEP_FIELDS).
 
 local BigNum = require("./BigNum")
 local Collecting = require("./Collecting")
@@ -71,6 +77,8 @@ Sandstorm.KEEP_FIELDS = {
     "purchaseLog",
     "spent",
     "boosts",
+    "passes", -- Gamepass-Besitz (Paket 4.4)
+    "settings", -- Einstellungen, zum Beispiel Auto-Dig (Paket 4.4)
     "daily",
     "tutorial",
     "lastSeen",
@@ -117,15 +125,16 @@ function Sandstorm.earningsFor(crystals: number, data: any?): BigNum.BigNum
     return BigNum.new(10 ^ (logValue - exponent), exponent)
 end
 
--- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks.
-function Sandstorm.runTotal(profile: any): BigNum.BigNum
-    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile))
+-- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks (mit dem
+-- Münz-Faktor aus `options`, wie beim Verkauf).
+function Sandstorm.runTotal(profile: any, options: Collecting.Options?): BigNum.BigNum
+    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile, options))
 end
 
 -- Vorschau für die Anzeige, ändert nichts.
-function Sandstorm.preview(profile: any, data: any?): Preview
+function Sandstorm.preview(profile: any, data: any?, options: Collecting.Options?): Preview
     local cfg = configOf(data)
-    local total = Sandstorm.runTotal(profile)
+    local total = Sandstorm.runTotal(profile, options)
     local held = Wind.crystalsOf(profile)
     -- Gehaltene Kristalle sind nie über der Obergrenze, auch wenn die Tabelle sie später senkt.
     local gain = math.max(math.min(Sandstorm.crystalsFor(total, data), cfg.maxCrystals - held), 0)
@@ -155,13 +164,14 @@ function Sandstorm.preview(profile: any, data: any?): Preview
 end
 
 -- Kann der Spieler den Sturm jetzt auslösen? nil = ja, sonst der Grund.
-function Sandstorm.check(profile: any, data: any?): Reason?
-    return Sandstorm.preview(profile, data).reason
+function Sandstorm.check(profile: any, data: any?, options: Collecting.Options?): Reason?
+    return Sandstorm.preview(profile, data, options).reason
 end
 
 -- Löst den Sturm aus. Gibt das Ergebnis zurück oder (nil, Grund). Ändert `profile` nur bei Erfolg.
-function Sandstorm.apply(profile: any, data: any?): (Result?, Reason?)
-    local view = Sandstorm.preview(profile, data)
+-- `options` wie bei `preview`, damit der Sturm genau die angezeigten Kristalle gibt.
+function Sandstorm.apply(profile: any, data: any?, options: Collecting.Options?): (Result?, Reason?)
+    local view = Sandstorm.preview(profile, data, options)
     if view.reason ~= nil then
         return nil, view.reason
     end

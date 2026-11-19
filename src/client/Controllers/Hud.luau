@@ -15,12 +15,15 @@ local TANK_BAR_EASING = Enum.EasingStyle.Quad
 local TOAST_FADE_SECONDS = 0.25
 local TOAST_VISIBLE_SECONDS = 1.6
 local TOAST_EASING = Enum.EasingStyle.Sine
+-- Countdown des Münz-Boosts (Paket 4.4): so oft wird die Restzeit neu geschrieben
+local BOOST_TICK_SECONDS = 0.5
 
 -- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
 local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
 local TANK_FILL_COLOR = Color3.fromRGB(230, 200, 117)
 local TANK_FULL_COLOR = Color3.fromRGB(220, 120, 60)
 local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
+local PERKS_COLOR = Color3.fromRGB(255, 214, 110) -- Zeile "Pässe und Boost"
 
 local MESSAGES = {
     tankFull = "Tank voll! Ab zum Händlerstand.",
@@ -41,6 +44,25 @@ local Hud = {}
 -- Gespeicherte Zahl {m, e} als Anzeigetext (K, M, B, T, deutsches Komma).
 local function display(value: any): string
     return BigNum.format(BigNum.deserialize(value))
+end
+
+-- Sekunden als "m:ss" oder ab einer Stunde "h:mm:ss".
+local function clockText(seconds: number): string
+    local total = math.max(math.ceil(seconds), 0)
+    local h = total // 3600
+    local m = (total % 3600) // 60
+    local sec = total % 60
+    if h > 0 then
+        return string.format("%d:%02d:%02d", h, m, sec)
+    end
+    return string.format("%d:%02d", m, sec)
+end
+
+-- Faktor als Text mit deutschem Komma (2 -> "2", 2.5 -> "2,5").
+local function factorText(value: number): string
+    local text = if value % 1 == 0 then tostring(math.floor(value)) else string.format("%.1f", value)
+    local replaced = string.gsub(text, "%.", ",")
+    return replaced
 end
 
 -- Gewöhnliche Zahl (zum Beispiel die Tank-Kapazität) als Anzeigetext.
@@ -115,6 +137,11 @@ function Hud.Start()
     local windLabel = label(gui, "Wind", UDim2.new(), UDim2.new())
     windLabel.Text = ""
 
+    -- Pässe und Boost (Paket 4.4): Auto-Dig, Münz-Faktor und Restzeit des Boosts, nur wenn etwas wirkt
+    local perksLabel = label(gui, "Perks", UDim2.new(), UDim2.new())
+    perksLabel.TextColor3 = PERKS_COLOR
+    perksLabel.Text = ""
+
     local toast = label(gui, "Toast", UDim2.new(), UDim2.new())
     toast.AnchorPoint = Vector2.new(0.5, 0)
     toast.TextXAlignment = Enum.TextXAlignment.Center
@@ -135,6 +162,8 @@ function Hud.Start()
         toolLabel.Size = UDim2.fromOffset(lines.w, lines.h)
         windLabel.Position = UDim2.fromOffset(hud.x + hud.pad, lines.windY)
         windLabel.Size = UDim2.fromOffset(lines.w, lines.h)
+        perksLabel.Position = UDim2.fromOffset(hud.x + hud.pad, lines.perksY)
+        perksLabel.Size = UDim2.fromOffset(lines.w, lines.h)
         toast.Position = UDim2.new(0.5, 0, data.toast.yScale, 0)
         toast.Size = UDim2.fromOffset(data.toast.w, TOAST_HEIGHT)
     end
@@ -143,8 +172,42 @@ function Hud.Start()
 
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
+    -- Zeile "Pässe und Boost". Die Restzeit kommt vom Server (seine Uhr), der Client zählt nur von
+    -- dort lokal herunter, bis der nächste Snapshot kommt.
+    local perks = { autoDig = false, multiplier = 1, boostEndsAt = 0 }
+    local function renderPerks()
+        local parts: { string } = {}
+        if perks.autoDig then
+            table.insert(parts, "Auto-Dig")
+        end
+        if perks.multiplier > 1 then
+            table.insert(parts, `Münzen x{factorText(perks.multiplier)}`)
+        end
+        local left = perks.boostEndsAt - os.clock()
+        if left > 0 then
+            table.insert(parts, `Boost {clockText(left)}`)
+        end
+        perksLabel.Text = table.concat(parts, " · ")
+    end
+    task.spawn(function()
+        while true do
+            task.wait(BOOST_TICK_SECONDS)
+            if perks.boostEndsAt > 0 then
+                renderPerks()
+                if perks.boostEndsAt <= os.clock() then
+                    perks.boostEndsAt = 0
+                end
+            end
+        end
+    end)
+
     local barTween = TweenInfo.new(TANK_BAR_TWEEN_SECONDS, TANK_BAR_EASING)
     State.onChanged(function(snapshot: any)
+        perks.autoDig = snapshot.autoDigOwned == true and snapshot.autoDig == true
+        perks.multiplier = if type(snapshot.coinMultiplier) == "number" and snapshot.coinMultiplier == snapshot.coinMultiplier then snapshot.coinMultiplier else 1
+        local boostSeconds = if type(snapshot.coinBoostSeconds) == "number" and snapshot.coinBoostSeconds == snapshot.coinBoostSeconds then snapshot.coinBoostSeconds else 0
+        perks.boostEndsAt = if boostSeconds > 0 then os.clock() + boostSeconds else 0
+        renderPerks()
         coinsLabel.Text = `Münzen: {display(snapshot.coins)}`
         local tool = Tools.byId[snapshot.toolId]
         local zone = Zones.byId[snapshot.zoneId]

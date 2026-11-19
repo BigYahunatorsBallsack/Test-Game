@@ -2,6 +2,22 @@
 -- Weitere Produkte (Konzept: "Weitere Produkte"). Preise in Robux.
 -- productId = 0 ist ein Platzhalter bis zur Anlage im Creator Dashboard
 -- (Gamepass-ID bzw. Developer-Product-ID).
+--
+-- Gamepasses (Paket 4.4): `perk` nennt die Wirkung. Der Code kennt Wirkungen nur über `perk`
+-- (Logic/Perks), nie über die Produkt-ID. Jede Wirkung gehört zu genau einem Gamepass (DataCheck).
+-- Die Produkt-ID eines Gamepasses ist zugleich der Schlüssel in `profile.passes` und darf darum
+-- nie umbenannt werden (sonst braucht es einen Schritt in Logic/Migrations).
+--
+-- WICHTIG für Gamepasses (Security-Review 4.4), sonst verlieren zahlende Spieler ihren Pass:
+--  * Eine eingetragene Roblox-Gamepass-ID (`productId` > 0) nie mehr ändern. Der Server fragt beim
+--    Laden UserOwnsGamePassAsync mit genau dieser ID ab; für eine neue ID sagt Roblox bei allen
+--    bisherigen Käufern "nein", und nach dem zweiten "nein" wird der Pass aus dem Spielstand entfernt.
+--  * Einen Gamepass nicht verkaufen (im Creator Dashboard nicht auf "zum Verkauf"), solange hier
+--    noch `productId = 0` steht: Der Server kann den Kauf dann weder bestätigen noch beim Laden
+--    finden, der Spieler hätte bezahlt und bekäme nichts.
+--  * Einen Gamepass nie aus dieser Liste löschen (auch nicht, wenn er nicht mehr verkauft wird).
+--    Profile.sanitize behält in `profile.passes` nur bekannte Gamepass-IDs und würde den Pass bei
+--    allen Spielern beim nächsten Laden löschen. Nicht mehr verkaufen geht im Creator Dashboard.
 
 export type Product = {
     id: string,
@@ -13,6 +29,7 @@ export type Product = {
     oneTime: boolean, -- nur einmal kaufbar
     consumable: boolean, -- wird verbraucht
     effect: string, -- Wirkung (Kurzbeschreibung)
+    perk: ("doubleCoins" | "autoDig" | "bigTank")?, -- nur Gamepasses: Wirkung im Code (Paket 4.4)
 }
 
 local list: { Product } = {
@@ -38,6 +55,7 @@ local list: { Product } = {
         oneTime = true,
         consumable = false,
         effect = "Doppelte Münzen aus allen Verkäufen",
+        perk = "doubleCoins",
     },
     {
         id = "auto_dig",
@@ -48,8 +66,10 @@ local list: { Product } = {
         productId = 0,
         oneTime = true,
         consumable = false,
-        effect = "Das Werkzeug sammelt automatisch, solange du im Spiel bist. "
-            .. "Die Offline-Grenze steigt von 4 auf 12 Stunden",
+        -- Die Offline-Grenze von 12 statt 4 Stunden kommt erst mit dem Offline-Ertrag (Paket 5.3), bis dahin
+        -- verspricht der Text sie nicht (docs/balance/passes_4_4.md).
+        effect = "Das Werkzeug sammelt automatisch, solange du im Spiel bist",
+        perk = "autoDig",
     },
     {
         id = "big_tank",
@@ -61,6 +81,7 @@ local list: { Product } = {
         oneTime = true,
         consumable = false,
         effect = "Mehr Platz, seltener zum Händler laufen",
+        perk = "bigTank",
     },
     {
         id = "season_pass",
@@ -82,7 +103,7 @@ local list: { Product } = {
         productId = 0,
         oneTime = false,
         consumable = true,
-        effect = "30 Minuten doppelte Münzen",
+        effect = "30 Minuten doppelte Münzen, läuft in Echtzeit",
     },
     {
         id = "skins_direct",

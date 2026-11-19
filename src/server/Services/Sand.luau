@@ -8,6 +8,14 @@
 -- Händlerstand: Teile mit dem Tag World.sellStand.tag. Liegt keiner im Workspace, legt der
 -- Server einen Platzhalter an (bis die Welt der ersten Zone steht, Phase 3). Verkaufen geht
 -- nur in World.sellStand.rangeStuds um die Mitte eines Stands, das prüft der Server.
+--
+-- Gamepasses und Münz-Boost (Paket 4.4): `Sand.optionsFor(player)` liefert die Faktoren aus
+-- Logic/Perks.options (Tank: "Großer Tank", Münzen: "2x Münzen" mal Münz-Boost, Unix-Zeit os.time).
+-- Jeder Collecting-Aufruf hier bekommt diese Options, ebenso die Sandsturm-Vorschau im Snapshot;
+-- Upgrades gibt sie an Sandstorm.apply weiter. Auto-Dig läuft im Takt (tickPlayer): Mit Pass und
+-- Einstellung an startet der Server das Halten selbst und erneuert die Frist bei jedem Takt
+-- (Entscheidung in Perks.autoDigStep); ein SetCollecting(false) vom Client stoppt es nicht. Ohne Pass
+-- oder mit Schalter aus bleibt alles wie vor Paket 4.4.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -40,6 +48,8 @@ local Tutorial = loadShared("Logic", "Tutorial")
 local Collection = loadShared("Logic", "Collection")
 local Wind = loadShared("Logic", "Wind")
 local Sandstorm = loadShared("Logic", "Sandstorm")
+local Perks = loadShared("Logic", "Perks")
+local Passes = loadShared("Logic", "Passes")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -50,9 +60,35 @@ local Sand = {}
 local states: { [Player]: any } = {}
 -- War der Charakter bei der letzten Positionsprobe (tick) in Reichweite eines Stands?
 local wasNearStand: { [Player]: boolean } = {}
+-- Auto-Dig (Paket 4.4) je Spieler: Merker aus Perks.collectTick (war es im letzten Takt aktiv, ist
+-- "Tank voll" für die aktuelle Füllung schon gemeldet?). Nur im Speicher, nicht gespeichert.
+local autoDig: { [Player]: any } = {}
+-- Münz-Faktor im zuletzt gesendeten Zustand: Läuft der Münz-Boost ab, sendet der Takt neu, damit die
+-- Anzeige (pricePerSand, coinMultiplier) nicht veraltet.
+local sentCoinMultiplier: { [Player]: number } = {}
 
 local function now(): number
     return os.clock()
+end
+
+-- Unix-Zeit für den Münz-Boost (echte Zeit, auch offline, Paket 4.4). Die Sammel-Uhr bleibt os.clock.
+local function unixNow(): number
+    return os.time()
+end
+
+-- Collecting.Options des Profils (Paket 4.4): Tank- und Münz-Faktor aus Pässen und Boost.
+local function optionsOf(profile: any): any
+    return Perks.options(profile, unixNow())
+end
+
+-- Faktoren für Sammeln, Tank, Verkauf und Sandsturm des Spielers (Paket 4.4). Ohne Profil: keine
+-- Faktoren (leere Options, wie vor 4.4). Andere Services (Upgrades beim Sandsturm) nutzen das.
+function Sand.optionsFor(player: Player): any
+    local profile = PlayerData.get(player)
+    if profile == nil then
+        return {}
+    end
+    return optionsOf(profile)
 end
 
 local function stateOf(player: Player): any
@@ -69,7 +105,8 @@ end
 function Sand.settle(player: Player)
     local profile = PlayerData.get(player)
     if profile ~= nil then
-        Collecting.update(stateOf(player), profile, now())
+        -- Mit den Faktoren VOR der Änderung (alter Tank), der Aufrufer schreibt erst danach.
+        Collecting.update(stateOf(player), profile, now(), optionsOf(profile))
     end
 end
 
@@ -116,16 +153,18 @@ function Sand.snapshot(player: Player): any?
     local state = stateOf(player)
     local zone = Collecting.zoneOf(profile)
     local effects = TreeEffects.of(profile)
+    local unix = unixNow()
+    local options = Perks.options(profile, unix)
     local snapshot: any = {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
         gems = profile.gems, -- Gems (Paket 4.1)
         tank = BigNum.serialize(BigNum.deserialize(profile.tank)),
-        capacity = Collecting.capacityOf(profile),
+        capacity = Collecting.capacityOf(profile, options), -- mit "Großer Tank" (Paket 4.4)
         rate = Collecting.rateOf(profile),
         toolId = Collecting.toolOf(profile).id,
         collecting = state.holding,
         zoneId = zone.id,
-        pricePerSand = Collecting.pricePerSand(profile),
+        pricePerSand = Collecting.pricePerSand(profile, options), -- mit Münz-Faktor (Paket 4.4)
         nodes = Collecting.ownedNodes(profile),
         zonesUnlocked = Zones.unlockedMap(profile),
         sellBonusBp = effects.sellBonusBp,
@@ -133,10 +172,17 @@ function Sand.snapshot(player: Player): any?
         collectionBonusBp = Collection.bonusBp(profile), -- Summe der fertigen Sets (Paket 2.6)
         windCrystals = Wind.crystalsOf(profile), -- Sandsturm (Paket 2.7)
         windBonusBp = Wind.bonusBp(profile),
-        storm = Sandstorm.preview(profile), -- Vorschau für Knopf und Fenster
+        storm = Sandstorm.preview(profile, nil, options), -- Vorschau für Knopf und Fenster
         tutorialStep = Tutorial.stepOf(profile),
         pity = pityOf(profile), -- Kisten-Pity je Kiste (Paket 4.2)
+        -- Gamepasses und Münz-Boost (Paket 4.4), fester Vertrag mit der Client-Oberfläche:
+        passes = Passes.owned(profile), -- Kopie { [passId] = true }, nur bekannte Pässe
+        autoDig = Perks.autoDigSetting(profile), -- Einstellung (auch ohne Pass)
+        autoDigOwned = Perks.owns(profile, "autoDig"), -- Pass "Auto-Dig" vorhanden
+        coinMultiplier = options.coinMultiplier, -- Münz-Faktor jetzt (Pass mal Boost)
+        coinBoostSeconds = Perks.coinBoostSeconds(profile, unix), -- Restsekunden, Server-Uhr
     }
+    sentCoinMultiplier[player] = options.coinMultiplier
     for _, provider in snapshotProviders do
         -- Ein Provider darf nicht warten und nicht werfen: Koroutine, bei Yield schließen.
         local co = coroutine.create(provider)
@@ -223,7 +269,7 @@ function Sand.setZone(player: Player, zoneId: string): boolean
     if profile == nil or not Zones.isUnlocked(profile, zoneId) then
         return false
     end
-    Collecting.setZone(stateOf(player), profile, zoneId, now())
+    Collecting.setZone(stateOf(player), profile, zoneId, now(), optionsOf(profile))
     sync(player)
     return true
 end
@@ -272,7 +318,10 @@ local function onSetCollecting(player: Player, holding: boolean)
     end
     local state = stateOf(player)
     local wasHolding = state.holding
-    local result = Collecting.setHolding(state, profile, holding and canCollect(player), now())
+    local options = optionsOf(profile)
+    -- Auto-Dig (Paket 4.4): Solange es aktiv ist, stoppt ein Loslassen der Taste das Sammeln nicht.
+    local wanted = Perks.wantsCollecting(holding, Perks.autoDigActive(profile))
+    local result = Collecting.setHolding(state, profile, wanted and canCollect(player), now(), options)
     if result.full and holding then
         notify(player, { kind = "tankFull" })
     end
@@ -292,7 +341,7 @@ local function onSell(player: Player)
         notify(player, { kind = "sellTooFar" })
         return
     end
-    local earned, sold = Collecting.sell(stateOf(player), profile, now())
+    local earned, sold = Collecting.sell(stateOf(player), profile, now(), optionsOf(profile))
     if earned == nil then
         notify(player, { kind = "tankEmpty" })
     else
@@ -358,29 +407,32 @@ local function setupSellStands()
     end)
 end
 
--- Ein Spieler pro Tick: Position proben, laufendes Sammeln abrechnen, Änderungen senden.
+-- Ein Spieler pro Tick: Position proben, laufendes Sammeln abrechnen, Auto-Dig, Änderungen senden.
 local function tickPlayer(player: Player, state: any, t: number)
-    wasNearStand[player] = nearSellStand(player)
-    if not state.holding then
-        return
-    end
+    local near = nearSellStand(player)
+    wasNearStand[player] = near
     local profile = PlayerData.get(player)
     if profile == nil then
         state.holding = false
         return
     end
-    if not canCollect(player) then
-        -- Gestorben oder zum Stand gegangen: bis jetzt abrechnen, dann stoppen.
-        Collecting.setHolding(state, profile, false, t)
-        sync(player)
-        return
-    end
-    local result = Collecting.update(state, profile, t)
-    if result.full then
+    local options = optionsOf(profile)
+    -- Abrechnen und Auto-Dig in einem reinen Schritt (Logic/Perks.collectTick, Lune-Tests).
+    -- Wie canCollect, mit der Standprobe von eben (lebender Charakter, nicht am Stand).
+    local collect = aliveRoot(player) ~= nil and not near
+    local result = Perks.collectTick(state, profile, t, options, collect, autoDig[player])
+    autoDig[player] = result.memory
+    if result.notifyFull then
         notify(player, { kind = "tankFull" })
     end
     local tutorialChanged = result.added > 0 and Tutorial.evaluate(profile)
-    if result.added > 0 or tutorialChanged or not state.holding then
+    local changed = result.changed or tutorialChanged
+    -- Münz-Boost abgelaufen (oder neu gültig): Zustand neu senden, damit der Preis stimmt.
+    local sent = sentCoinMultiplier[player]
+    if sent ~= nil and sent ~= options.coinMultiplier then
+        changed = true
+    end
+    if changed then
         sync(player)
     end
 end
@@ -407,6 +459,7 @@ function Sand.Start()
 
     PlayerData.onLoaded(function(player: Player, profile: any)
         states[player] = Collecting.newState(now())
+        autoDig[player] = nil
         -- Zonen, deren Knoten schon gekauft sind (alte Spielstände), still freischalten.
         Zones.unlockNew(profile)
         if not Zones.isUnlocked(profile, profile.currentZone) then
@@ -417,6 +470,8 @@ function Sand.Start()
     Players.PlayerRemoving:Connect(function(player: Player)
         states[player] = nil
         wasNearStand[player] = nil
+        autoDig[player] = nil
+        sentCoinMultiplier[player] = nil
     end)
 
     task.spawn(function()

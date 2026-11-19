@@ -69,7 +69,10 @@ local function onPrestige(player: Player): any
     if not settled then
         warn(`[Upgrades] Abrechnung vor dem Sandsturm fehlgeschlagen: {tostring(settleErr)}`)
     end
-    local result, reason = Sandstorm.apply(profile)
+    -- Mit den Faktoren des Spielers (Paket 4.4: "2x Münzen" und Münz-Boost auf den Tankwert), damit der
+    -- Sturm genau die Kristalle gibt, die die Vorschau im StateSync zeigt.
+    local options = Sand.optionsFor(player)
+    local result, reason = Sandstorm.apply(profile, nil, options)
     if result == nil then
         return { ok = false, reason = reason }
     end

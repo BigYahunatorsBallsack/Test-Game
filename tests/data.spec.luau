@@ -710,4 +710,65 @@ T.describe("Kisten-Items mit Wirkung und Aussehen (4.3)", function()
     end)
 end)
 
+T.describe("Gamepasses und Münz-Boost (4.4)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("jeder Gamepass hat eine bekannte Wirkung, jede Wirkung genau einmal, Faktoren größer als 1", function()
+        local perks: { [string]: number } = {}
+        for _, product in Products.list do
+            if product.kind == "gamepass" then
+                T.expect(type(product.perk)).toBe("string")
+                local perk = product.perk :: string
+                perks[perk] = (perks[perk] or 0) + 1
+            else
+                T.expect(product.perk).toBeNil()
+            end
+        end
+        T.expect(perks).toEqual({ doubleCoins = 1, autoDig = 1, bigTank = 1 })
+        T.expect(Economy.doubleCoinsMultiplier > 1).toBe(true)
+        T.expect(Economy.bigTankMultiplier > 1).toBe(true)
+        T.expect(Economy.coinBoost.multiplier > 1).toBe(true)
+        T.expect(Products.byId.coin_boost.kind).toBe("developerProduct")
+        T.expect(Products.byId.coin_boost.consumable).toBe(true)
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("DataCheck meldet Gamepasses ohne oder mit unbekannter Wirkung und doppelte Wirkungen", function()
+        expectError(broken(function(d) d.Products.byId.big_tank.perk = nil end), 'Products "big_tank": Gamepass ohne bekannte Wirkung')
+        expectError(broken(function(d) d.Products.byId.big_tank.perk = "tripleTank" end), 'perk "tripleTank"')
+        expectError(broken(function(d) d.Products.byId.big_tank.perk = "doubleCoins" end), 'Wirkung "doubleCoins" muss genau einem Gamepass gehören (gefunden: 2)')
+        expectError(broken(function(d) d.Products.byId.big_tank.perk = "doubleCoins" end), 'Wirkung "bigTank" muss genau einem Gamepass gehören (gefunden: 0)')
+        expectError(broken(function(d) d.Products.byId.season_pass.perk = "autoDig" end), 'Products "season_pass": perk gibt es nur bei Gamepasses')
+    end)
+
+    T.it("DataCheck meldet Faktoren, die nicht endlich und größer als 1 sind", function()
+        for _, bad in { 1, 0.5, 0, -2, 0 / 0, math.huge } do
+            expectError(broken(function(d) d.Economy.doubleCoinsMultiplier = bad end), "Economy.doubleCoinsMultiplier muss endlich und größer als 1 sein")
+            expectError(broken(function(d) d.Economy.bigTankMultiplier = bad end), "Economy.bigTankMultiplier muss endlich und größer als 1 sein")
+            expectError(broken(function(d) d.Economy.coinBoost.multiplier = bad end), "Economy.coinBoost.multiplier muss endlich und größer als 1 sein")
+        end
+        expectError(broken(function(d) d.Economy.doubleCoinsMultiplier = nil end), "doubleCoinsMultiplier")
+        expectError(broken(function(d) d.Economy.coinBoost = nil end), "Economy.coinBoost")
+        expectError(broken(function(d) d.Economy.coinBoost.durationSeconds = 0 end), "Economy.coinBoost")
+    end)
+
+    T.it("DataCheck verlangt den Münz-Boost als Developer Product und Verbrauchsprodukt", function()
+        expectError(broken(function(d) d.Products.byId.coin_boost.consumable = false end), 'Products "coin_boost": muss ein Developer Product und ein Verbrauchsprodukt sein')
+        expectError(broken(function(d) d.Products.byId.coin_boost.kind = "gamepass"; d.Products.byId.coin_boost.perk = nil end), 'Products "coin_boost": muss ein Developer Product')
+        expectError(broken(function(d)
+            d.Products.byId.coin_boost = nil
+            for index, product in d.Products.list do
+                if product.id == "coin_boost" then
+                    table.remove(d.Products.list, index)
+                    break
+                end
+            end
+        end), 'Products: "coin_boost" (Münz-Boost) fehlt')
+    end)
+end)
+
 T.finish()

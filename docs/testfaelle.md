@@ -438,6 +438,29 @@ Tests: tests/equipment.spec.luau, tests/data.spec.luau, tests/remotespec.spec.lu
 - [ ] [Studio] Rejoin und Sandsturm: Ausrüstung und Sterne bleiben.
 - [ ] [Studio] Handy: Das Ausrüstungs-Fenster ist mit dem Daumen bedienbar.
 
+## 4.4 Gamepasses (2x Münzen, Auto-Dig, Großer Tank) und Münz-Boost
+
+Tests: tests/perks.spec.luau, tests/passes.spec.luau, tests/data.spec.luau, tests/remotespec.spec.luau. Plan: Claude-Dokument "Paket 4.4: Gamepasses und Boosts, Plan". Fertig, wenn: Besitz wird auf dem Server geprüft und wirkt nach Neustart.
+
+- [x] [Lune] Ohne Pässe und Boost sind Tank-Faktor und Münz-Faktor genau 1; Rechnungen bleiben wie vor 4.4.
+- [x] [Lune] "Großer Tank": `capacityOf` verdoppelt die Tankgröße (`Economy.bigTankMultiplier`), auch für Vollmeldung und Sammelstopp.
+- [x] [Lune] "2x Münzen": Preis pro Sand, Tankwert, Verkauf und Sandsturm-Vorschau rechnen alle mit demselben Faktor.
+- [x] [Lune] Münz-Boost: wirkt nur vor `coinsUntil` (Server-Uhr), danach Faktor 1; Pass und Boost zusammen nach der freigegebenen Regel.
+- [x] [Lune] Boost verlängern: abgelaufen ergibt jetzt + 30 min, laufend ergibt alte Endzeit + 30 min; kaputte Werte (NaN, negativ, unendlich) zählen als abgelaufen.
+- [x] [Lune] Kauf "coin_boost" über ProcessReceipt: Gutschrift nur über `boosts`, keine Gems; derselbe Beleg zweimal verlängert nur einmal; ProductId 0 kommt nie durch.
+- [x] [Lune] Gamepass-Besitz: "ja" der Roblox-Abfrage trägt sofort ein, erst das zweite "nein" in Folge (nach `RECHECK_SECONDS`) entfernt, ein Fehler dazwischen behält den Pass; schlägt die Abfrage fehl, gilt der gemerkte Besitz; in Studio und nach einem bestätigten Kauf entfernt "nein" nie. (Security-Review 4.4)
+- [x] [Lune] Kauf-Ereignis: trägt nur nach einer bestätigten Abfrage ein ("nein", Fehler oder gefälschtes `wasPurchased` ändern nichts); Spam startet je Spieler und Pass keine parallelen Prüfungen; schon eingetragen, unbekannte ID und ID 0 fragen nicht ab; abwesende Spieler werden nicht gemerkt; Profil noch nicht geladen: erst nach der Bestätigung gemerkt, beim Laden eingetragen; ohne Abfrage nur in Studio. (Security-Review 4.4)
+- [x] [Lune] Kaputter Tank-Faktor (NaN, unendlich, 0, negativ, kein number) zählt in `capacityOf` als 1. (Security-Review 4.4)
+- [x] [Lune] Migration 5 → 6 legt `passes` und `settings.autoDig` an; `sanitize` entfernt unbekannte Pass-IDs und Werte außer `true`; Speichern, Laden und Sandsturm behalten Pässe, Einstellung und Boost.
+- [x] [Lune] Auto-Dig: sammelt ohne Taste, wenn der Pass da ist, die Einstellung an ist, der Charakter sammeln darf und der Tank nicht voll ist; stoppt bei vollem Tank, läuft nach dem Verkauf weiter; ohne Pass ändert sich nichts.
+- [x] [Lune] Remote `SetAutoDig`: nur ein Boolean, Limit 2 pro Sekunde; ohne Pass wird nur die Einstellung gespeichert, es wird nichts gesammelt.
+- [x] [Lune] DataCheck: jeder Gamepass in `Products` hat eine bekannte Wirkung, Faktoren sind größer als 1, `coin_boost` hat einen Handler.
+- [ ] [Studio] `DebugPass` "big_tank": Tankgröße verdoppelt sich sofort und nach Rejoin.
+- [ ] [Studio] `DebugPass` "double_coins": Verkauf bringt doppelt so viele Münzen, der HUD-Preis zeigt es.
+- [ ] [Studio] `DebugPurchase` "coin_boost": Countdown 30:00 erscheint, Verkauf doppelt; derselbe feste Beleg zweimal verlängert nur einmal.
+- [ ] [Studio] `DebugPass` "auto_dig": Sammeln läuft ohne Taste, stoppt bei vollem Tank, läuft nach dem Verkauf weiter; Schalter aus stoppt es.
+- [ ] [Studio] Mit echten IDs: Testkauf eines Gamepasses wirkt sofort, nach Rejoin und auf einem neuen Server (Live-Test). Im Live-Spiel erscheint im Server-Log "eingetragen (Kauf, von Roblox bestätigt)"; ein Exploit-Aufruf von `SignalPromptGamePassPurchaseFinished` mit einer echten ID ohne Kauf trägt nichts ein.
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.

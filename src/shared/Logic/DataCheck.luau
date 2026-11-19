@@ -4,6 +4,7 @@
 -- (z. B. absichtlich kaputte) Fassung. Der Server ruft die Prüfung beim Start auf.
 
 local TreeLayout = require("./TreeLayout")
+local Perks = require("./Perks")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -818,6 +819,60 @@ end
 -- Gamepasses) und Gamepasses haben bei Roblox getrennte Nummernkreise und werden getrennt geprüft.
 -- Außerdem darf keine Produkt-ID (`id`) in GemPacks und Products zugleich stehen: Purchases findet
 -- Handler und Studio-Käufe über diese ID (doppelte innerhalb einer Tabelle meldet checkIds).
+-- Gamepasses und Münz-Boost (Paket 4.4): Jeder Gamepass hat eine bekannte Wirkung (`perk`, siehe
+-- Logic/Perks.PERK_IDS), jede Wirkung gehört zu genau einem Gamepass, andere Produkte haben keine.
+-- Die Faktoren (2x Münzen, Großer Tank, Münz-Boost) sind endlich und größer als 1. Der Münz-Boost
+-- ist ein Developer Product und ein Verbrauchsprodukt (sonst käme er nicht über ProcessReceipt bzw.
+-- ließe sich nur einmal kaufen). Ob er einen Handler hat, prüft Shop.AfterStart (missingHandlers).
+local function checkPerks(errors: { string }, data: DataSet)
+    local products = data.Products
+    if type(products) ~= "table" or not isList(products.list) then
+        return -- checkProducts meldet die fehlende Tabelle
+    end
+    local known: { [string]: boolean } = {}
+    local count: { [string]: number } = {}
+    for _, perk in Perks.PERK_IDS do
+        known[perk] = true
+        count[perk] = 0
+    end
+    for _, product in products.list do
+        local label = `Products "{tostring(product.id)}"`
+        if product.kind == "gamepass" then
+            if type(product.perk) ~= "string" or not known[product.perk] then
+                table.insert(errors, `{label}: Gamepass ohne bekannte Wirkung (perk "{tostring(product.perk)}")`)
+            else
+                count[product.perk] += 1
+            end
+        elseif product.perk ~= nil then
+            table.insert(errors, `{label}: perk gibt es nur bei Gamepasses`)
+        end
+    end
+    for _, perk in Perks.PERK_IDS do
+        if count[perk] ~= 1 then
+            table.insert(errors, `Products: Wirkung "{perk}" muss genau einem Gamepass gehören (gefunden: {count[perk]})`)
+        end
+    end
+    local boost = if type(products.byId) == "table" then products.byId[Perks.COIN_BOOST_PRODUCT_ID] else nil
+    if type(boost) ~= "table" then
+        table.insert(errors, `Products: "{Perks.COIN_BOOST_PRODUCT_ID}" (Münz-Boost) fehlt`)
+    elseif boost.kind ~= "developerProduct" or boost.consumable ~= true then
+        table.insert(errors, `Products "{Perks.COIN_BOOST_PRODUCT_ID}": muss ein Developer Product und ein Verbrauchsprodukt sein`)
+    end
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    for _, key in { "doubleCoinsMultiplier", "bigTankMultiplier" } do
+        if not isFinite(economy[key]) or economy[key] <= 1 then
+            table.insert(errors, `Economy.{key} muss endlich und größer als 1 sein`)
+        end
+    end
+    local coinBoost = economy.coinBoost
+    if type(coinBoost) ~= "table" or not isFinite(coinBoost.multiplier) or coinBoost.multiplier <= 1 then
+        table.insert(errors, "Economy.coinBoost.multiplier muss endlich und größer als 1 sein")
+    end
+end
+
 local function checkProductIds(errors: { string }, data: DataSet)
     local packIds: { [string]: boolean } = {}
     local packList = data.GemPacks
@@ -1002,9 +1057,7 @@ local function checkEconomy(errors: { string }, data: DataSet)
     if type(collecting) ~= "table" or not isFinite(collecting.holdRefreshSeconds) or not isFinite(collecting.holdTimeoutSeconds) or collecting.holdRefreshSeconds <= 0 or collecting.holdTimeoutSeconds <= collecting.holdRefreshSeconds then
         table.insert(errors, "Economy.collecting: holdTimeoutSeconds muss größer als holdRefreshSeconds (> 0) sein")
     end
-    if not isFinite(economy.bigTankMultiplier) or economy.bigTankMultiplier <= 1 then
-        table.insert(errors, "Economy.bigTankMultiplier muss größer als 1 sein")
-    end
+    -- bigTankMultiplier und doubleCoinsMultiplier prüft checkPerks (Paket 4.4).
     local findOdds = data.FindOdds
     if type(findOdds) ~= "table" then
         table.insert(errors, "FindOdds: Tabelle fehlt")
@@ -2234,6 +2287,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkZones(errors, data)
     checkGemPacks(errors, data)
     checkProducts(errors, data)
+    checkPerks(errors, data)
     checkProductIds(errors, data)
     checkFinds(errors, data)
     checkCollection(errors, data)

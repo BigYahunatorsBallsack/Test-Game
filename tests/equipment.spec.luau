@@ -309,7 +309,7 @@ T.describe("Spielstand: Migration, sanitize, Speichern, Sandsturm", function()
         local migrated, status = Profile.migrate(v4Profile(), nil, NOW)
         local profile: any = migrated
         T.expect(status).toBe("ok")
-        T.expect(profile.version).toBe(5)
+        T.expect(profile.version).toBe(Profile.CURRENT_VERSION) -- 5 seit Paket 4.3, danach weiter bis zur aktuellen
         T.expect(profile.equipped).toEqual({ skin = "", companion = "", toolVariant = "" })
         T.expect(profile.itemStars).toEqual({})
         T.expect(profile.inventory.skins[SKIN]).toBe(3)

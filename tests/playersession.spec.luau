@@ -112,6 +112,9 @@ T.describe("PlayerSession", function()
             [4] = function(p: any) -- Paket 4.3: nur die Version zählt hier
                 return p
             end,
+            [5] = function(p: any) -- Paket 4.4: nur die Version zählt hier
+                return p
+            end,
         }
         local h = newHarness(world, "A", steps)
         local profile: any = h.manager.load(USER, present)
@@ -119,7 +122,8 @@ T.describe("PlayerSession", function()
         T.expect(profile.gems).toBe(77)
         h.manager.release(USER)
         T.expect(world.saved[KEY].version).toBe(Profile.CURRENT_VERSION)
-        T.expect(world.saved[KEY].settings).toEqual({ music = true })
+        -- Fehlende Felder werden tief aufgefüllt: settings.autoDig kommt seit Paket 4.4 aus dem Standardprofil.
+        T.expect(world.saved[KEY].settings).toEqual({ music = true, autoDig = true })
     end)
 
     T.it("zu neues Profil: Spieler wird entfernt, gespeicherte Daten bleiben unverändert", function()
