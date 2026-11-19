@@ -102,6 +102,15 @@ T.describe("Tippen oder Ziehen", function()
         T.expect(TreeCamera.isTap(200)).toBe(false)
     end)
 
+    T.it("am Touch-Gerät gilt die größere Toleranz (Paket 3.6)", function()
+        T.expect(Config.tapMaxMovePixelsTouch >= Config.tapMaxMovePixels).toBe(true)
+        T.expect(TreeCamera.isTap(Config.tapMaxMovePixelsTouch - 0.1, nil, true)).toBe(true)
+        T.expect(TreeCamera.isTap(Config.tapMaxMovePixelsTouch, nil, true)).toBe(false)
+        T.expect(TreeCamera.isTap(Config.tapMaxMovePixels, nil, true)).toBe(true) -- mit Maus wäre das schon Ziehen
+        T.expect(TreeCamera.isTap(Config.tapMaxMovePixels, nil, false)).toBe(false)
+        T.expect(TreeCamera.isTap(Config.tapMaxMovePixels, nil, nil)).toBe(false)
+    end)
+
     T.it("der Treffer liegt auf dem Knoten, nicht daneben, und überlappende Knoten werden nach Abstand getrennt", function()
         local positions: { [string]: TreeCamera.Point } = {}
         for id, placement in layout.nodes do
@@ -145,6 +154,17 @@ T.describe("Zentrieren", function()
 end)
 
 T.describe("Antippbare Größe", function()
+    T.it("Start-Zoom am kleinen Bildschirm liegt zwischen den Grenzen und zeigt mehr vom Baum (Paket 3.6)", function()
+        local compact = TreeCamera.startZoom(true)
+        T.expect(compact >= Config.zoom.min and compact <= Config.zoom.max).toBe(true)
+        T.expect(compact < TreeCamera.startZoom(false)).toBe(true)
+        T.expect(TreeCamera.startZoom(false)).toBe(Config.zoom.start)
+        T.expect(TreeCamera.nodePixels(compact) >= Config.minTouchPixels).toBe(true)
+        -- Ohne startCompact in den Daten fällt er auf den normalen Start zurück.
+        local noCompact = { zoom = { min = 0.5, max = 2, start = 1 }, nodeSize = 72 }
+        T.expect(TreeCamera.startZoom(true, noCompact)).toBe(1)
+    end)
+
     T.it("Knotengröße mal kleinster Zoom ist mindestens 44 px", function()
         T.expect(TreeCamera.nodePixels(Config.zoom.min) >= Config.minTouchPixels).toBe(true)
         T.expect(TreeCamera.nodePixels(Config.zoom.min) >= 44).toBe(true)

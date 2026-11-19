@@ -1,29 +1,26 @@
 --!strict
--- CollectionBook-Controller (Paket 2.6)
--- Sammlungsbuch: Knopf "Sammlung" unten links (neben "Zonen"), Reiter je Zone, je Zone 6 Sets mit
+-- CollectionBook-Controller (Paket 2.6, Handy-Durchgang 3.6)
+-- Sammlungsbuch: Knopf "Sammlung" in der Menüleiste (Controllers/Screen), Reiter je Zone (44 px hoch,
+-- seitlich scrollbar), Fundnamen umbrechen auf zwei Zeilen, je Zone 6 Sets mit
 -- 5 Slots. Ein gefundener Slot zeigt den Namen in der Farbe seiner Seltenheit, ein fehlender ein
 -- "?" mit dem Rand seiner Seltenheit, damit man sieht, was noch fehlt. Je Set steht der Bonus,
 -- oben der Gesamtbonus, unten die Belohnung des Zonenbuchs. Alle Werte kommen vom Server
 -- (CollectionSync über State), der Client rechnet nichts Maßgebliches.
 --
--- Das Fenster passt sich der Bildschirmbreite an (Größe in Anteilen, mit Obergrenze).
+-- Das Fenster passt sich dem Bildschirm an (Controllers/Screen, Art "wide"), die Sets scrollen.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 -- Darstellung
-local BUTTON_POSITION = UDim2.new(0, 144, 1, -72)
-local BUTTON_SIZE = UDim2.new(0, 140, 0, 48)
-local PANEL_SCALE = Vector2.new(0.92, 0.82)
-local PANEL_MAX_SIZE = Vector2.new(640, 520)
-local PANEL_FADE_SECONDS = 0.18
-local PANEL_EASING = Enum.EasingStyle.Quad
-local TAB_HEIGHT = 36
+local MENU_ORDER = 2 -- Platz in der Menüleiste (nach den Zonen)
+local TAB_WIDTH = 112
+local TAB_GAP = 6
+local FOOTER_HEIGHT = 58
 local SET_ROW_HEIGHT = 78
-local SET_ROW_GAP = 8
 local SLOT_GAP = 6
-local DIM_TRANSPARENCY = 0.55
+local SLOT_MIN_TEXT = 11
+local SLOT_MAX_TEXT = 16
+local TAB_SCROLL_MARGIN = 8
 
 -- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
 local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
@@ -44,10 +41,9 @@ local Rarities = loadShared("Data", "Rarities")
 local Zones = loadShared("Data", "Zones")
 local CollectionData = loadShared("Data", "Collection")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local CollectionBook = {}
-
-local player = Players.LocalPlayer
 
 local function percentText(bp: number): string
     local value = bp / 100
@@ -91,86 +87,59 @@ function CollectionBook.Start()
     local layout = buildLayout()
     local selectedZone: string = Zones.list[1].id
 
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "DuneBaronCollection"
-    gui.ResetOnSpawn = false
-    gui.DisplayOrder = 6
+    local controls = Screen.controls()
+    local refresh: () -> () = function() end
+    local window = Screen.createWindow({
+        name = "CollectionWindow",
+        title = "Sammlung",
+        kind = "wide",
+        subHeight = controls.tabH + 4,
+        footerHeight = FOOTER_HEIGHT,
+        onOpen = function()
+            -- Das Buch startet in der aktuellen Zone des Spielers.
+            local snapshot = State.get()
+            if snapshot ~= nil and layout[snapshot.zoneId] ~= nil then
+                selectedZone = snapshot.zoneId
+            end
+            refresh()
+        end,
+    })
+    local openButton = Screen.addMenuButton("CollectionButton", "Sammlung", MENU_ORDER)
 
-    local openButton = Instance.new("TextButton")
-    openButton.Name = "CollectionButton"
-    openButton.Position = BUTTON_POSITION
-    openButton.Size = BUTTON_SIZE
-    openButton.BackgroundColor3 = PANEL_COLOR
-    openButton.BackgroundTransparency = 0.25
-    openButton.Font = Enum.Font.GothamBold
-    openButton.TextColor3 = TEXT_COLOR
-    openButton.TextScaled = true
-    openButton.Text = "Sammlung"
-    openButton.Parent = gui
-    Instance.new("UICorner").Parent = openButton
-
-    local panel = Instance.new("Frame")
-    panel.Name = "Panel"
-    panel.AnchorPoint = Vector2.new(0.5, 0.5)
-    panel.Position = UDim2.fromScale(0.5, 0.5)
-    panel.Size = UDim2.fromScale(PANEL_SCALE.X, PANEL_SCALE.Y)
-    panel.BackgroundColor3 = PANEL_COLOR
-    panel.BackgroundTransparency = 0.1
-    panel.Visible = false
-    panel.Parent = gui
-    Instance.new("UICorner").Parent = panel
-    local constraint = Instance.new("UISizeConstraint")
-    constraint.MaxSize = PANEL_MAX_SIZE
-    constraint.Parent = panel
-
-    local title = newText(panel, UDim2.new(0, 16, 0, 8), UDim2.new(0.5, -24, 0, 30), Enum.Font.GothamBold, TEXT_COLOR, "Sammlung")
-    local bonusLabel = newText(panel, UDim2.new(0.5, 0, 0, 10), UDim2.new(0.5, -64, 0, 26), Enum.Font.GothamBold, DONE_COLOR, "", Enum.TextXAlignment.Right)
-    title.Name = "Title"
+    -- Gesamtbonus und Zonenbuch im festen Fuß, damit sie beim Scrollen der Sets stehen bleiben.
+    local bonusLabel = newText(window.footer, UDim2.new(0, 12, 0, 2), UDim2.new(1, -24, 0, 22), Enum.Font.GothamBold, DONE_COLOR, "")
     bonusLabel.Name = "Bonus"
+    local bookLabel = newText(window.footer, UDim2.new(0, 12, 0, 26), UDim2.new(1, -24, 0, 30), Enum.Font.GothamBold, MUTED_COLOR, "")
+    bookLabel.Name = "Book"
+    bookLabel.TextWrapped = true
 
-    local closeButton = Instance.new("TextButton")
-    closeButton.AnchorPoint = Vector2.new(1, 0)
-    closeButton.Position = UDim2.new(1, -8, 0, 8)
-    closeButton.Size = UDim2.new(0, 40, 0, 32)
-    closeButton.BackgroundColor3 = TAB_COLOR
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.TextColor3 = TEXT_COLOR
-    closeButton.TextScaled = true
-    closeButton.Text = "X"
-    closeButton.Parent = panel
-    Instance.new("UICorner").Parent = closeButton
-
-    -- Reiter je Zone
-    local tabs = Instance.new("Frame")
+    -- Reiter je Zone, seitlich scrollbar
+    local tabs = Instance.new("ScrollingFrame")
+    tabs.Name = "Tabs"
     tabs.BackgroundTransparency = 1
-    tabs.Position = UDim2.new(0, 12, 0, 46)
-    tabs.Size = UDim2.new(1, -24, 0, TAB_HEIGHT)
-    tabs.Parent = panel
+    tabs.BorderSizePixel = 0
+    tabs.Size = UDim2.fromScale(1, 1)
+    tabs.CanvasSize = UDim2.new()
+    tabs.AutomaticCanvasSize = Enum.AutomaticSize.X
+    tabs.ScrollingDirection = Enum.ScrollingDirection.X
+    tabs.ScrollBarThickness = 0
+    tabs.Parent = window.sub
     local tabLayout = Instance.new("UIListLayout")
     tabLayout.FillDirection = Enum.FillDirection.Horizontal
-    tabLayout.Padding = UDim.new(0, 4)
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, TAB_GAP)
     tabLayout.Parent = tabs
 
-    -- Inhalt: Sets als scrollbare Liste
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.Position = UDim2.new(0, 12, 0, 46 + TAB_HEIGHT + 8)
-    scroll.Size = UDim2.new(1, -24, 1, -(46 + TAB_HEIGHT + 8 + 52))
-    scroll.CanvasSize = UDim2.new(0, 0, 0, 6 * (SET_ROW_HEIGHT + SET_ROW_GAP))
-    scroll.ScrollBarThickness = 6
-    scroll.Parent = panel
-
-    local bookLabel = newText(panel, UDim2.new(0, 16, 1, -44), UDim2.new(1, -32, 0, 34), Enum.Font.GothamBold, MUTED_COLOR, "")
-    bookLabel.Name = "Book"
+    local scroll = window.body
 
     local tabButtons: { [string]: TextButton } = {}
     local setRows: { { frame: Frame, label: TextLabel, bonus: TextLabel, slots: { { frame: Frame, name: TextLabel, stroke: UIStroke } } } } = {}
 
-    for _, zone in Zones.list do
+    for index, zone in Zones.list do
         local tab = Instance.new("TextButton")
         tab.Name = zone.id
-        tab.Size = UDim2.new(0.2, -4, 1, 0)
+        tab.LayoutOrder = index
+        tab.Size = UDim2.fromOffset(TAB_WIDTH, controls.tabH)
         tab.BackgroundColor3 = TAB_COLOR
         tab.Font = Enum.Font.GothamBold
         tab.TextColor3 = TEXT_COLOR
@@ -178,13 +147,19 @@ function CollectionBook.Start()
         tab.Text = zone.name
         tab.Parent = tabs
         Instance.new("UICorner").Parent = tab
+        local tabPadding = Instance.new("UIPadding")
+        tabPadding.PaddingTop = UDim.new(0, 8)
+        tabPadding.PaddingBottom = UDim.new(0, 8)
+        tabPadding.PaddingLeft = UDim.new(0, 6)
+        tabPadding.PaddingRight = UDim.new(0, 6)
+        tabPadding.Parent = tab
         tabButtons[zone.id] = tab
     end
 
     for index = 1, 6 do
         local frame = Instance.new("Frame")
-        frame.Position = UDim2.new(0, 0, 0, (index - 1) * (SET_ROW_HEIGHT + SET_ROW_GAP))
-        frame.Size = UDim2.new(1, -10, 0, SET_ROW_HEIGHT)
+        frame.LayoutOrder = index
+        frame.Size = UDim2.new(1, 0, 0, SET_ROW_HEIGHT)
         frame.BackgroundColor3 = ROW_COLOR
         frame.BackgroundTransparency = 0.2
         frame.Parent = scroll
@@ -210,13 +185,19 @@ function CollectionBook.Start()
             local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
             stroke.Parent = slotFrame
-            local name = newText(slotFrame, UDim2.new(0, 4, 0, 2), UDim2.new(1, -8, 1, -4), Enum.Font.GothamBold, TEXT_COLOR, "?", Enum.TextXAlignment.Center)
+            local name = newText(slotFrame, UDim2.new(0, 3, 0, 2), UDim2.new(1, -6, 1, -4), Enum.Font.GothamBold, TEXT_COLOR, "?", Enum.TextXAlignment.Center)
+            -- Lange Namen brechen auf zwei Zeilen um und werden nicht winzig.
+            name.TextWrapped = true
+            local nameConstraint = Instance.new("UITextSizeConstraint")
+            nameConstraint.MinTextSize = SLOT_MIN_TEXT
+            nameConstraint.MaxTextSize = SLOT_MAX_TEXT
+            nameConstraint.Parent = name
             slots[slot] = { frame = slotFrame, name = name, stroke = stroke }
         end
         setRows[index] = { frame = frame, label = label, bonus = bonus, slots = slots }
     end
 
-    local function refresh()
+    refresh = function()
         local collection = State.getCollection()
         local counts = if collection ~= nil then collection.counts else {}
         local bonusBp = if collection ~= nil then collection.bonusBp else 0
@@ -278,44 +259,42 @@ function CollectionBook.Start()
         end
     end
 
+    -- Der gewählte Reiter bleibt im sichtbaren Streifen.
+    local function showSelectedTab()
+        local tab = tabButtons[selectedZone]
+        if tab == nil then
+            return
+        end
+        local left = tab.AbsolutePosition.X - tabs.AbsolutePosition.X + tabs.CanvasPosition.X
+        local right = left + tab.AbsoluteSize.X
+        local visibleWidth = tabs.AbsoluteSize.X
+        local position = tabs.CanvasPosition.X
+        if left - TAB_SCROLL_MARGIN < position then
+            position = math.max(left - TAB_SCROLL_MARGIN, 0)
+        elseif right + TAB_SCROLL_MARGIN > position + visibleWidth then
+            position = right + TAB_SCROLL_MARGIN - visibleWidth
+        end
+        tabs.CanvasPosition = Vector2.new(position, 0)
+    end
+
     for zoneId, tab in tabButtons do
         tab.Activated:Connect(function()
             selectedZone = zoneId
             scroll.CanvasPosition = Vector2.zero
             refresh()
+            showSelectedTab()
         end)
     end
 
-    local fade = TweenInfo.new(PANEL_FADE_SECONDS, PANEL_EASING)
-    local function setOpen(open: boolean)
-        panel.Visible = open
-        if open then
-            panel.BackgroundTransparency = 1
-            TweenService:Create(panel, fade, { BackgroundTransparency = 0.1 }):Play()
-            -- Das Buch startet in der aktuellen Zone des Spielers.
-            local snapshot = State.get()
-            if snapshot ~= nil and layout[snapshot.zoneId] ~= nil then
-                selectedZone = snapshot.zoneId
-            end
-            refresh()
-        end
-    end
-    openButton.Activated:Connect(function()
-        setOpen(not panel.Visible)
-    end)
-    closeButton.Activated:Connect(function()
-        setOpen(false)
-    end)
-
-    gui.Parent = player:WaitForChild("PlayerGui")
+    openButton.Activated:Connect(window.toggle)
 
     State.onCollectionChanged(function()
-        if panel.Visible then
+        if window.isOpen() then
             refresh()
         end
     end)
     State.onChanged(function()
-        if panel.Visible then
+        if window.isOpen() then
             refresh()
         end
     end)

@@ -6,7 +6,8 @@
 -- Beim Sammeln bewegen sich Teile (motions) und der Sand fließt (sandFlow). Bei einer höheren
 -- Stufe wächst das Modell heraus (Staubwolke), für den eigenen Charakter gleitet zusätzlich der
 -- Kameraabstand. Weit entfernte Spieler bekommen weder Bewegung noch Sandfluss, bei schwachem
--- Gerät (Rückfallvariante von Dig) entfällt der Sandfluss ganz. Welche Änderung eine Animation
+-- Gerät (Grafikstufe "minimal", Controllers/Graphics) entfällt der Sandfluss ganz, auf "schlank"
+-- gibt es weniger Partikel, keine Schatten fremder Werkzeuge und eine kürzere Bewegungsentfernung. Welche Änderung eine Animation
 -- bekommt, entscheidet das reine Modul Logic/ToolLook.
 
 local Players = game:GetService("Players")
@@ -35,7 +36,7 @@ local function loadShared(folder: string, name: string): any
 end
 local ToolLook = loadShared("Logic", "ToolLook")
 local ToolLooks = loadShared("Data", "ToolLooks")
-local Dig = require(script.Parent:WaitForChild("Dig") :: ModuleScript) :: any
+local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local ToolVisual = {}
 
@@ -54,6 +55,7 @@ type Entry = {
     popScale: number,
     lastScale: number,
     nextFarUpdate: number,
+    castShadow: boolean, -- Schatten der Teile gerade an? (Grafikstufe, Paket 3.6)
 }
 
 local localPlayer = Players.LocalPlayer
@@ -239,6 +241,7 @@ local function buildEntry(player: Player, toolId: string, animated: boolean): En
         popScale = startScale,
         lastScale = -1,
         nextFarUpdate = 0,
+        castShadow = true,
     }
     model.Parent = folder
     return entry
@@ -288,7 +291,7 @@ local function burst(look: any, at: CFrame)
     emitter.Color = ColorSequence.new(SAND_COLOR)
     emitter.Parent = anchor
     anchor.Parent = folder
-    emitter:Emit(ToolLooks.change.burstCount)
+    emitter:Emit(math.max(1, math.ceil(ToolLooks.change.burstCount * Graphics.settings().particleFactor)))
     task.delay(BURST_LIFETIME.Max + 0.2, function()
         anchor:Destroy()
     end)
@@ -312,12 +315,22 @@ end
 
 local function updateEntry(player: Player, entry: Entry, root: BasePart, humanoid: Humanoid, now: number)
     local view = ToolLooks.view
+    local graphics = Graphics.settings()
     local camera = workspace.CurrentCamera
-    local near = camera == nil or (camera.CFrame.Position - root.Position).Magnitude <= view.motionDistanceStuds
+    local near = camera == nil or (camera.CFrame.Position - root.Position).Magnitude <= view.motionDistanceStuds * graphics.motionDistanceFactor
     if not near and now < entry.nextFarUpdate then
         return
     end
     entry.nextFarUpdate = now + view.farUpdateSeconds
+
+    -- Schatten fremder Werkzeuge nur auf "hoch" (das eigene Werkzeug behält seinen Schatten).
+    local shadows = graphics.toolShadows == true or player == localPlayer
+    if entry.castShadow ~= shadows then
+        entry.castShadow = shadows
+        for _, part in entry.parts do
+            part.CastShadow = shadows
+        end
+    end
 
     -- Herauswachsen
     if entry.popStart ~= nil then
@@ -340,7 +353,7 @@ local function updateEntry(player: Player, entry: Entry, root: BasePart, humanoi
     end
 
     local collecting = near and player:GetAttribute("Collecting") == true
-    local flowOn = collecting and not (player == localPlayer and Dig.isFallback())
+    local flowOn = collecting and graphics.sandFlow == true
     local ground = groundFrame(root, humanoid)
     local cframes: { CFrame } = table.create(#entry.parts)
     for index, base in entry.baseCFrames do
@@ -368,6 +381,7 @@ local function updateEntry(player: Player, entry: Entry, root: BasePart, humanoi
         workspace:BulkMoveTo(list, cframes, Enum.BulkMoveMode.FireCFrameChanged)
     end
     if entry.emitter ~= nil then
+        entry.emitter.Rate = entry.look.sandFlow.rate * graphics.particleFactor
         entry.emitter.Enabled = flowOn
     end
     if entry.sound ~= nil then

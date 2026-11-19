@@ -41,9 +41,11 @@ return {
         min = 0.62, -- 72 * 0.62 = 44,6 px: Knoten bleiben antippbar (minTouchPixels)
         max = 1.6,
         start = 1,
+        startCompact = 0.8, -- Start-Zoom am kleinen Bildschirm (Paket 3.6): mehr Überblick, Knoten bleiben über 44 px
         buttonStep = 1.25, -- Faktor pro Druck auf Plus/Minus
         wheelStep = 1.1, -- Faktor pro Rastung des Mausrads
     },
     minTouchPixels = 44,
     tapMaxMovePixels = 10, -- bis hierhin gilt eine Berührung als Tippen, ab hier als Ziehen
+    tapMaxMovePixelsTouch = 14, -- am Touch-Gerät zittert der Finger mehr (Paket 3.6)
 }

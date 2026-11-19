@@ -17,8 +17,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Layout (Pixel auf dem Bildschirm)
-local BUTTON_SIZE = Vector2.new(124, 46)
+-- Layout (Pixel auf dem Bildschirm). Größe und Platz des Knopfs "Baum" kommen aus Data/Screen
+-- (Controllers/Screen), damit die Menüleiste direkt darunter hängen kann.
 local BUTTON_MARGIN = 16
 local ICON_BUTTON_SIZE = 46 -- Schließen, Plus, Minus: mindestens 44 px zum Antippen
 local EDGE_MARGIN = 12
@@ -26,7 +26,7 @@ local HEADER_HEIGHT = 46
 local CARD_MARGIN = 14
 local CARD_WIDTH_DESKTOP = 330
 local CARD_HEIGHT_DESKTOP = 214
-local CARD_HEIGHT_MOBILE = 184
+local CARD_HEIGHT_MOBILE = 172 -- die Beschreibung hat zwei Zeilen, die Karte bleibt trotzdem niedrig
 local BUY_BUTTON_HEIGHT = 50
 local BADGE_SIZE = 24
 
@@ -107,6 +107,7 @@ local UnlockSequence = loadShared("Logic", "UnlockSequence")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
 local UnlockPlayer = require(script.Parent:WaitForChild("UnlockPlayer") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local SkillTree = {}
 
@@ -196,9 +197,14 @@ function SkillTree.Start()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- ZIndex gilt über die ganze Oberfläche
 
     -- Knopf zum Öffnen, oben rechts, mit Zähler
-    local openButton = roundButton(gui, "OpenButton", OPEN_TEXT, UDim2.fromOffset(BUTTON_SIZE.X, BUTTON_SIZE.Y))
-    openButton.AnchorPoint = Vector2.new(1, 0)
-    openButton.Position = UDim2.new(1, -BUTTON_MARGIN, 0, BUTTON_MARGIN)
+    local openButton = roundButton(gui, "OpenButton", OPEN_TEXT, UDim2.fromOffset(0, 0))
+    local function placeOpenButton(screenLayout: any)
+        local rect = screenLayout.treeButton
+        openButton.Position = UDim2.fromOffset(rect.x, rect.y)
+        openButton.Size = UDim2.fromOffset(rect.w, rect.h)
+    end
+    placeOpenButton(Screen.layout())
+    Screen.onLayoutChanged(placeOpenButton)
     openButton.Visible = false
     local openStroke = Instance.new("UIStroke")
     openStroke.Color = HIGHLIGHT_COLOR
@@ -330,13 +336,14 @@ function SkillTree.Start()
     cardStroke.Parent = card
     local cardName = label(card, "Name", UDim2.new(0, 14, 0, 8), UDim2.new(1, -28, 0, 26), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
     cardName.ZIndex = 31
-    local cardDescription = label(card, "Description", UDim2.new(0, 14, 0, 38), UDim2.new(1, -28, 0, 20), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardDescription = label(card, "Description", UDim2.new(0, 14, 0, 38), UDim2.new(1, -28, 0, 32), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    cardDescription.TextWrapped = true -- zwei Zeilen statt winziger Schrift bei langen Texten
     cardDescription.TextColor3 = TEXT_DIM_COLOR
     cardDescription.ZIndex = 31
-    local cardNeeds = label(card, "Needs", UDim2.new(0, 14, 0, 62), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardNeeds = label(card, "Needs", UDim2.new(0, 14, 0, 72), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     cardNeeds.TextColor3 = HIGHLIGHT_COLOR
     cardNeeds.ZIndex = 31
-    local cardFeedback = label(card, "Feedback", UDim2.new(0, 14, 0, 84), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardFeedback = label(card, "Feedback", UDim2.new(0, 14, 0, 92), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
     cardFeedback.TextTransparency = 1
     cardFeedback.ZIndex = 31
     local buyButton = roundButton(card, "Buy", BUY_TEXT, UDim2.new(1, -28, 0, BUY_BUTTON_HEIGHT))
@@ -358,7 +365,7 @@ function SkillTree.Start()
     local isOpen = false
     local busy = false
     local feedbackToken = 0
-    local camera: any = { zoom = LayoutConfig.zoom.start, panX = 0, panY = 0 }
+    local camera: any = { zoom = TreeCamera.startZoom(Screen.layout().class == "compact"), panX = 0, panY = 0 }
 
     local fadeInfo = TweenInfo.new(FADE_SECONDS, FADE_EASING)
     local function showFeedback(text: string)
@@ -847,7 +854,8 @@ function SkillTree.Start()
     local function focusCamera()
         local focusId = TreeView.focus(view, highlightId)
         local target = if focusId ~= nil then layout.nodes[focusId] else layout.start
-        local base = { zoom = LayoutConfig.zoom.start, panX = 0, panY = 0 }
+        -- Am kleinen Bildschirm startet der Baum etwas weiter weg (mehr Überblick).
+        local base = { zoom = TreeCamera.startZoom(Screen.layout().class == "compact"), panX = 0, panY = 0 }
         setCamera(TreeCamera.centerOn(base, { x = target.x, y = target.y }, viewport(), area))
     end
 
@@ -856,6 +864,7 @@ function SkillTree.Start()
             return
         end
         isOpen = true
+        Screen.closeAllWindows() -- der Baum schließt Zonen, Sammlung und Sandsturm
         Input.setSuspended(true)
         overlay.Visible = true
         if canvas.AbsoluteSize.X <= 0 then
@@ -917,6 +926,7 @@ function SkillTree.Start()
     local order: { InputObject } = {}
     local gestureMoved = 0
     local gestureWasPinch = false
+    local gestureTouch = false -- begann die Geste mit dem Finger? Dann gilt die größere Tipp-Toleranz
 
     local function localPosition(position: Vector3): Vector2
         return Vector2.new(position.X, position.Y) - canvas.AbsolutePosition
@@ -948,6 +958,7 @@ function SkillTree.Start()
         if #order == 0 then
             gestureMoved = 0
             gestureWasPinch = false
+            gestureTouch = input.UserInputType == Enum.UserInputType.Touch
         end
         pointers[input] = localPosition(input.Position)
         table.insert(order, input)
@@ -1013,7 +1024,7 @@ function SkillTree.Start()
         if index ~= nil then
             table.remove(order, index)
         end
-        if #order == 0 and isOpen and not gestureWasPinch and TreeCamera.isTap(gestureMoved) then
+        if #order == 0 and isOpen and not gestureWasPinch and TreeCamera.isTap(gestureMoved, nil, gestureTouch) then
             tap(last)
         end
     end)
