@@ -93,6 +93,7 @@ function Sand.snapshot(player: Player): any?
     local effects = TreeEffects.of(profile)
     return {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
+        gems = profile.gems, -- Gems (Paket 4.1)
         tank = BigNum.serialize(BigNum.deserialize(profile.tank)),
         capacity = Collecting.capacityOf(profile),
         rate = Collecting.rateOf(profile),

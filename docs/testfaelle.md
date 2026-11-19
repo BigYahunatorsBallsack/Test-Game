@@ -341,19 +341,19 @@ Tests: tests/sandstorm.spec.luau. Plan: Claude-Dokument "Paket 2.7: Sandsturm (P
 
 Tests: tests/purchases.spec.luau, tests/gems.spec.luau. Plan: Claude-Dokument "Paket 4.1: Gems und sichere Käufe, Plan".
 
-- [ ] [Lune] Ein Kauf von `gems_550` schreibt genau 550 Gems gut und liefert erst nach dem Speichern `PurchaseGranted`.
-- [ ] [Lune] Dieselbe PurchaseId zweimal nacheinander: eine Gutschrift, beide Aufrufe liefern `PurchaseGranted`.
-- [ ] [Lune] Dieselbe PurchaseId zweimal gleichzeitig (der erste wartet noch aufs Speichern): eine Gutschrift.
-- [ ] [Lune] Profil nicht geladen oder Spieler nicht auf dem Server: `NotProcessedYet`, keine Gutschrift.
-- [ ] [Lune] Speichern schlägt fehl oder läuft in die Zeitgrenze: `NotProcessedYet`; Gems und PurchaseId stehen gemeinsam im Profil, der nächste Versuch bucht nicht erneut und liefert `PurchaseGranted`, sobald gespeichert ist.
-- [ ] [Lune] Absturz vor dem Speichern (Fake-Speicher verwirft den Stand): Der nächste Versuch auf dem neuen Server bucht genau einmal.
-- [ ] [Lune] Sitzung endet während des Wartens: `NotProcessedYet`, keine zweite Gutschrift beim nächsten Versuch.
-- [ ] [Lune] Unbekannte ProductId und `productId = 0`: `NotProcessedYet`, keine Gutschrift, ein Protokolleintrag.
-- [ ] [Lune] Die Beleg-Liste hält höchstens `receiptCacheSize` Einträge und wirft die ältesten zuerst raus; das Kaufprotokoll hält höchstens `purchaseLogSize`.
-- [ ] [Lune] `Gems.grant` lehnt 0, negative, gebrochene und NaN-Mengen ab und kappt bei `maxGems`; `Gems.spend` bucht nur bei genug Gems ab.
-- [ ] [Lune] Migration 3 auf 4 übernimmt alte PurchaseIds; kaputte `gems` (negativ, NaN, gebrochen) werden repariert.
-- [ ] [Lune] Der Sandsturm behält Gems, Belege, Kaufprotokoll und `spent`.
-- [ ] [Lune] DataCheck meldet doppelte ProductIds und `purchases`-Werte außerhalb der Grenzen.
+- [x] [Lune] Ein Kauf von `gems_550` schreibt genau 550 Gems gut und liefert erst nach dem Speichern `PurchaseGranted`.
+- [x] [Lune] Dieselbe PurchaseId zweimal nacheinander: eine Gutschrift, beide Aufrufe liefern `PurchaseGranted`.
+- [x] [Lune] Dieselbe PurchaseId zweimal gleichzeitig (der erste wartet noch aufs Speichern): eine Gutschrift.
+- [x] [Lune] Profil nicht geladen oder Spieler nicht auf dem Server: `NotProcessedYet`, keine Gutschrift.
+- [x] [Lune] Speichern schlägt fehl oder läuft in die Zeitgrenze: `NotProcessedYet`; Gems und PurchaseId stehen gemeinsam im Profil, der nächste Versuch bucht nicht erneut und liefert `PurchaseGranted`, sobald gespeichert ist.
+- [x] [Lune] Absturz vor dem Speichern (Fake-Speicher verwirft den Stand): Der nächste Versuch auf dem neuen Server bucht genau einmal.
+- [x] [Lune] Sitzung endet während des Wartens: `NotProcessedYet`, keine zweite Gutschrift beim nächsten Versuch.
+- [x] [Lune] Unbekannte ProductId und `productId = 0`: `NotProcessedYet`, keine Gutschrift, ein Protokolleintrag.
+- [x] [Lune] Die Beleg-Liste hält höchstens `receiptCacheSize` Einträge und wirft die ältesten zuerst raus; das Kaufprotokoll hält höchstens `purchaseLogSize`.
+- [x] [Lune] `Gems.grant` lehnt 0, negative, gebrochene und NaN-Mengen ab und kappt bei `maxGems`; `Gems.spend` bucht nur bei genug Gems ab.
+- [x] [Lune] Migration 3 auf 4 übernimmt alte PurchaseIds; kaputte `gems` (negativ, NaN, gebrochen) werden repariert.
+- [x] [Lune] Der Sandsturm behält Gems, Belege, Kaufprotokoll und `spent`.
+- [x] [Lune] DataCheck meldet doppelte ProductIds und `purchases`-Werte außerhalb der Grenzen.
 - [ ] [Studio] Gem-Zähler im HUD; der Knopf "Gems" öffnet die Liste mit fünf Paketen, Preisen und Bonus.
 - [ ] [Studio] Studio-Hilfe `DebugPurchase` mit derselben PurchaseId dreimal: Die Gems steigen genau einmal, das Banner erscheint einmal.
 - [ ] [Studio] Testkauf eines echten Developer Products in Studio: Gutschrift genau einmal, nach dem Rejoin noch da.

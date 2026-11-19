@@ -6,6 +6,7 @@ local Profile = require("../src/shared/Logic/Profile")
 local Migrations = require("../src/shared/Logic/Migrations")
 local BigNum = require("../src/shared/Logic/BigNum")
 local UpgradeTree = require("../src/shared/Data/UpgradeTree")
+local Economy = require("../src/shared/Data/Economy")
 
 local NOW = 1_700_000_000
 
@@ -17,6 +18,9 @@ local exampleMigrations: { [number]: Migrations.Step } = {
         return profile
     end,
     [2] = function(profile: any) -- Paket 2.7: nur die Version zählt hier
+        return profile
+    end,
+    [3] = function(profile: any) -- Paket 4.1: nur die Version zählt hier
         return profile
     end,
 }
@@ -37,7 +41,8 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(nil, nil, NOW)
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
-        T.expect(Profile.CURRENT_VERSION).toBe(3) -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned)
+        -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege als Liste)
+        T.expect(Profile.CURRENT_VERSION).toBe(4)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -56,6 +61,8 @@ T.describe("Profile", function()
         T.expect(profile.pity.gold).toEqual({ sinceEpic = 0, sinceLegendary = 0 })
         T.expect(profile.inventory).toEqual({ skins = {}, companions = {}, toolVariants = {} })
         T.expect(profile.receipts).toEqual({})
+        T.expect(profile.purchaseLog).toEqual({})
+        T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
         T.expect(profile.boosts).toEqual({ coinsUntil = 0 })
         T.expect(profile.daily).toEqual({ streak = 0, lastDay = 0 })
         T.expect(profile.lastSeen).toBe(NOW)
@@ -74,7 +81,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(original, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.version).toBe(3)
+        T.expect(migrated.version).toBe(4)
         T.expect(migrated.settings).toEqual({ music = true })
         T.expect(migrated.legacyGems).toBe(120)
         -- Vorhandene Werte bleiben erhalten.
@@ -177,6 +184,223 @@ T.describe("Profile", function()
         -- Rechnen (Paket 1.2) und Anzeige (Paket 1.3) sind fertig, die Details prüft bignum.spec.
         T.expect(BigNum.add(BigNum.zero(), BigNum.zero())).toEqual({ m = 0, e = 0 })
         T.expect(BigNum.format(BigNum.zero())).toBe("0")
+    end)
+end)
+
+T.describe("Profil Version 4 (Paket 4.1)", function()
+    local function v3Profile(): any
+        local profile: any = Profile.default(NOW)
+        profile.version = 3
+        profile.purchaseLog = nil
+        profile.spent = nil
+        return profile
+    end
+
+    T.it("Migration 3 auf 4 übernimmt alte PurchaseIds sortiert als Liste", function()
+        local old = v3Profile()
+        old.receipts = { zz_kauf = true, aa_kauf = true, mm_kauf = true, nein = false }
+        old.gems = 1200
+        local migrated, status = Profile.migrate(old, nil, NOW)
+        local profile: any = migrated
+        T.expect(status).toBe("ok")
+        T.expect(profile.version).toBe(4)
+        T.expect(profile.receipts).toEqual({ "aa_kauf", "mm_kauf", "zz_kauf" })
+        T.expect(profile.purchaseLog).toEqual({})
+        T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
+        T.expect(profile.gems).toBe(1200)
+        -- Das Original bleibt unverändert, eine zweite Migration ändert nichts.
+        T.expect(old.receipts.zz_kauf).toBe(true)
+        local again = Profile.migrate(migrated, nil, NOW + 5)
+        T.expect(again).toEqual(migrated)
+        T.expect(#Profile.sanitize(again, NOW)).toBe(0)
+    end)
+
+    T.it("Migration 3 auf 4 verkraftet leere, kaputte und gemischte Beleg-Tabellen", function()
+        local empty = v3Profile()
+        empty.receipts = {}
+        T.expect((Profile.migrate(empty, nil, NOW) :: any).receipts).toEqual({})
+
+        local missing = v3Profile()
+        missing.receipts = nil
+        T.expect((Profile.migrate(missing, nil, NOW) :: any).receipts).toEqual({})
+
+        local text = v3Profile()
+        text.receipts = "kaputt"
+        T.expect((Profile.migrate(text, nil, NOW) :: any).receipts).toEqual({})
+
+        -- Alte Schlüssel zuerst (sortiert), dann ein schon vorhandener Listenteil, ohne Doppelte.
+        local mixed = v3Profile()
+        mixed.receipts = { "liste_1", "b_kauf", b_kauf = true, a_kauf = 1700000000, [""] = true }
+        T.expect((Profile.migrate(mixed, nil, NOW) :: any).receipts).toEqual({ "a_kauf", "b_kauf", "liste_1" })
+    end)
+
+    T.it("Migration 3 auf 4 ist bei gleichem Inhalt immer gleich (deterministisch)", function()
+        local ids = {}
+        for index = 1, 30 do
+            ids[`kauf_{string.format("%02d", 31 - index)}`] = true
+        end
+        local first = v3Profile()
+        first.receipts = table.clone(ids)
+        local second = v3Profile()
+        second.receipts = table.clone(ids)
+        local a: any = Profile.migrate(first, nil, NOW)
+        local b: any = Profile.migrate(second, nil, NOW)
+        T.expect(a.receipts).toEqual(b.receipts)
+        T.expect(a.receipts[1]).toBe("kauf_01")
+        T.expect(a.receipts[30]).toBe("kauf_30")
+    end)
+
+    T.it("kaputte Gems werden repariert: NaN, unendlich, negativ, gebrochen, über maxGems", function()
+        local cases = {
+            { value = 0 / 0, expected = 0 },
+            { value = math.huge, expected = 0 },
+            { value = -50, expected = 0 },
+            { value = 12.9, expected = 12 },
+            { value = "viel", expected = 0 },
+            { value = Economy.purchases.maxGems + 1, expected = Economy.purchases.maxGems },
+            { value = 550, expected = 550 },
+        }
+        for _, case in cases do
+            local profile: any = Profile.default(NOW)
+            profile.gems = case.value
+            local warnings = Profile.sanitize(profile, NOW)
+            T.expect(profile.gems).toBe(case.expected)
+            T.expect(#warnings).toBe(if case.value == 550 then 0 else 1)
+        end
+        -- Auch über die Migration eines alten Profils.
+        local old = v3Profile()
+        old.gems = -3.5
+        local migrated: any = Profile.migrate(old, nil, NOW)
+        Profile.sanitize(migrated, NOW)
+        T.expect(migrated.gems).toBe(0)
+    end)
+
+    T.it("sanitize bringt Belege in Listenform, entfernt Ungültiges und kürzt auf receiptCacheSize", function()
+        local profile: any = Profile.default(NOW)
+        profile.receipts = { alt_1 = true, [1] = "neu_1", [2] = 5, [3] = "neu_1", [4] = "neu_2" }
+        local warnings = Profile.sanitize(profile, NOW)
+        T.expect(#warnings).toBe(1)
+        T.expect(profile.receipts).toEqual({ "alt_1", "neu_1", "neu_2" })
+
+        local long: any = Profile.default(NOW)
+        local limit = Economy.purchases.receiptCacheSize
+        for index = 1, limit + 7 do
+            table.insert(long.receipts, `kauf_{index}`)
+        end
+        Profile.sanitize(long, NOW)
+        T.expect(#long.receipts).toBe(limit)
+        T.expect(long.receipts[1]).toBe("kauf_8") -- die ältesten sind raus
+        T.expect(long.receipts[limit]).toBe(`kauf_{limit + 7}`)
+    end)
+
+    T.it("mit trimLists = false (beim Laden) werden Belege und Protokoll repariert, aber nicht gekürzt", function()
+        local limit = Economy.purchases.receiptCacheSize
+        local logLimit = Economy.purchases.purchaseLogSize
+        -- Alte Tabellenform mit mehr PurchaseIds als receiptCacheSize: keine Reihenfolge bekannt.
+        local old = v3Profile()
+        old.receipts = {}
+        for index = 1, limit + 50 do
+            old.receipts[`alt_{string.format("%03d", index)}`] = true
+        end
+        local migrated: any = Profile.migrate(old, nil, NOW)
+        T.expect(#migrated.receipts).toBe(limit + 50) -- die Migration kürzt nie
+        for index = 1, logLimit + 5 do
+            table.insert(migrated.purchaseLog, { purchaseId = `alt_{string.format("%03d", index)}`, productId = "gems_100", gems = 100, robux = 49, time = NOW })
+        end
+        migrated.receipts[limit + 51] = 5 -- ungültig: wird trotzdem entfernt
+        local warnings = Profile.sanitize(migrated, NOW, { trimLists = false })
+        T.expect(#warnings).toBe(1)
+        T.expect(#migrated.receipts).toBe(limit + 50)
+        T.expect(#migrated.purchaseLog).toBe(logLimit + 5)
+        T.expect(migrated.receipts[1]).toBe("alt_001")
+        -- Das nächste normale Speichern (ohne Option) kürzt.
+        Profile.sanitize(migrated, NOW)
+        T.expect(#migrated.receipts).toBe(limit)
+        T.expect(migrated.receipts[1]).toBe("alt_051")
+        T.expect(#migrated.purchaseLog).toBe(logLimit)
+        -- trimLists = true und eine leere Option verhalten sich wie der Standard.
+        local long: any = Profile.default(NOW)
+        for index = 1, limit + 2 do
+            table.insert(long.receipts, `kauf_{index}`)
+        end
+        local copy = table.clone(long)
+        copy.receipts = table.clone(long.receipts)
+        Profile.sanitize(long, NOW, { trimLists = true })
+        Profile.sanitize(copy, NOW, {})
+        T.expect(#long.receipts).toBe(limit)
+        T.expect(copy.receipts).toEqual(long.receipts)
+    end)
+
+    T.it("sanitize: Belege ganz kaputt, die PurchaseIds kommen aus dem Kaufprotokoll zurück", function()
+        local profile: any = Profile.default(NOW)
+        profile.purchaseLog = {
+            { purchaseId = "p1", productId = "gems_100", gems = 100, robux = 49, time = NOW },
+            { purchaseId = "p2", productId = "gems_550", gems = 550, robux = 249, time = NOW + 1 },
+        }
+        profile.receipts = "kaputt"
+        Profile.sanitize(profile, NOW)
+        T.expect(profile.receipts).toEqual({ "p1", "p2" })
+    end)
+
+    T.it("sanitize repariert das Kaufprotokoll und kürzt es auf purchaseLogSize", function()
+        local good = { purchaseId = "p1", productId = "gems_100", gems = 100, robux = 49, time = NOW }
+        local profile: any = Profile.default(NOW)
+        profile.purchaseLog = {
+            good,
+            { purchaseId = "", productId = "gems_100", gems = 100, robux = 49, time = NOW },
+            { purchaseId = "p3", productId = "gems_100", gems = 0 / 0, robux = 49, time = NOW },
+            "kein Eintrag",
+            { purchaseId = "p5", productId = "gems_550", gems = 550, robux = 249, time = NOW, fn = function() end },
+        }
+        profile.purchaseLog.textschluessel = good
+        local warnings = Profile.sanitize(profile, NOW)
+        T.expect(#warnings).toBe(1)
+        T.expect(profile.purchaseLog).toEqual({
+            good,
+            { purchaseId = "p5", productId = "gems_550", gems = 550, robux = 249, time = NOW },
+        })
+
+        local long: any = Profile.default(NOW)
+        local limit = Economy.purchases.purchaseLogSize
+        for index = 1, limit + 3 do
+            table.insert(long.purchaseLog, { purchaseId = `p{index}`, productId = "gems_100", gems = 100, robux = 49, time = NOW + index })
+        end
+        Profile.sanitize(long, NOW)
+        T.expect(#long.purchaseLog).toBe(limit)
+        T.expect(long.purchaseLog[1].purchaseId).toBe("p4")
+
+        local text: any = Profile.default(NOW)
+        text.purchaseLog = 7
+        Profile.sanitize(text, NOW)
+        T.expect(text.purchaseLog).toEqual({})
+    end)
+
+    T.it("sanitize: spent wird ganz und nie negativ, kaputte Typen auf den Standard", function()
+        local profile: any = Profile.default(NOW)
+        profile.spent = { robux = -10, count = 2.5 }
+        Profile.sanitize(profile, NOW)
+        T.expect(profile.spent).toEqual({ robux = 0, count = 2 })
+        profile.spent = { robux = 0 / 0, count = "x" }
+        Profile.sanitize(profile, NOW)
+        T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
+        profile.spent = "kaputt"
+        Profile.sanitize(profile, NOW)
+        T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
+    end)
+
+    T.it("ein gültiges Profil mit Käufen bleibt unverändert und ohne Warnung", function()
+        local profile: any = Profile.default(NOW)
+        profile.gems = 650
+        profile.receipts = { "p1", "p2" }
+        profile.purchaseLog = {
+            { purchaseId = "p1", productId = "gems_100", gems = 100, robux = 49, time = NOW },
+            { purchaseId = "p2", productId = "gems_550", gems = 550, robux = 249, time = NOW },
+        }
+        profile.spent = { robux = 298, count = 2 }
+        local before = table.clone(profile)
+        T.expect(#Profile.sanitize(profile, NOW)).toBe(0)
+        T.expect(profile).toEqual(before)
+        T.expect(rawequal(profile.receipts, before.receipts)).toBe(true)
     end)
 end)
 

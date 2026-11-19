@@ -252,10 +252,15 @@ T.describe("Reset", function()
         T.expect(Collection.bonusBp(profile)).toBe(bonusBefore)
     end)
 
-    T.it("Gems, Belege, Pity, Boosts, Daily, Tutorial und Zeitstempel bleiben unverändert", function()
+    T.it("Gems, Belege, Kaufprotokoll, spent, Pity, Boosts, Daily, Tutorial und Zeitstempel bleiben unverändert", function()
         local profile = runner()
         profile.gems = 345
-        profile.receipts = { ["abc"] = true }
+        profile.receipts = { "abc", "def" } -- Paket 4.1: Liste der PurchaseIds
+        profile.purchaseLog = {
+            { purchaseId = "abc", productId = "gems_100", gems = 100, robux = 49, time = NOW },
+            { purchaseId = "def", productId = "gems_550", gems = 550, robux = 249, time = NOW + 1 },
+        }
+        profile.spent = { robux = 298, count = 2 }
         profile.pity = { gold = { sinceEpic = 4, sinceLegendary = 9 } }
         profile.boosts = { coinsUntil = NOW + 500 }
         profile.daily = { streak = 3, lastDay = 19_000 }
@@ -269,6 +274,10 @@ T.describe("Reset", function()
         for _, field in Sandstorm.KEEP_FIELDS do
             T.expect(profile[field]).toEqual(keep[field])
         end
+        T.expect(profile.gems).toBe(345)
+        T.expect(profile.receipts).toEqual({ "abc", "def" })
+        T.expect(#profile.purchaseLog).toBe(2)
+        T.expect(profile.spent).toEqual({ robux = 298, count = 2 })
     end)
 
     T.it("jedes Feld aus Profile.default steht in genau einer Liste", function()
