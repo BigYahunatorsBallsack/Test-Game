@@ -12,17 +12,20 @@
 -- aus den Daten.
 --
 -- Für andere Services (4.4): Shop.registerProduct(produktId, handler) hängt ein weiteres Developer
--- Product aus Data/Products ein (Handler siehe Logic/Purchases), in Init oder Start. Nach allen
--- Start() prüft Shop.AfterStart, dass jedes Produkt mit echter ProductId (kein Gamepass) einen
--- Handler hat, sonst bricht der Start mit einer Fehlermeldung ab.
+-- Product aus Data/Products ein (Handler siehe Logic/Purchases), in Start (Shop.Init legt Purchases
+-- an). Der Passes-Service registriert so den Münz-Boost. Nach allen Start() prüft Shop.AfterStart,
+-- dass jedes Produkt mit echter ProductId (kein Gamepass) einen Handler hat, und meldet sonst laut.
 --
 -- Studio-Hilfe (nur in Studio): In der Befehlszeile (Ansicht "Server")
---   game.Players.Name:SetAttribute("DebugPurchase", "gems_550")        -- neuer Kauf (zufällige PurchaseId)
---   game.Players.Name:SetAttribute("DebugPurchase", "gems_550:fest1")  -- feste PurchaseId (Doppelkauf testen)
--- Der künstliche Beleg läuft über Purchases.processPack (Paket über die Paket-ID, PurchaseId mit
--- Präfix "studio:") durch denselben Ablauf wie ein echter Kauf. Das Attribut wird danach gelöscht,
--- damit derselbe Wert erneut auslöst. Außerhalb von Studio ist der Weg doppelt gesperrt: kein
--- Attribut-Listener und Purchases mit allowDebug = false.
+--   game.Players.Name:SetAttribute("DebugPurchase", "gems_550")          -- neuer Kauf (zufällige PurchaseId)
+--   game.Players.Name:SetAttribute("DebugPurchase", "gems_550:fest1")    -- feste PurchaseId (Doppelkauf testen)
+--   game.Players.Name:SetAttribute("DebugPurchase", "coin_boost")        -- Münz-Boost (Paket 4.4)
+--   game.Players.Name:SetAttribute("DebugPurchase", "coin_boost:fest1")  -- Münz-Boost, feste PurchaseId
+-- Der künstliche Beleg läuft über Purchases.processDebug (Gem-Paket oder registriertes Produkt aus
+-- Data/Products über die ID aus den Daten, PurchaseId mit Präfix "studio:") durch denselben Ablauf
+-- wie ein echter Kauf. Gamepasses gehen nie über diesen Weg (ihr Studio-Weg ist "DebugPass" im
+-- Passes-Service). Das Attribut wird danach gelöscht, damit derselbe Wert erneut auslöst. Außerhalb
+-- von Studio ist der Weg doppelt gesperrt: kein Attribut-Listener und Purchases mit allowDebug = false.
 
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -30,7 +33,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Studio-Hilfe: Attributname am Spieler und Form des Werts ("paketId" oder "paketId:feste_id").
+-- Studio-Hilfe: Attributname am Spieler und Form des Werts ("datenId" oder "datenId:feste_id").
 local DEBUG_PURCHASE_ATTRIBUTE = "DebugPurchase"
 local DEBUG_PURCHASE_PATTERN = "^([%w_]+):?([%w_%-]*)$"
 local DEBUG_PURCHASE_MAX_LENGTH = 64
@@ -104,17 +107,17 @@ local function connectStudioHelper(player: Player)
         end
         player:SetAttribute(DEBUG_PURCHASE_ATTRIBUTE, nil) -- derselbe Wert soll erneut auslösen
         if type(value) ~= "string" or #value > DEBUG_PURCHASE_MAX_LENGTH then
-            log(`Studio: {DEBUG_PURCHASE_ATTRIBUTE} erwartet Text wie "gems_550" oder "gems_550:fest1"`)
+            log(`Studio: {DEBUG_PURCHASE_ATTRIBUTE} erwartet Text wie "gems_550", "coin_boost" oder "coin_boost:fest1"`)
             return
         end
-        local packId, fixedId = string.match(value, DEBUG_PURCHASE_PATTERN)
-        if packId == nil then
-            log(`Studio: "{value}" hat nicht die Form "gems_550" oder "gems_550:fest1"`)
+        local dataId, fixedId = string.match(value, DEBUG_PURCHASE_PATTERN)
+        if dataId == nil then
+            log(`Studio: "{value}" hat nicht die Form "gems_550" oder "coin_boost:fest1"`)
             return
         end
         local purchaseId = if fixedId ~= nil and fixedId ~= "" then fixedId else HttpService:GenerateGUID(false)
-        local decision = purchases.processPack(player.UserId, packId, purchaseId)
-        print(`[Shop] Studio: Kauf {packId} ({Purchases.DEBUG_PREFIX}{purchaseId}) für {player.Name}: {decision}`)
+        local decision = purchases.processDebug(player.UserId, dataId, purchaseId)
+        print(`[Shop] Studio: Kauf {dataId} ({Purchases.DEBUG_PREFIX}{purchaseId}) für {player.Name}: {decision}`)
         if decision == "granted" then
             refresh(player.UserId)
         end

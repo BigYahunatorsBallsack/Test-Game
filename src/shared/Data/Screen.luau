@@ -34,9 +34,10 @@ return {
 
     classes = {
         normal = {
-            -- Panel mit Münzen und Tank oben links, darunter Textzeilen (Werkzeug, Wind, Debug).
+            -- Panel mit Münzen und Tank oben links, darunter Textzeilen (Werkzeug, Wind,
+            -- Pässe und Boost aus Paket 4.4 mit Auto-Dig-Schalter, Debug).
             hud = { x = 16, y = 16, w = 240, h = 84, pad = 12, coinsY = 6, coinsH = 30, barY = 44, barH = 28 },
-            lines = { toolY = 104, windY = 126, debugY = 152, h = 22, w = 320 },
+            lines = { toolY = 104, windY = 126, perksY = 150, debugY = 178, h = 22, w = 320 },
             -- Knopf "Baum" oben rechts, daran hängt die Menüleiste.
             treeButton = { w = 124, h = 46, marginX = 16, marginY = 16 },
             menuButton = { w = 140, h = 48, gap = 8 },
@@ -52,7 +53,7 @@ return {
         },
         compact = {
             hud = { x = 12, y = 8, w = 176, h = 60, pad = 8, coinsY = 4, coinsH = 24, barY = 31, barH = 24 },
-            lines = { toolY = 70, windY = 86, debugY = 102, h = 16, w = 230 },
+            lines = { toolY = 70, windY = 86, perksY = 104, debugY = 124, h = 16, w = 230 },
             treeButton = { w = 96, h = 44, marginX = 12, marginY = 8 },
             menuButton = { w = 96, h = 44, gap = 8 },
             menuRow = { x = 12, bottom = 16 },

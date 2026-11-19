@@ -15,6 +15,7 @@ local Migrations = require("./Migrations")
 local Economy = require("../Data/Economy")
 local CratesData = require("../Data/Crates")
 local CrateItemsData = require("../Data/CrateItems")
+local ProductsData = require("../Data/Products")
 local Equipment = require("./Equipment")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
@@ -52,7 +53,9 @@ export type Profile = {
     receipts: { string }, -- PurchaseIds der zuletzt gutgeschriebenen Käufe, neueste am Ende (Paket 4.1)
     purchaseLog: { PurchaseLogEntry }, -- die letzten Käufe, neueste am Ende (Paket 4.1)
     spent: { robux: number, count: number }, -- Robux und Zahl aller gutgeschriebenen Käufe (Paket 4.1)
-    boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft
+    boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft (Paket 4.4, Logic/Perks)
+    passes: { [string]: boolean }, -- gemerkter Gamepass-Besitz: Pass-ID aus Data/Products -> true (Paket 4.4)
+    settings: { autoDig: boolean }, -- Einstellungen des Spielers (Paket 4.4)
     daily: { streak: number, lastDay: number },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
@@ -118,6 +121,10 @@ function Profile.default(now: number?): Profile
         purchaseLog = {},
         spent = { robux = 0, count = 0 },
         boosts = { coinsUntil = 0 },
+        -- Gamepasses (Paket 4.4): nur der Server schreibt `passes` (Logic/Passes, Services/Passes).
+        passes = {},
+        -- Einstellungen (Paket 4.4): Auto-Dig sammelt nur mit Pass und Einstellung an.
+        settings = { autoDig = true },
         daily = { streak = 0, lastDay = 0 },
         tutorial = { step = 1 },
         lastSeen = time,
@@ -617,6 +624,28 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
                 warn(warnings, `spent.{field}`, "keine ganze Zahl, abgerundet")
                 data.spent[field] = math.floor(value)
             end
+        end
+    end
+    -- Münz-Boost (Paket 4.4): Die Endzeit ist eine endliche Unix-Zeit ab 0. NaN und unendlich setzt
+    -- schon die allgemeine Prüfung oben auf 0, ein negativer Wert wird hier 0 (abgelaufen).
+    if type(data.boosts) == "table" and type(data.boosts.coinsUntil) == "number" and data.boosts.coinsUntil < 0 then
+        warn(warnings, "boosts.coinsUntil", "negativ, auf 0 gesetzt")
+        data.boosts.coinsUntil = 0
+    end
+    -- Gamepasses (Paket 4.4): Es bleiben nur bekannte Gamepass-IDs aus Data/Products mit Wert true.
+    -- Ein unbekannter Pass (zum Beispiel von einem neueren Server) wird entfernt; die Abfrage beim
+    -- Laden trägt ihn dort wieder ein, wo er bekannt ist und eine echte ID hat.
+    if type(data.passes) == "table" then
+        local removed: { any } = {}
+        for passId, value in data.passes do
+            local product = if type(passId) == "string" then ProductsData.byId[passId] else nil
+            if value ~= true or product == nil or product.kind ~= "gamepass" then
+                table.insert(removed, passId)
+            end
+        end
+        for _, passId in removed do
+            warn(warnings, `passes.{tostring(passId)}`, "unbekannter Gamepass oder Wert nicht true, entfernt")
+            data.passes[passId] = nil
         end
     end
     -- Kaufprotokoll zuerst: Ist `receipts` ganz kaputt, kommen die PurchaseIds von dort zurück.

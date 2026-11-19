@@ -4,6 +4,7 @@
 local T = require("./lib/expect")
 local RemoteSpec = require("../src/shared/Net/RemoteSpec")
 local Validate = require("../src/shared/Logic/Validate")
+local RateLimiter = require("../src/shared/Logic/RateLimiter")
 
 local function validate(name: string, ...: any): boolean
     local def = RemoteSpec.byName[name]
@@ -21,7 +22,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(8) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3)
+        T.expect(clientRemotes).toBe(9) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -36,6 +37,7 @@ T.describe("RemoteSpec", function()
             OpenCrate = { 1, 1 },
             EquipItem = { 2, 1 },
             MergeItem = { 2, 1 },
+            SetAutoDig = { 2, 1 },
             Prestige = { 1, 5 },
         }
         for name, values in expected do
@@ -158,10 +160,46 @@ T.describe("Remotes der Kisten-Items (4.3)", function()
         T.expect(validate("MergeItem")).toBe(false)
     end)
 
-    T.it("die Slot-Liste der Remote ist die Liste aus Logic/Equipment", function()
+    T.it("die Slot-Liste der Remote ist die Liste aus Logic/Equipment (4.3)", function()
         local rule = RemoteSpec.byName.EquipItem.schema[1]
         T.expect(rule.kind).toBe("oneOf")
         T.expect(rule.values).toEqual({ "skin", "companion", "toolVariant" })
+    end)
+end)
+
+T.describe("Remote SetAutoDig (4.4)", function()
+    T.it("nimmt genau ein Boolean, sonst nichts", function()
+        T.expect(RemoteSpec.byName.SetAutoDig.kind).toBe("Event")
+        T.expect(RemoteSpec.byName.SetAutoDig.direction).toBe("ClientToServer")
+        T.expect(validate("SetAutoDig", true)).toBe(true)
+        T.expect(validate("SetAutoDig", false)).toBe(true)
+        T.expect(validate("SetAutoDig")).toBe(false)
+        T.expect(validate("SetAutoDig", "true")).toBe(false)
+        T.expect(validate("SetAutoDig", 1)).toBe(false)
+        T.expect(validate("SetAutoDig", 0 / 0)).toBe(false)
+        T.expect(validate("SetAutoDig", nil)).toBe(false) -- ein angehängtes nil zählt als Argument
+        T.expect(validate("SetAutoDig", true, true)).toBe(false)
+        T.expect(validate("SetAutoDig", { true })).toBe(false)
+    end)
+
+    T.it("Limit 2 pro Sekunde mit simulierter Uhr: der dritte Aufruf in derselben Sekunde wird abgelehnt", function()
+        local clock = { t = 100 }
+        local limiter = RateLimiter.new(function(): number
+            return clock.t
+        end)
+        local limit = RemoteSpec.byName.SetAutoDig.limit :: RateLimiter.Limit
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(false)
+        -- ein anderer Spieler zählt getrennt
+        T.expect(limiter:allow("43", "SetAutoDig", limit)).toBe(true)
+        clock.t += 0.5
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(false)
+        clock.t += 1
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
+        T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(false)
     end)
 end)
 

@@ -26,6 +26,9 @@ local exampleMigrations: { [number]: Migrations.Step } = {
     [4] = function(profile: any) -- Paket 4.3: nur die Version zählt hier
         return profile
     end,
+    [5] = function(profile: any) -- Paket 4.4: nur die Version zählt hier
+        return profile
+    end,
 }
 
 local function v1Profile(): any
@@ -36,6 +39,8 @@ local function v1Profile(): any
     profile.finds = { dune_find_1 = 3 }
     profile.version = 1 -- ein altes Profil: Standardprofile tragen immer die aktuelle Version
     profile.tankMix = nil
+    profile.passes = nil -- gibt es seit Paket 4.4 (Version 6)
+    profile.settings = nil
     return profile
 end
 
@@ -45,8 +50,8 @@ T.describe("Profile", function()
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
         -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege als Liste),
-        -- 5 seit Paket 4.3 (Ausrüstung und Sterne der Kisten-Items)
-        T.expect(Profile.CURRENT_VERSION).toBe(5)
+        -- 5 seit Paket 4.3 (Ausrüstung und Sterne der Kisten-Items), 6 seit Paket 4.4 (Gamepasses, Einstellungen)
+        T.expect(Profile.CURRENT_VERSION).toBe(6)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -68,6 +73,8 @@ T.describe("Profile", function()
         T.expect(profile.purchaseLog).toEqual({})
         T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
         T.expect(profile.boosts).toEqual({ coinsUntil = 0 })
+        T.expect(profile.passes).toEqual({}) -- Paket 4.4
+        T.expect(profile.settings).toEqual({ autoDig = true }) -- Paket 4.4
         T.expect(profile.daily).toEqual({ streak = 0, lastDay = 0 })
         T.expect(profile.lastSeen).toBe(NOW)
         T.expect(profile.createdAt).toBe(NOW)
@@ -85,8 +92,9 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(original, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.version).toBe(5)
-        T.expect(migrated.settings).toEqual({ music = true })
+        T.expect(migrated.version).toBe(6)
+        -- Fehlende Felder werden tief aufgefüllt: settings.autoDig kommt seit Paket 4.4 aus dem Standardprofil.
+        T.expect(migrated.settings).toEqual({ music = true, autoDig = true })
         T.expect(migrated.legacyGems).toBe(120)
         -- Vorhandene Werte bleiben erhalten.
         T.expect(migrated.coins).toEqual({ m = 4.5, e = 7 })
@@ -207,7 +215,7 @@ T.describe("Profil Version 4 (Paket 4.1)", function()
         local migrated, status = Profile.migrate(old, nil, NOW)
         local profile: any = migrated
         T.expect(status).toBe("ok")
-        T.expect(profile.version).toBe(5)
+        T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
         T.expect(profile.receipts).toEqual({ "aa_kauf", "mm_kauf", "zz_kauf" })
         T.expect(profile.purchaseLog).toEqual({})
         T.expect(profile.spent).toEqual({ robux = 0, count = 0 })

@@ -91,6 +91,14 @@ local list: { RemoteDef } = {
         description = "Spieler hebt ein Kisten-Item mit Kopien um einen Stern.",
     },
     {
+        name = "SetAutoDig",
+        kind = "Event",
+        direction = "ClientToServer",
+        schema = { Validate.boolean() }, -- enabled
+        limit = { calls = 2, per = 1 }, -- Schalter im Menü, jede Änderung rechnet ab und sendet den Zustand
+        description = "Spieler schaltet Auto-Dig an oder aus (Einstellung, wirkt nur mit dem Gamepass, Paket 4.4).",
+    },
+    {
         name = "Prestige",
         kind = "Function",
         direction = "ClientToServer",

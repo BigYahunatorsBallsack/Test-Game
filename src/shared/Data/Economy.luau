@@ -46,8 +46,14 @@ local Economy = {
         holdTimeoutSeconds = 2.5,
     },
 
-    -- Faktor auf die Tankgröße durch den Gamepass "Großer Tank".
+    -- Faktor auf die Tankgröße durch den Gamepass "Großer Tank" (Wirkung "bigTank", Paket 4.4).
     bigTankMultiplier = 2,
+
+    -- Faktor auf alle Münzen aus Verkäufen durch den Gamepass "2x Münzen" (Wirkung "doubleCoins",
+    -- Paket 4.4). Er wirkt auf den Preis pro Sand und damit auf Verkauf, Tankwert und die
+    -- Sandsturm-Vorschau. Mit dem Münz-Boost (coinBoost) zusammen wird multipliziert (2 x 2 = 4-fach,
+    -- so entschieden). Fundwerte und verkaufte Duplikate bleiben unberührt.
+    doubleCoinsMultiplier = 2,
 
     -- Sandsturm: jeder Windkristall gibt +2 % auf alle Münzen (Startwert, Konzept).
     windCrystalBonusBp = 200,
@@ -109,7 +115,9 @@ local Economy = {
         noFindsFromRarityId = "rare",
     },
 
-    -- Münz-Boost (Verbrauchsprodukt): 30 Minuten, doppelte Münzen.
+    -- Münz-Boost (Verbrauchsprodukt "coin_boost", Paket 4.4): 30 Minuten, doppelte Münzen. Die Zeit
+    -- läuft in echter Zeit (Unix, auch offline), jeder Kauf verlängert um durationSeconds ab der
+    -- alten Endzeit (oder ab jetzt, wenn abgelaufen). Keine Obergrenze für gestapelte Zeit.
     coinBoost = {
         durationSeconds = 30 * 60,
         multiplier = 2,

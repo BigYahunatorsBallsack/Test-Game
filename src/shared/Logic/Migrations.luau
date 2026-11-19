@@ -33,7 +33,7 @@ local function isValidBigNum(value: any): boolean
 end
 
 local Migrations = {
-    CURRENT_VERSION = 5,
+    CURRENT_VERSION = 6,
     steps = {} :: { [number]: Step },
 }
 
@@ -116,6 +116,24 @@ Migrations.steps[4] = function(profile: any): any
     end
     if type(profile.itemStars) ~= "table" then
         profile.itemStars = {}
+    end
+    return profile
+end
+
+-- Version 5 -> 6 (Paket 4.4, Gamepasses und Münz-Boost): `passes` (gemerkter Gamepass-Besitz,
+-- { [passId] = true }) und `settings` (Einstellungen, zuerst `autoDig`, Standard an) sind neu. Nur
+-- anlegen, was fehlt: Läuft die Kette bei einem kaputten Versionsfeld erneut, bleibt gemerkter
+-- Besitz erhalten (er steht für bezahlte Pässe). `boosts.coinsUntil` gab es schon, es bleibt.
+-- Der Standardwert steht hier fest (nicht aus Logic/Perks), damit ein späteres Update die Migration
+-- alter Spielstände nicht verändert.
+Migrations.steps[5] = function(profile: any): any
+    if type(profile.passes) ~= "table" then
+        profile.passes = {}
+    end
+    if type(profile.settings) ~= "table" then
+        profile.settings = { autoDig = true }
+    elseif type(profile.settings.autoDig) ~= "boolean" then
+        profile.settings.autoDig = true
     end
     return profile
 end
