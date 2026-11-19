@@ -21,7 +21,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(6)
+        T.expect(clientRemotes).toBe(8) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -34,6 +34,8 @@ T.describe("RemoteSpec", function()
             TravelZone = { 1, 1 },
             PurchaseNode = { 5, 1 },
             OpenCrate = { 1, 1 },
+            EquipItem = { 2, 1 },
+            MergeItem = { 2, 1 },
             Prestige = { 1, 5 },
         }
         for name, values in expected do
@@ -131,6 +133,35 @@ T.describe("RemoteSpec", function()
         T.expect(validate("OpenCrate", "gold", 0 / 0)).toBe(false)
         T.expect(validate("OpenCrate", "diamond", 1)).toBe(false)
         T.expect(validate("OpenCrate", "gold")).toBe(false)
+    end)
+end)
+
+T.describe("Remotes der Kisten-Items (4.3)", function()
+    T.it("EquipItem: Slot aus der Liste, Item-ID als Text (leer = abnehmen), keine weiteren Argumente", function()
+        T.expect(validate("EquipItem", "skin", "skin_common_1")).toBe(true)
+        T.expect(validate("EquipItem", "companion", "")).toBe(true)
+        T.expect(validate("EquipItem", "toolVariant", "toolVariant_rare_1")).toBe(true)
+        T.expect(validate("EquipItem", "hut", "skin_common_1")).toBe(false)
+        T.expect(validate("EquipItem", 1, "skin_common_1")).toBe(false)
+        T.expect(validate("EquipItem", "skin", 5)).toBe(false)
+        T.expect(validate("EquipItem", "skin", string.rep("a", 65))).toBe(false)
+        T.expect(validate("EquipItem", "skin")).toBe(false)
+        T.expect(validate("EquipItem", "skin", "skin_common_1", 1)).toBe(false)
+    end)
+
+    T.it("MergeItem: nur bekannte Item-IDs aus CrateItems", function()
+        T.expect(validate("MergeItem", "skin_common_1")).toBe(true)
+        T.expect(validate("MergeItem", "")).toBe(false)
+        T.expect(validate("MergeItem", "gibt_es_nicht")).toBe(false)
+        T.expect(validate("MergeItem", 7)).toBe(false)
+        T.expect(validate("MergeItem", "skin_common_1", "skin_common_1")).toBe(false)
+        T.expect(validate("MergeItem")).toBe(false)
+    end)
+
+    T.it("die Slot-Liste der Remote ist die Liste aus Logic/Equipment", function()
+        local rule = RemoteSpec.byName.EquipItem.schema[1]
+        T.expect(rule.kind).toBe("oneOf")
+        T.expect(rule.values).toEqual({ "skin", "companion", "toolVariant" })
     end)
 end)
 

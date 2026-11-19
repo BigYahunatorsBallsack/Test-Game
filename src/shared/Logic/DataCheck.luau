@@ -70,6 +70,7 @@ export type DataSet = {
     Finds: any,
     Crates: any,
     CrateItems: any,
+    ItemLooks: any,
     GemPacks: any,
     Products: any,
     Economy: any,
@@ -99,6 +100,7 @@ function DataCheck.defaults(): DataSet
         Finds = require("../Data/Finds"),
         Crates = require("../Data/Crates"),
         CrateItems = require("../Data/CrateItems"),
+        ItemLooks = require("../Data/ItemLooks"),
         GemPacks = require("../Data/GemPacks"),
         Products = require("../Data/Products"),
         Economy = require("../Data/Economy"),
@@ -346,7 +348,7 @@ local function checkCrates(errors: { string }, data: DataSet)
 end
 
 -- Gewinne der Kisten (Paket 4.2): eindeutige IDs, bekannte Art, Seltenheit und Kisten, Event-Items
--- nur in der Event-Kiste, Wirkung 0 (kommt in 4.3), und jede Seltenheit mit Quote über 0 hat in
+-- nur in der Event-Kiste, Wirkung (effectBp, Paket 4.3) in den Grenzen der Wirtschaft, und jede Seltenheit mit Quote über 0 hat in
 -- jeder Kiste mindestens MIN_POOL_ITEMS Items. Ein Item, das in seiner Kiste nie fallen kann
 -- (Quote 0 für seine Seltenheit), ist ebenfalls ein Fehler.
 local function checkCrateItems(errors: { string }, data: DataSet)
@@ -377,8 +379,11 @@ local function checkCrateItems(errors: { string }, data: DataSet)
         if type(item.rarity) ~= "string" or rarities.byId[item.rarity] == nil then
             table.insert(errors, `{label}: unbekannte Seltenheit "{tostring(item.rarity)}"`)
         end
-        if item.effectBp ~= 0 then
-            table.insert(errors, `{label}: effectBp muss in Paket 4.2 0 sein (Wirkungen kommen in 4.3)`)
+        local maxEffect = if type(data.Economy) == "table" and type(data.Economy.items) == "table" and isInt(data.Economy.items.maxEffectBp)
+            then data.Economy.items.maxEffectBp
+            else 0
+        if not isInt(item.effectBp) or item.effectBp < 0 or item.effectBp > maxEffect then
+            table.insert(errors, `{label}: effectBp muss eine ganze Zahl von 0 bis Economy.items.maxEffectBp ({maxEffect}) sein`)
         end
         if type(item.crates) ~= "table" or #item.crates == 0 then
             table.insert(errors, `{label}: crates muss mindestens eine Kiste nennen`)
@@ -432,6 +437,104 @@ local function checkCrateItems(errors: { string }, data: DataSet)
                     )
                 end
             end
+        end
+    end
+end
+
+local ITEM_LOOK_SHAPES: { [string]: boolean } = { Ball = true, Block = true }
+local COMPANION_SIZE_MIN = 0.8
+local COMPANION_SIZE_MAX = 2.2
+
+local function isHexColor(value: any): boolean
+    return type(value) == "string" and string.match(value, "^#%x%x%x%x%x%x$") ~= nil
+end
+
+-- Kisten-Items mit Wirkung (Paket 4.3): die Sterne-Regeln in Economy.items und ein Aussehen
+-- (Data/ItemLooks) für jedes Item, mit gleicher Art, gültigen Farben und bei Begleitern Form und Größe.
+local function checkItems(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    local cfg = if type(economy) == "table" then economy.items else nil
+    if type(cfg) ~= "table" then
+        table.insert(errors, "Economy.items: Tabelle fehlt")
+    else
+        if not isInt(cfg.maxStars) or cfg.maxStars < 2 or cfg.maxStars > 10 then
+            table.insert(errors, "Economy.items.maxStars muss eine ganze Zahl von 2 bis 10 sein")
+        end
+        if not isInt(cfg.starBonusBp) or cfg.starBonusBp < 0 or cfg.starBonusBp > 10000 then
+            table.insert(errors, "Economy.items.starBonusBp muss eine ganze Zahl von 0 bis 10000 sein")
+        end
+        if not isInt(cfg.maxEffectBp) or cfg.maxEffectBp < 1 or cfg.maxEffectBp > 10000 then
+            table.insert(errors, "Economy.items.maxEffectBp muss eine ganze Zahl von 1 bis 10000 sein")
+        end
+        if not isInt(cfg.maxTotalBonusBp) or cfg.maxTotalBonusBp < 1 or cfg.maxTotalBonusBp > 100000 then
+            table.insert(errors, "Economy.items.maxTotalBonusBp muss eine ganze Zahl von 1 bis 100000 sein")
+        elseif
+            isInt(cfg.maxStars)
+            and isInt(cfg.starBonusBp)
+            and isInt(cfg.maxEffectBp)
+            and 3 * math.floor(cfg.maxEffectBp * (10000 + (cfg.maxStars - 1) * cfg.starBonusBp) / 10000) > cfg.maxTotalBonusBp
+        then
+            table.insert(errors, "Economy.items: drei Items mit höchstem Wert und höchstem Stern überschreiten maxTotalBonusBp")
+        end
+        if not isList(cfg.copiesToMerge) then
+            table.insert(errors, "Economy.items.copiesToMerge muss eine Liste sein")
+        else
+            if isInt(cfg.maxStars) and #cfg.copiesToMerge ~= cfg.maxStars - 1 then
+                table.insert(errors, "Economy.items.copiesToMerge braucht genau maxStars - 1 Einträge")
+            end
+            for index, copies in cfg.copiesToMerge do
+                if not isInt(copies) or copies < 1 then
+                    table.insert(errors, `Economy.items.copiesToMerge[{index}] muss eine ganze Zahl ab 1 sein`)
+                end
+            end
+        end
+    end
+
+    local items = data.CrateItems
+    local looks = data.ItemLooks
+    if type(looks) ~= "table" or not isList(looks.list) or type(looks.byId) ~= "table" then
+        table.insert(errors, "ItemLooks: list und byId fehlen")
+        return
+    end
+    checkIds(errors, "ItemLooks", looks)
+    local itemKinds: { [string]: string } = {}
+    if type(items) == "table" and isList(items.list) then
+        for _, item in items.list do
+            if type(item.id) == "string" then
+                itemKinds[item.id] = item.kind
+            end
+        end
+    end
+    local seenLooks: { [string]: boolean } = {}
+    for index, look in looks.list do
+        local label = `ItemLooks "{tostring(look.id or index)}"`
+        local kind = if type(look.id) == "string" then itemKinds[look.id] else nil
+        if kind == nil then
+            table.insert(errors, `{label}: kein Item mit dieser ID in CrateItems`)
+        elseif look.kind ~= kind then
+            table.insert(errors, `{label}: kind "{tostring(look.kind)}" passt nicht zum Item ("{kind}")`)
+        end
+        if type(look.id) == "string" then
+            seenLooks[look.id] = true
+        end
+        if not isHexColor(look.colorHex) or not isHexColor(look.accentHex) then
+            table.insert(errors, `{label}: colorHex und accentHex müssen "#RRGGBB" sein`)
+        end
+        if type(look.material) ~= "string" or look.material == "" then
+            table.insert(errors, `{label}: material fehlt`)
+        end
+        if look.kind == "companion" then
+            if type(look.shape) ~= "string" or not ITEM_LOOK_SHAPES[look.shape] then
+                table.insert(errors, `{label}: shape muss "Ball" oder "Block" sein`)
+            end
+            if not isFinite(look.size) or look.size < COMPANION_SIZE_MIN or look.size > COMPANION_SIZE_MAX then
+                table.insert(errors, `{label}: size muss zwischen {COMPANION_SIZE_MIN} und {COMPANION_SIZE_MAX} liegen`)
+            end
+        end
+    end
+    for itemId in itemKinds do
+        if not seenLooks[itemId] then
+            table.insert(errors, `ItemLooks: Item "{itemId}" hat kein Aussehen`)
         end
     end
 end
@@ -2120,6 +2223,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkQuotas(errors, data)
     checkCrates(errors, data)
     checkCrateItems(errors, data)
+    checkItems(errors, data)
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
     checkScreen(errors, data)

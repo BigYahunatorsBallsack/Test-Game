@@ -28,6 +28,7 @@ local UpgradeTree = require("../Data/UpgradeTree")
 local TreeEffects = require("./TreeEffects")
 local Collection = require("./Collection")
 local Wind = require("./Wind")
+local Equipment = require("./Equipment")
 
 export type State = {
     holding: boolean,
@@ -58,10 +59,11 @@ function Collecting.toolOf(profile: any): Tools.Tool
     return TreeEffects.of(profile).tool
 end
 
--- Sand pro Sekunde: Grundrate des Werkzeugs mal (1 + Summe aller Sammelraten-Boni).
+-- Sand pro Sekunde: Grundrate des Werkzeugs mal (1 + Summe der Sammelraten-Boni aus dem Baum) mal
+-- (1 + Summe der Boni der ausgerüsteten Kisten-Items, Paket 4.3).
 function Collecting.rateOf(profile: any): number
     local effects = TreeEffects.of(profile)
-    return effects.tool.sandPerSecond * (10000 + effects.rateBonusBp) / 10000
+    return effects.tool.sandPerSecond * (10000 + effects.rateBonusBp) / 10000 * Equipment.multiplier(profile)
 end
 
 -- Tankgröße in Sand: der größte gekaufte Tank-Knoten (sonst die Startgröße), danach der

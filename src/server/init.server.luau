@@ -5,7 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Reihenfolge der Services (fest). Neue Services hier am Ende ergänzen.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Shop", "Events" }
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Shop", "Events" }
 
 type Service = {
     Init: () -> (),

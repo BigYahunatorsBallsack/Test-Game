@@ -11,6 +11,8 @@
 -- ("Überspringen", danach "Schließen") ist anklickbar. Sammeln und Laufen gehen weiter.
 -- In Regionen mit gesperrten Zufallsitems (Server meldet `cratesAllowed ~= true`) fehlt der Knopf,
 -- und das Fenster schließt sich. Der Server lehnt Öffnungen dort ohnehin ab.
+-- Auf den Karten steht der Bonus des Items auf die Sammelrate (Paket 4.3) und bei einem Duplikat der
+-- Fortschritt zum nächsten Stern; ausrüsten und verschmelzen im Fenster "Ausrüstung" (EquipmentMenu).
 -- Sounds: leere IDs bis Paket 3.5.
 
 local Players = game:GetService("Players")
@@ -85,6 +87,8 @@ end
 local BigNum = loadShared("Logic", "BigNum")
 local Crates = loadShared("Data", "Crates")
 local Rarities = loadShared("Data", "Rarities")
+local CrateItems = loadShared("Data", "CrateItems")
+local EquipmentLogic = loadShared("Logic", "Equipment")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
@@ -129,6 +133,39 @@ local function newText(parent: Instance, name: string, position: UDim2, size: UD
     l.Text = text
     l.Parent = parent
     return l
+end
+
+-- Hundertstel-Prozent als Text mit deutschem Komma: 575 -> "5,75", 500 -> "5".
+local function bonusPercentText(bp: number): string
+    local text = string.format("%.2f", bp / 100)
+    text = string.gsub(text, "0+$", "")
+    text = string.gsub(text, "%.$", "")
+    return (string.gsub(text, "%.", ","))
+end
+
+-- Bonus des Gewinns auf die Sammelrate und bei Duplikaten der Fortschritt zum nächsten Stern, soweit
+-- der letzte Zustand des Servers (StateSync) schon da ist. Nur Anzeige: Der Server rechnet allein.
+local function itemNote(result: any): (string?, string?)
+    local item = CrateItems.byId[tostring(result.itemId)]
+    if item == nil then
+        return nil, nil
+    end
+    local snapshot: any = State.get()
+    local stars = 1
+    if snapshot ~= nil and type(snapshot.itemStars) == "table" then
+        stars = EquipmentLogic.starsOf({ itemStars = snapshot.itemStars }, item.id)
+    end
+    local bonus = `+{bonusPercentText(EquipmentLogic.itemBonusBp(item, stars))} % Sammelrate`
+    if result.isNew == true or snapshot == nil or type(snapshot.inventory) ~= "table" then
+        return bonus, nil
+    end
+    local bucket = snapshot.inventory[EquipmentLogic.INVENTORY_FIELDS[item.kind]]
+    local copies = if type(bucket) == "table" then bucket[item.id] else nil
+    local cost = EquipmentLogic.mergeCost({ itemStars = snapshot.itemStars or {} }, item.id)
+    if type(copies) ~= "number" or cost == nil then
+        return bonus, nil
+    end
+    return bonus, `{copies} von {cost + 1} Kopien bis ★{stars + 1}`
 end
 
 local function playSound(key: string)
@@ -290,9 +327,18 @@ function CrateShop.Start()
             tag = `{tag} · Garantie`
         end
         local kindName = KIND_NAMES[tostring(result.kind)] or ""
+        local bonusText, progressText = itemNote(result)
+        if progressText ~= nil and not small then
+            tag = `Duplikat · {progressText}`
+        end
         local infoLabel = newText(card, "Info", UDim2.new(0, 6, 1, if small then -22 else -30), UDim2.new(1, -12, 0, if small then 18 else 24), Enum.Font.Gotham, if result.isNew == true then GOOD_COLOR else MUTED_COLOR, if small then tag else `{kindName} · {tag}`, Enum.TextXAlignment.Center)
         -- Texte starten unsichtbar und blenden mit der Karte ein.
-        for _, label in { rarityLabel, nameLabel, infoLabel } do
+        local labels: { TextLabel } = { rarityLabel, nameLabel, infoLabel }
+        if bonusText ~= nil and not small then
+            local bonusLabel = newText(card, "Bonus", UDim2.new(0, 6, 0, 84), UDim2.new(1, -12, 0, 20), Enum.Font.GothamBold, GOOD_COLOR, bonusText, Enum.TextXAlignment.Center)
+            table.insert(labels, bonusLabel)
+        end
+        for _, label in labels do
             label.TextTransparency = 1
         end
         return card

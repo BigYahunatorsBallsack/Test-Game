@@ -33,7 +33,7 @@ local function isValidBigNum(value: any): boolean
 end
 
 local Migrations = {
-    CURRENT_VERSION = 4,
+    CURRENT_VERSION = 5,
     steps = {} :: { [number]: Step },
 }
 
@@ -103,6 +103,20 @@ Migrations.steps[3] = function(profile: any): any
         end
     end
     profile.receipts = ids
+    return profile
+end
+
+-- Version 4 -> 5 (Paket 4.3, Kisten-Items): `equipped` (Item-ID je Slot, "" = leer) und `itemStars`
+-- (Sterne ab ★2) sind neu. Inventar und Pity bleiben, nichts ist ausgerüstet, alle Items sind ★1.
+Migrations.steps[4] = function(profile: any): any
+    -- Nur anlegen, was fehlt: Läuft die Kette bei einem kaputten Versionsfeld erneut, bleiben
+    -- vorhandene Sterne erhalten (sie stehen für verbrauchte Kopien aus bezahlten Kisten).
+    if type(profile.equipped) ~= "table" then
+        profile.equipped = { skin = "", companion = "", toolVariant = "" }
+    end
+    if type(profile.itemStars) ~= "table" then
+        profile.itemStars = {}
+    end
     return profile
 end
 

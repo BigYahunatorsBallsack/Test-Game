@@ -65,6 +65,8 @@ Sandstorm.KEEP_FIELDS = {
     "finds",
     "pity",
     "inventory",
+    "equipped",
+    "itemStars",
     "receipts",
     "purchaseLog",
     "spent",
