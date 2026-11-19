@@ -7,8 +7,9 @@
 --  2. Kristalle = floor(crystalScale x (Einnahmen / crystalUnit) ^ crystalExponent). Einnahmen sind
 --     `profile.runEarned` plus der Wert des vollen Tanks (er wird mitgezählt, nichts geht verloren).
 --  3. Zurück geht alles, was zum Lauf gehört: Münzen, Tank, alle Knoten (also Werkzeug), Zonen
---     und die Einnahmen des Laufs. Es bleiben Sammlung, Skins und Inventar, Gems, Belege, Pity,
---     Boosts, Daily und Tutorial. Vergebene Knoten (`sandstorm_1`) werden neu vergeben.
+--     und die Einnahmen des Laufs. Es bleiben Sammlung, Skins und Inventar, Gems, Belege,
+--     Kaufprotokoll und Ausgaben (Paket 4.1), Pity, Boosts, Daily und Tutorial. Vergebene Knoten
+--     (`sandstorm_1`) werden neu vergeben.
 --  4. Die Zonen starten neu: nur das Dünenmeer ist frei, die Ruinenstadt braucht in jedem Lauf den
 --     Knoten `sandstorm_ruins`. So führt jeder Lauf durch alle Zonen und alle Bücher bleiben im Spiel.
 --
@@ -65,6 +66,8 @@ Sandstorm.KEEP_FIELDS = {
     "pity",
     "inventory",
     "receipts",
+    "purchaseLog",
+    "spent",
     "boosts",
     "daily",
     "tutorial",

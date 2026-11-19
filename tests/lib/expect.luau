@@ -187,6 +187,12 @@ function T.describe(name: string, body: () -> ())
 end
 
 function T.it(name: string, body: () -> ())
+    if finished then
+        -- Der automatische Abschluss lief zu früh (die Datei hat zwischendurch gewartet, zum Beispiel
+        -- bei einem require). Wieder öffnen, damit spätere Fehler den Exit-Code noch setzen.
+        finished = false
+        scheduled = false
+    end
     schedule()
     local indent = string.rep("  ", #depth)
     local ok, err = pcall(body)

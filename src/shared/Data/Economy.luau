@@ -14,6 +14,14 @@ export type DailyReward = {
     durationSeconds: number?, -- nur bei kind = "boost"
 }
 
+-- Käufe und Gems (Paket 4.1), siehe Logic/Purchases und Logic/Gems.
+export type PurchasesConfig = {
+    receiptCacheSize: number, -- so viele PurchaseIds merkt sich das Profil (die neuesten)
+    purchaseLogSize: number, -- so viele Einträge hält das Kaufprotokoll im Profil
+    saveTimeoutSeconds: number, -- so lange wartet ein Kauf höchstens auf das bestätigte Speichern
+    maxGems: number, -- Obergrenze des Gem-Stands (Schutz gegen kaputte Werte und Überlauf)
+}
+
 local Economy = {
     -- Grundpreis pro Sand in Münzen; der Preisfaktor der Sandsorte (SandTypes) multipliziert ihn.
     baseCoinsPerSand = 1,
@@ -51,6 +59,21 @@ local Economy = {
         minCrystals = 20,
         maxCrystals = 100_000,
     },
+
+    -- Käufe (Paket 4.1). PurchaseGranted gibt es erst, wenn die PurchaseId im gespeicherten Stand
+    -- steht. Roblox wiederholt unbestätigte Käufe, dafür merkt sich das Profil die letzten
+    -- `receiptCacheSize` PurchaseIds (älteste fliegen zuerst raus). Das Kaufprotokoll ist nur für
+    -- den Support und hält die letzten `purchaseLogSize` Käufe. `saveTimeoutSeconds`: Wartezeit auf
+    -- das Speichern, danach NotProcessedYet. `maxGems`: höchster Gem-Stand, darüber wird gekappt.
+    -- maxGems nie senken, sonst kappt sanitize beim nächsten Laden oder Speichern bezahlte Guthaben
+    -- (DataCheck verlangt mindestens 1_000_000). receiptCacheSize nie unter 50 und nie unter
+    -- purchaseLogSize (DataCheck prüft beides).
+    purchases = {
+        receiptCacheSize = 100,
+        purchaseLogSize = 50,
+        saveTimeoutSeconds = 30,
+        maxGems = 10_000_000,
+    } :: PurchasesConfig,
 
     -- Freunde-Bonus: 10 % mehr Münzen pro Freund im Server, höchstens 50 %.
     friendBonusPerFriendBp = 1000,

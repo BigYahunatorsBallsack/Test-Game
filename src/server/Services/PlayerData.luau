@@ -8,6 +8,11 @@
 --   PlayerData.get(player)       -> Profil (lebende Tabelle, Änderungen werden gespeichert) oder nil
 --   PlayerData.isLoaded(player)  -> boolean
 --   PlayerData.onLoaded(fn)      -> fn(player, profile), sobald ein Profil geladen ist
+--   PlayerData.getByUserId(id)   -> Profil oder nil (für ProcessReceipt, das nur die UserId kennt)
+--   PlayerData.isActive(id)      -> true, solange das Profil geladen ist und die Sitzung speichert
+--   PlayerData.saveAndWait(id, bedingung, sekunden)
+--                                -> speichert und wartet, bis der gespeicherte Stand (LastSavedData)
+--                                   die Bedingung erfüllt; true nur dann (Käufe, Paket 4.1)
 --
 -- In Studio wird ein eigener DataStore benutzt (STUDIO_STORE_NAME), Live-Daten bleiben unberührt.
 -- Studio-Hilfe (nur in Studio): In der Befehlszeile (Ansicht "Server") Attribute am Spieler
@@ -35,6 +40,7 @@ local shared = ReplicatedStorage:WaitForChild("Shared")
 local logic = shared:WaitForChild("Logic")
 local PlayerSession = require(logic:WaitForChild("PlayerSession") :: ModuleScript) :: any
 local BigNum = require(logic:WaitForChild("BigNum") :: ModuleScript) :: any
+local EconomyData = require(shared:WaitForChild("Data"):WaitForChild("Economy") :: ModuleScript) :: any
 local ProfileStore = require(
     ServerScriptService:WaitForChild("ServerPackages"):WaitForChild("ProfileStore") :: ModuleScript
 ) :: any
@@ -66,6 +72,22 @@ local function wrapProfile(profile: any, userId: number): any
         end,
         endSession = function()
             profile:EndSession()
+        end,
+        -- Paket 4.1 (Käufe): Speichern anstoßen und das Ergebnis nachweisen.
+        save = function()
+            profile:Save() -- speichert in einem eigenen Thread, wartet nicht
+        end,
+        lastSaved = function(): any
+            return profile.LastSavedData -- Kopie des zuletzt erfolgreich gespeicherten Stands
+        end,
+        isActive = function(): boolean
+            return profile:IsActive()
+        end,
+        onAfterSave = function(callback: (any) -> ()): () -> ()
+            local connection = profile.OnAfterSave:Connect(callback)
+            return function()
+                connection:Disconnect()
+            end
         end,
     }
 end
@@ -135,7 +157,8 @@ local function connectStudioHelper(player: Player)
                 profile.runEarned = BigNum.serialize(BigNum.deserialize(profile.coins))
             end
         else
-            profile.gems = math.max(math.floor(value), 0)
+            -- Gems wie in Profile.sanitize: ganze Zahl ab 0, höchstens Economy.purchases.maxGems.
+            profile.gems = math.clamp(math.floor(value), 0, EconomyData.purchases.maxGems)
         end
         print(`[PlayerData] Studio: {player.Name} Münzen = {profile.coins.m}e{profile.coins.e}, Gems = {profile.gems}`)
     end
@@ -156,6 +179,28 @@ end
 
 function PlayerData.onLoaded(callback: (Player, any) -> ())
     table.insert(loadedCallbacks, callback)
+end
+
+-- Profil über die UserId (ProcessReceipt kennt nur die UserId). nil, wenn nicht geladen.
+function PlayerData.getByUserId(userId: number): any
+    if manager == nil then
+        return nil
+    end
+    return manager.get(userId)
+end
+
+-- true, solange das Profil geladen ist und ProfileStore Änderungen noch speichert.
+function PlayerData.isActive(userId: number): boolean
+    return manager ~= nil and manager.isActive(userId)
+end
+
+-- Speichert und wartet höchstens `timeoutSeconds`, bis der gespeicherte Stand (LastSavedData)
+-- `predicate` erfüllt. Gibt false bei Fehler, Zeitgrenze oder Ende der Sitzung. Wartet (yield).
+function PlayerData.saveAndWait(userId: number, predicate: (savedData: any) -> boolean, timeoutSeconds: number): boolean
+    if manager == nil then
+        return false
+    end
+    return manager.saveAndWait(userId, predicate, timeoutSeconds)
 end
 
 function PlayerData.Init()
@@ -180,6 +225,11 @@ function PlayerData.Init()
             end
         end,
         log = log,
+        -- Paket 4.1: Warten auf das bestätigte Speichern (Käufe).
+        wait = function(seconds: number)
+            task.wait(seconds)
+        end,
+        clock = os.clock,
     })
     manager.onLoaded(function(userId: number, profile: any)
         local player = playerByUserId(userId)
