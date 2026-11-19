@@ -364,6 +364,17 @@ Tests: tests/screenlayout.spec.luau, tests/graphicslevel.spec.luau, dazu Erweite
 - [ ] [Studio] PC: Alles sieht aus und bedient sich wie vorher.
 - [ ] [Studio] Echtes schwaches Handy: Das Spiel läuft flüssig und alle Menüs sind bedienbar (Fertig, wenn).
 
+## 3.3 Fundtabelle mit Namen
+
+Plan (freigegeben von Waltuh am 19.11.2026): Nur `Data/Finds.luau` ändert sich. Die 150 Funde bekommen Namen und Beschreibungen im Stil bekannter Roblox-Simulatoren (kurz, Alltagskram bei Gewöhnlich, episch bei Legendär und Mythisch), Set 6 jeder Zone ist der Schatz der Zone. Sets bekommen ein Feld `name` (z. B. "Strandgut", "Schatz des letzten Barons"), das Reveal und Sammlungsbuch später lesen können. IDs, Seltenheiten, Sets und Zonen bleiben unverändert.
+
+- [x] [Lune] Alle 150 IDs, ihre Reihenfolge, Zone, Set und Seltenheit sind wie in 2.6.
+- [x] [Lune] Kein Name und keine Beschreibung enthält "Platzhalter" oder einen alten Namen wie "Dünenfund 1-1".
+- [x] [Lune] Namen sind eindeutig und höchstens 28 Zeichen lang. Beschreibungen sind nicht leer und höchstens 80 Zeichen lang.
+- [x] [Lune] Jedes der 30 Sets hat einen eindeutigen Namen.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Ein Fund zeigt beim Reveal und im Sammlungsbuch den neuen Namen und die Beschreibung.
+
 ## 4.1 Gems und sichere Käufe
 
 Tests: tests/purchases.spec.luau, tests/gems.spec.luau. Plan: Claude-Dokument "Paket 4.1: Gems und sichere Käufe, Plan".
