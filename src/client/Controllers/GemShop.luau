@@ -1,27 +1,21 @@
 --!strict
--- GemShop-Controller (Paket 4.1)
--- Knopf "Gems: N" unten links (neben "Sandsturm"), zeigt den Gem-Stand und öffnet eine schlichte
--- Liste der Gem-Pakete (Menge, Preis in Robux, Bonus). "Kaufen" öffnet nur den Roblox-Kaufdialog
+-- GemShop-Controller (Paket 4.1, Handy-Durchgang 3.6)
+-- Knopf "Gems: N" in der Menüleiste (Controllers/Screen), zeigt den Gem-Stand und öffnet ein Fenster
+-- mit den Gem-Paketen (Menge, Preis in Robux, Bonus). "Kaufen" öffnet nur den Roblox-Kaufdialog
 -- (PromptProductPurchase). Die Gutschrift bucht allein der Server in ProcessReceipt. Der Client
 -- schickt keine Mengen, und sein Kauf-Signal ist kein Beweis für irgendetwas.
 -- Rückmeldung: Notify kind = "gemsBought" (erst nach dem Speichern gesendet) zeigt ein Banner
--- "+N Gems" und lässt den Zähler hochzählen. Der schöne Shop mit Angeboten kommt in Paket 4.5,
--- die Kisten-Quoten-Anzeige in 4.2/4.6.
+-- "+N Gems" und lässt den Zähler hochzählen. Der schöne Shop mit Angeboten kommt in Paket 4.5.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
--- Knopf und Fenster
-local BUTTON_POSITION = UDim2.new(0, 458, 1, -72)
-local BUTTON_SIZE = UDim2.new(0, 150, 0, 48)
-local PANEL_SCALE = Vector2.new(0.92, 0.8)
-local PANEL_MAX_SIZE = Vector2.new(480, 440)
-local PANEL_FADE_SECONDS = 0.18
-local PANEL_EASING = Enum.EasingStyle.Quad
-local ROW_HEIGHT = 56
-local ROW_GAP = 8
+-- Menüleiste und Zeilen
+local MENU_ORDER = 5 -- Platz in der Menüleiste (nach Zonen, Sammlung, Sandsturm und Kisten)
+local FOOTER_HEIGHT = 64
+local ROW_HEIGHT = 64
 local MESSAGE_SECONDS = 3
 local BUY_COOLDOWN_SECONDS = 1.5 -- gegen Doppeltippen, der Server prüft alles Weitere
 
@@ -30,6 +24,7 @@ local COUNT_SECONDS = 0.8 -- so lange zählt der Stand nach einer Gutschrift hoc
 local COUNT_EASING = Enum.EasingStyle.Quad
 local BANNER_SECONDS = 2.6
 local BANNER_FADE_SECONDS = 0.3
+local BANNER_DISPLAY_ORDER = 9
 
 -- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
 local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
@@ -52,6 +47,7 @@ end
 local GemPacks = loadShared("Data", "GemPacks")
 local Economy = loadShared("Data", "Economy")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local GemShop = {}
 
@@ -59,8 +55,7 @@ local player = Players.LocalPlayer
 
 -- Tausenderpunkt wie im Konzept ("1.200 Gems").
 local function groupedNumber(value: number): string
-    local text = tostring(math.floor(value))
-    local result = text
+    local result = tostring(math.floor(value))
     while true do
         local replaced, count = string.gsub(result, "^(-?%d+)(%d%d%d)", "%1.%2")
         result = replaced
@@ -90,73 +85,32 @@ end
 function GemShop.Init() end
 
 function GemShop.Start()
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "DuneBaronGemShop"
-    gui.ResetOnSpawn = false
-    gui.DisplayOrder = 8
-    gui.IgnoreGuiInset = true
-
-    local openButton = Instance.new("TextButton")
-    openButton.Name = "GemsButton"
-    openButton.Position = BUTTON_POSITION
-    openButton.Size = BUTTON_SIZE
-    openButton.BackgroundColor3 = BUTTON_COLOR
-    openButton.BackgroundTransparency = 0.25
-    openButton.Font = Enum.Font.GothamBold
+    local controls = Screen.controls()
+    local window = Screen.createWindow({
+        name = "GemWindow",
+        title = "Gems kaufen",
+        kind = "narrow",
+        footerHeight = FOOTER_HEIGHT,
+    })
+    local openButton = Screen.addMenuButton("GemsButton", "Gems: 0", MENU_ORDER)
     openButton.TextColor3 = GEM_COLOR
-    openButton.TextScaled = true
-    openButton.Text = "Gems: 0"
-    openButton.Parent = gui
-    Instance.new("UICorner").Parent = openButton
+    openButton.Activated:Connect(window.toggle)
 
-    local panel = Instance.new("Frame")
-    panel.Name = "Panel"
-    panel.AnchorPoint = Vector2.new(0.5, 0.5)
-    panel.Position = UDim2.fromScale(0.5, 0.5)
-    panel.Size = UDim2.fromScale(PANEL_SCALE.X, PANEL_SCALE.Y)
-    panel.BackgroundColor3 = PANEL_COLOR
-    panel.BackgroundTransparency = 0.1
-    panel.Visible = false
-    panel.Parent = gui
-    Instance.new("UICorner").Parent = panel
-    local constraint = Instance.new("UISizeConstraint")
-    constraint.MaxSize = PANEL_MAX_SIZE
-    constraint.Parent = panel
-
-    newText(panel, "Title", UDim2.new(0, 16, 0, 10), UDim2.new(1, -72, 0, 32), Enum.Font.GothamBold, TEXT_COLOR, "Gems kaufen")
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "Close"
-    closeButton.AnchorPoint = Vector2.new(1, 0)
-    closeButton.Position = UDim2.new(1, -8, 0, 8)
-    closeButton.Size = UDim2.new(0, 40, 0, 32)
-    closeButton.BackgroundColor3 = BUTTON_COLOR
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.TextColor3 = TEXT_COLOR
-    closeButton.TextScaled = true
-    closeButton.Text = "X"
-    closeButton.Parent = panel
-    Instance.new("UICorner").Parent = closeButton
-
-    local balanceLabel = newText(panel, "Balance", UDim2.new(0, 16, 0, 46), UDim2.new(1, -32, 0, 24), Enum.Font.GothamBold, GEM_COLOR, "Du hast 0 Gems")
-
-    local list = Instance.new("ScrollingFrame")
-    list.Name = "List"
-    list.Position = UDim2.new(0, 12, 0, 78)
-    list.Size = UDim2.new(1, -24, 1, -118)
-    list.BackgroundTransparency = 1
-    list.BorderSizePixel = 0
-    list.ScrollBarThickness = 6
-    list.CanvasSize = UDim2.new(0, 0, 0, #GemPacks.list * (ROW_HEIGHT + ROW_GAP))
-    list.Parent = panel
-
-    local messageLabel = newText(panel, "Message", UDim2.new(0, 16, 1, -34), UDim2.new(1, -32, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
+    -- Kontostand und Meldung im festen Fuß, damit sie beim Scrollen der Liste stehen bleiben.
+    local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, GEM_COLOR, "Du hast 0 Gems")
+    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
 
     -- Banner "+N Gems" (liegt über allem)
-    local banner = newText(gui, "Banner", UDim2.new(0.5, -260, 0.32, 0), UDim2.new(0, 520, 0, 90), Enum.Font.GothamBold, GEM_COLOR, "")
+    local bannerGui = Instance.new("ScreenGui")
+    bannerGui.Name = "DuneBaronGemBanner"
+    bannerGui.ResetOnSpawn = false
+    bannerGui.DisplayOrder = BANNER_DISPLAY_ORDER
+    bannerGui.IgnoreGuiInset = true
+    local banner = newText(bannerGui, "Banner", UDim2.new(0.5, -260, 0.32, 0), UDim2.new(0, 520, 0, 90), Enum.Font.GothamBold, GEM_COLOR, "")
     banner.TextXAlignment = Enum.TextXAlignment.Center
     banner.TextTransparency = 1
     banner.TextStrokeTransparency = 1
-    banner.ZIndex = 21
+    bannerGui.Parent = player:WaitForChild("PlayerGui")
 
     local shownGems = 0 -- was gerade angezeigt wird (zählt beim Gutschreiben hoch)
     local targetGems = 0
@@ -238,25 +192,26 @@ function GemShop.Start()
             end
         end
     end
+
     for index, pack in GemPacks.list do
         local row = Instance.new("Frame")
         row.Name = pack.id
-        row.Position = UDim2.new(0, 0, 0, (index - 1) * (ROW_HEIGHT + ROW_GAP))
-        row.Size = UDim2.new(1, -8, 0, ROW_HEIGHT)
+        row.LayoutOrder = index
+        row.Size = UDim2.new(1, 0, 0, ROW_HEIGHT)
         row.BackgroundColor3 = ROW_COLOR
         row.BackgroundTransparency = 0.2
-        row.Parent = list
+        row.Parent = window.body
         Instance.new("UICorner").Parent = row
 
-        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.5, -12, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, pack.name)
+        newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.5, -12, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, pack.name)
         local bonusText = if pack.bonusPercentConcept > 0 then `+{pack.bonusPercentConcept} % Bonus` else "Einstieg"
-        newText(row, "Bonus", UDim2.new(0, 12, 0, 32), UDim2.new(0.5, -12, 0, 18), Enum.Font.Gotham, GOOD_COLOR, bonusText)
+        newText(row, "Bonus", UDim2.new(0, 12, 0, 36), UDim2.new(0.5, -12, 0, 20), Enum.Font.Gotham, GOOD_COLOR, bonusText)
 
         local buy = Instance.new("TextButton")
         buy.Name = "Buy"
         buy.AnchorPoint = Vector2.new(1, 0.5)
         buy.Position = UDim2.new(1, -8, 0.5, 0)
-        buy.Size = UDim2.new(0.42, 0, 0, 40)
+        buy.Size = UDim2.new(0.42, 0, 0, controls.rowButtonH)
         buy.BackgroundColor3 = if pack.productId == 0 then BUTTON_COLOR else GEM_COLOR
         buy.Font = Enum.Font.GothamBold
         buy.TextColor3 = if pack.productId == 0 then MUTED_COLOR else PANEL_COLOR
@@ -264,6 +219,10 @@ function GemShop.Start()
         buy.Text = if pack.productId == 0 then "Bald" else `{groupedNumber(pack.robux)} Robux`
         buy.Parent = row
         Instance.new("UICorner").Parent = buy
+        local buyPadding = Instance.new("UIPadding")
+        buyPadding.PaddingTop = UDim.new(0, 8)
+        buyPadding.PaddingBottom = UDim.new(0, 8)
+        buyPadding.Parent = buy
 
         buyButtons[pack.id] = { button = buy, pack = pack }
         buy.Activated:Connect(function()
@@ -289,22 +248,6 @@ function GemShop.Start()
         end)
     end
 
-    local fade = TweenInfo.new(PANEL_FADE_SECONDS, PANEL_EASING)
-    local function setOpen(open: boolean)
-        panel.Visible = open
-        messageLabel.Text = ""
-        if open then
-            panel.BackgroundTransparency = 1
-            TweenService:Create(panel, fade, { BackgroundTransparency = 0.1 }):Play()
-        end
-    end
-    openButton.Activated:Connect(function()
-        setOpen(not panel.Visible)
-    end)
-    closeButton.Activated:Connect(function()
-        setOpen(false)
-    end)
-
     -- Zustand vom Server: der Stand ist maßgeblich. Steigt er ohne Meldung (zum Beispiel Daily
     -- Reward), zählt der Zähler trotzdem hoch.
     local first = true
@@ -326,8 +269,6 @@ function GemShop.Start()
             showBanner(math.floor(payload.gems))
         end
     end)
-
-    gui.Parent = player:WaitForChild("PlayerGui")
 end
 
 return GemShop

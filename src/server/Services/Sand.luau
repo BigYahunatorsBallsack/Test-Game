@@ -82,6 +82,30 @@ function Sand.takeFindSeconds(player: Player): { [string]: number }
     return Collecting.takeFindSeconds(state)
 end
 
+-- Weitere Services (zum Beispiel Crates, Paket 4.2) hängen eigene Felder an den Snapshot, ohne dass
+-- Sand sie kennen oder per require laden muss (sonst entstünde ein Zyklus). Ein Provider gibt eine
+-- Tabelle mit Feldern zurück; ein Fehler im Provider lässt die übrigen Felder unberührt. Eigene
+-- Felder von Sand werden nie überschrieben.
+local snapshotProviders: { (Player) -> { [string]: any } } = {}
+
+function Sand.addSnapshotProvider(provider: (Player) -> { [string]: any })
+    table.insert(snapshotProviders, provider)
+end
+
+-- Kisten-Pity für die Anzeige (Paket 4.2): Kopie je Kiste, damit der Client nie am Profil hängt.
+local function pityOf(profile: any): { [string]: any }
+    local result: { [string]: any } = {}
+    local pity = profile.pity
+    if type(pity) == "table" then
+        for crateId, counters in pity do
+            if type(crateId) == "string" and type(counters) == "table" then
+                result[crateId] = { sinceEpic = counters.sinceEpic, sinceLegendary = counters.sinceLegendary }
+            end
+        end
+    end
+    return result
+end
+
 -- Zustand für die Anzeige beim Client. Der Client rechnet damit nichts Maßgebliches.
 function Sand.snapshot(player: Player): any?
     local profile = PlayerData.get(player)
@@ -91,7 +115,7 @@ function Sand.snapshot(player: Player): any?
     local state = stateOf(player)
     local zone = Collecting.zoneOf(profile)
     local effects = TreeEffects.of(profile)
-    return {
+    local snapshot: any = {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
         gems = profile.gems, -- Gems (Paket 4.1)
         tank = BigNum.serialize(BigNum.deserialize(profile.tank)),
@@ -110,7 +134,26 @@ function Sand.snapshot(player: Player): any?
         windBonusBp = Wind.bonusBp(profile),
         storm = Sandstorm.preview(profile), -- Vorschau für Knopf und Fenster
         tutorialStep = Tutorial.stepOf(profile),
+        pity = pityOf(profile), -- Kisten-Pity je Kiste (Paket 4.2)
     }
+    for _, provider in snapshotProviders do
+        -- Ein Provider darf nicht warten und nicht werfen: Koroutine, bei Yield schließen.
+        local co = coroutine.create(provider)
+        local ok, extra = coroutine.resume(co, player)
+        if coroutine.status(co) ~= "dead" then
+            coroutine.close(co)
+            warn("Sand.snapshot: ein Snapshot-Provider hat gewartet und wird ignoriert")
+        elseif not ok then
+            warn(`Sand.snapshot: Snapshot-Provider fehlgeschlagen: {tostring(extra)}`)
+        elseif type(extra) == "table" then
+            for key, value in extra do
+                if snapshot[key] == nil then
+                    snapshot[key] = value
+                end
+            end
+        end
+    end
+    return snapshot
 end
 
 -- Nach einem Sandsturm (Paket 2.7): Der Sammelzustand beginnt neu. Der Tank ist schon leer, der

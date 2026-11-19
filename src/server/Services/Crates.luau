@@ -1,16 +1,198 @@
 --!strict
--- Crates-Service
--- Zuständig: Kisten öffnen (OpenCrate) mit Quoten und Pity auf dem Server, Kisten-Inhalte.
--- Wird in Paket 4.2 und 4.3 gefüllt.
+-- Crates-Service (Paket 4.2)
+-- Zuständig: Kisten öffnen (OpenCrate) mit Quoten und Pity auf dem Server, Policy
+-- `ArePaidRandomItemsRestricted` je Spieler. Kisten-Wirkungen und Reveal-Details folgen in 4.3.
+--
+-- Die Regeln stehen in reinen Modulen mit Lune-Tests: Logic/CrateRoll (Quoten, Pity, Item),
+-- Logic/CrateOpen (Bezahlen, Würfe, Inventar in einem Block, Gründe) und Logic/PolicyCache
+-- (Policy holen, fail-closed). Hier werden nur Remote, Zufall, Profil, PolicyService und die
+-- Anzeige angeschlossen.
+--
+-- Der Client schickt nur Kisten-ID und Anzahl (1 oder 10, Schema und Rate-Limit in RemoteSpec). Preis,
+-- Würfe und Pity bestimmt der Server. Die Antwort der RemoteFunction ist das Ergebnis von
+-- CrateOpen.open (`ok`, Gewinne, neuer Pity-Stand, Gems, Münzen) oder `{ ok = false, reason }`.
+--
+-- Policy (fail-closed): Beim Beitreten holt der Server einmal die Policy des Spielers (bis zu
+-- POLICY_ATTEMPTS Versuche, POLICY_RETRY_SECONDS dazwischen). Bis eine gültige Antwort da ist und
+-- für immer, wenn alle Versuche scheitern, gilt der Spieler als gesperrt: jede Öffnung endet mit
+-- "restricted", und der StateSync meldet `cratesAllowed = false`. Der Abruf läuft in einem eigenen
+-- Thread und nie im Öffnen-Block.
+--
+-- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
+--   game.Players.Name:SetAttribute("DebugCratesRestricted", true)   -- Kisten gesperrt testen
+--   game.Players.Name:SetAttribute("DebugCratesRestricted", false)  -- Kisten erlaubt testen
+--   game.Players.Name:SetAttribute("DebugCratesRestricted", nil)    -- wieder die echte Policy
+-- Außerhalb von Studio wird das Attribut nie gelesen.
+
+local Players = game:GetService("Players")
+local PolicyService = game:GetService("PolicyService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+-- Policy-Abruf: so viele Versuche, so lange Pause dazwischen (Sekunden).
+local POLICY_ATTEMPTS = 3
+local POLICY_RETRY_SECONDS = 2
+-- Studio-Hilfe: Spieler-Attribut, das die Policy überschreibt (true/false, nil = echte Policy).
+local DEBUG_RESTRICTED_ATTRIBUTE = "DebugCratesRestricted"
+-- Antwort, wenn derselbe Spieler schon eine Öffnung laufen hat (kann heute nicht vorkommen, weil
+-- der Block nie wartet; schützt gegen spätere Änderungen).
+local BUSY_REASON = "busy"
+local ERROR_REASON = "error"
+-- Die Event-Kiste ist bis zum Saison-Kalender (Paket 5.x) immer zu.
+local IN_SEASON = false
+
+local shared = ReplicatedStorage:WaitForChild("Shared")
+local function loadShared(folder: string, name: string): any
+    return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
+end
+local CrateOpen = loadShared("Logic", "CrateOpen")
+local PolicyCache = loadShared("Logic", "PolicyCache")
+
+local servicesFolder = script.Parent
+local PlayerData: any = nil
+local Sand: any = nil
+local Net: any = nil
 
 local Crates = {}
 
+-- Ein Zufallsgeber je Server (nicht je Aufruf neu gesät).
+local random = Random.new()
+local function nextRandom(): number
+    return random:NextNumber()
+end
+
+-- Läuft für diesen Spieler gerade eine Öffnung?
+local opening: { [Player]: boolean } = {}
+-- Spieler, deren Policy-Abruf und Studio-Hilfe schon angestoßen sind.
+local handled: { [Player]: boolean } = {}
+
+local function log(message: string)
+    warn(`[Crates] {message}`)
+end
+
+-- Anzeige neu senden (Gems, Münzen, Pity, cratesAllowed). Ein Fehler hier ändert nichts am Ergebnis.
+local function refresh(player: Player)
+    local ok, err = pcall(Sand.refresh, player)
+    if not ok then
+        log(`Anzeige für {player.Name} fehlgeschlagen: {tostring(err)}`)
+    end
+end
+
+local policy = PolicyCache.new({
+    fetch = function(player: Player): any
+        return PolicyService:GetPolicyInfoForPlayerAsync(player)
+    end,
+    wait = function(seconds: number)
+        task.wait(seconds)
+    end,
+    attempts = POLICY_ATTEMPTS,
+    retrySeconds = POLICY_RETRY_SECONDS,
+    log = log,
+    onResolved = function(userId: number, _restricted: boolean?)
+        local player = Players:GetPlayerByUserId(userId)
+        if player ~= nil then
+            refresh(player)
+        end
+    end,
+})
+
+-- Gesperrt? true/false aus der Policy (in Studio vom Attribut überschrieben), nil = unbekannt.
+-- CrateOpen behandelt nil wie true.
+local function restrictedOf(player: Player): boolean?
+    if RunService:IsStudio() then
+        local override = player:GetAttribute(DEBUG_RESTRICTED_ATTRIBUTE)
+        if type(override) == "boolean" then
+            return override
+        end
+    end
+    return policy.restricted(player.UserId)
+end
+
+-- Darf der Spieler Kisten öffnen? Nur, wenn die Policy bekannt ist und nicht sperrt.
+function Crates.isAllowed(player: Player): boolean
+    return restrictedOf(player) == false
+end
+
+-- Öffnet ohne Warten. Der ganze Ablauf (Prüfen, Bezahlen, Würfeln, Pity, Inventar) steckt in
+-- CrateOpen.open und schreibt das Profil erst am Ende in einem Zug.
+local function openNow(player: Player, crateId: string, count: number): any
+    local profile = PlayerData.get(player)
+    return CrateOpen.open(profile, crateId, count, {
+        random = nextRandom,
+        restricted = restrictedOf(player),
+        inSeason = IN_SEASON,
+    })
+end
+
+local function onOpenCrate(player: Player, crateId: string, count: number): any
+    if opening[player] then
+        return { ok = false, reason = BUSY_REASON }
+    end
+    opening[player] = true
+    local ok, result = pcall(openNow, player, crateId, count)
+    opening[player] = nil
+    if not ok then
+        log(`Öffnen von {tostring(crateId)} für {player.Name} fehlgeschlagen: {tostring(result)}`)
+        return { ok = false, reason = ERROR_REASON }
+    end
+    if result.ok ~= true then
+        if result.reason == ERROR_REASON then
+            log(`Öffnen von {tostring(crateId)} für {player.Name} abgebrochen, nichts gebucht: {tostring(result.detail)}`)
+        end
+        return { ok = false, reason = result.reason } -- ohne `detail` (nur fürs Protokoll)
+    end
+    refresh(player)
+    return result
+end
+
+local function connectStudioHelper(player: Player)
+    player:GetAttributeChangedSignal(DEBUG_RESTRICTED_ATTRIBUTE):Connect(function()
+        print(`[Crates] Studio: {player.Name} {DEBUG_RESTRICTED_ATTRIBUTE} = {tostring(player:GetAttribute(DEBUG_RESTRICTED_ATTRIBUTE))}, Kisten erlaubt: {Crates.isAllowed(player)}`)
+        refresh(player)
+    end)
+end
+
+local function onPlayerAdded(player: Player)
+    -- Ein Spieler, der zwischen Connect und der Schleife über Players:GetPlayers() beitritt, käme
+    -- sonst zweimal.
+    if handled[player] then
+        return
+    end
+    handled[player] = true
+    if RunService:IsStudio() then
+        connectStudioHelper(player)
+    end
+    -- Eigener Thread: der Abruf wartet (Netz), das Öffnen nie.
+    task.spawn(policy.load, player.UserId, player)
+end
+
 function Crates.Init()
-    -- Noch leer: Abhängigkeiten anderer Services werden hier nicht benutzt.
+    PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
+    Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    Net = require(servicesFolder.Parent:WaitForChild("Net"):WaitForChild("Net") :: ModuleScript)
 end
 
 function Crates.Start()
-    -- Noch leer: Verbindungen und Schleifen starten hier, wenn das Paket sie füllt.
+    Net.on("OpenCrate", onOpenCrate)
+
+    -- `cratesAllowed` im StateSync: true nur bei bekannter, nicht sperrender Policy.
+    if type(Sand.addSnapshotProvider) == "function" then
+        Sand.addSnapshotProvider(function(player: Player): { [string]: any }
+            return { cratesAllowed = Crates.isAllowed(player) }
+        end)
+    else
+        log("Sand.addSnapshotProvider fehlt: cratesAllowed wird nicht gesendet (der Client zeigt Kisten dann gesperrt)")
+    end
+
+    Players.PlayerAdded:Connect(onPlayerAdded)
+    for _, player in Players:GetPlayers() do
+        onPlayerAdded(player)
+    end
+    Players.PlayerRemoving:Connect(function(player: Player)
+        policy.forget(player.UserId)
+        opening[player] = nil
+        handled[player] = nil
+    end)
 end
 
 return Crates

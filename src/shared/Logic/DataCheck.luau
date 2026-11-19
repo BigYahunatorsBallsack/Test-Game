@@ -23,6 +23,15 @@ local PURCHASE_LIMITS: { { key: string, min: number, max: number } } = {
 }
 
 local CURRENCIES = { coins = true, gems = true }
+-- Kisten (Paket 4.2): Pity-Grenzen der Kisten mit Garantie (Konzept: Episch spätestens bei 15,
+-- Legendär spätestens bei 60), erlaubte Item-Arten, Mindestzahl Items je Seltenheit mit Quote > 0
+-- im Pool jeder Kiste (Soll sind 3, Pflicht ist 1, sonst kann der Wurf kein Item liefern) und die
+-- Kiste, deren Items exklusiv sind.
+local CRATE_PITY = { gold = { epic = 15, legendary = 60 }, event = { epic = 15, legendary = 60 } }
+local PITY_TIERS = { "epic", "legendary" }
+local CRATE_ITEM_KINDS = { skin = true, companion = true, toolVariant = true }
+local MIN_POOL_ITEMS = 1
+local EXCLUSIVE_CRATE = "event"
 local PRODUCT_KINDS = { gamepass = true, developerProduct = true, direct = true }
 local DAILY_KINDS = { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
 local EFFECT_KINDS = {
@@ -60,6 +69,7 @@ export type DataSet = {
     FindOdds: any,
     Finds: any,
     Crates: any,
+    CrateItems: any,
     GemPacks: any,
     Products: any,
     Economy: any,
@@ -88,6 +98,7 @@ function DataCheck.defaults(): DataSet
         FindOdds = require("../Data/FindOdds"),
         Finds = require("../Data/Finds"),
         Crates = require("../Data/Crates"),
+        CrateItems = require("../Data/CrateItems"),
         GemPacks = require("../Data/GemPacks"),
         Products = require("../Data/Products"),
         Economy = require("../Data/Economy"),
@@ -250,6 +261,11 @@ local function checkCrates(errors: { string }, data: DataSet)
         end
         if CURRENCIES[crate.currency] == nil then
             table.insert(errors, `{label}: currency muss "coins" oder "gems" sein`)
+        elseif crate.currency == "gems" and isFinite(crate.price) and crate.price ~= math.floor(crate.price) then
+            table.insert(errors, `{label}: der Gem-Preis muss eine ganze Zahl sein`)
+        end
+        if crate.eventOnly ~= nil and type(crate.eventOnly) ~= "boolean" then
+            table.insert(errors, `{label}: eventOnly muss true oder false sein`)
         end
     end
 
@@ -275,16 +291,148 @@ local function checkCrates(errors: { string }, data: DataSet)
         table.insert(errors, "Crates: Event-Kiste muss dieselbe Quotentabelle wie die Goldkiste nutzen")
     end
 
-    -- Pity der Goldkiste: Episch spätestens bei 15, Legendär spätestens bei 60.
-    local pity = gold.pity
-    if type(pity) ~= "table" or pity.epic ~= 15 or pity.legendary ~= 60 then
-        table.insert(errors, "Crates gold: pity muss epic = 15 und legendary = 60 sein")
+    -- Pity der Gold- und der Event-Kiste: Episch spätestens bei 15, Legendär spätestens bei 60
+    -- (eigene Tabellen, eigene Zähler im Profil).
+    for crateId, expected in CRATE_PITY do
+        local crate = crates.byId[crateId]
+        local pity = if crate then crate.pity else nil
+        if crate ~= nil and (type(pity) ~= "table" or pity.epic ~= expected.epic or pity.legendary ~= expected.legendary) then
+            table.insert(errors, `Crates {crateId}: pity muss epic = {expected.epic} und legendary = {expected.legendary} sein`)
+        end
+    end
+    -- Jede Pity (auch künftige Kisten): ganze Grenzen ab 1, Episch nicht nach Legendär, und für
+    -- jede Stufe hat mindestens eine Seltenheit dieser Stufe oder besser eine Quote über 0 (sonst
+    -- könnte die Garantie nichts würfeln). Die Schlüssel sind Seltenheits-IDs.
+    local rarities = data.Rarities
+    for _, crate in crates.list do
+        local pity = crate.pity
+        if pity == nil then
+            continue
+        end
+        local label = `Crates "{tostring(crate.id)}".pity`
+        if type(pity) ~= "table" then
+            table.insert(errors, `{label} muss eine Tabelle sein`)
+            continue
+        end
+        for _, tier in PITY_TIERS do
+            local limit = pity[tier]
+            if not isInt(limit) or limit < 1 then
+                table.insert(errors, `{label}.{tier} muss eine ganze Zahl ab 1 sein`)
+            elseif type(rarities) == "table" and type(rarities.byId) == "table" and rarities.byId[tier] ~= nil and type(crate.odds) == "table" then
+                local reachable = 0
+                for rarityId, share in crate.odds do
+                    local rarity = rarities.byId[rarityId]
+                    if rarity ~= nil and rarity.rank >= rarities.byId[tier].rank and isFinite(share) then
+                        reachable += share
+                    end
+                end
+                if reachable <= 0 then
+                    table.insert(errors, `{label}.{tier}: keine Seltenheit ab "{tier}" hat eine Quote über 0`)
+                end
+            elseif type(rarities) == "table" and type(rarities.byId) == "table" and rarities.byId[tier] == nil then
+                table.insert(errors, `{label}.{tier}: Seltenheit "{tier}" fehlt in Rarities`)
+            end
+        end
+        if isInt(pity.epic) and isInt(pity.legendary) and pity.epic > pity.legendary then
+            table.insert(errors, `{label}: epic darf nicht größer als legendary sein`)
+        end
     end
 
     -- 10er-Paket: zehn kaufen, elf bekommen.
     local bundle = crates.bundle
     if type(bundle) ~= "table" or bundle.buy ~= 10 or bundle.get ~= 11 then
         table.insert(errors, "Crates: bundle muss buy = 10 und get = 11 sein")
+    end
+end
+
+-- Gewinne der Kisten (Paket 4.2): eindeutige IDs, bekannte Art, Seltenheit und Kisten, Event-Items
+-- nur in der Event-Kiste, Wirkung 0 (kommt in 4.3), und jede Seltenheit mit Quote über 0 hat in
+-- jeder Kiste mindestens MIN_POOL_ITEMS Items. Ein Item, das in seiner Kiste nie fallen kann
+-- (Quote 0 für seine Seltenheit), ist ebenfalls ein Fehler.
+local function checkCrateItems(errors: { string }, data: DataSet)
+    local items = data.CrateItems
+    checkIds(errors, "CrateItems", items)
+    if type(items) ~= "table" or not isList(items.list) then
+        return
+    end
+    local crates = data.Crates
+    local rarities = data.Rarities
+    if type(crates) ~= "table" or type(crates.byId) ~= "table" or not isList(crates.list) then
+        return
+    end
+    if type(rarities) ~= "table" or type(rarities.byId) ~= "table" then
+        return
+    end
+
+    -- Kisten-ID -> Seltenheit -> Anzahl Items
+    local poolSizes: { [string]: { [string]: number } } = {}
+    for index, item in items.list do
+        local label = `CrateItems "{tostring(item.id or index)}"`
+        if CRATE_ITEM_KINDS[item.kind] == nil then
+            table.insert(errors, `{label}: kind muss "skin", "companion" oder "toolVariant" sein`)
+        end
+        if type(item.name) ~= "string" or item.name == "" then
+            table.insert(errors, `{label}: name fehlt`)
+        end
+        if type(item.rarity) ~= "string" or rarities.byId[item.rarity] == nil then
+            table.insert(errors, `{label}: unbekannte Seltenheit "{tostring(item.rarity)}"`)
+        end
+        if item.effectBp ~= 0 then
+            table.insert(errors, `{label}: effectBp muss in Paket 4.2 0 sein (Wirkungen kommen in 4.3)`)
+        end
+        if type(item.crates) ~= "table" or #item.crates == 0 then
+            table.insert(errors, `{label}: crates muss mindestens eine Kiste nennen`)
+            continue
+        end
+        local seen: { [string]: boolean } = {}
+        local exclusive = false
+        for _, crateId in item.crates do
+            local crate = if type(crateId) == "string" then crates.byId[crateId] else nil
+            if crate == nil then
+                table.insert(errors, `{label}: unbekannte Kiste "{tostring(crateId)}"`)
+                continue
+            end
+            if seen[crateId] then
+                table.insert(errors, `{label}: Kiste "{crateId}" steht doppelt in crates`)
+                continue
+            end
+            seen[crateId] = true
+            if crateId == EXCLUSIVE_CRATE then
+                exclusive = true
+            end
+            local share = if type(crate.odds) == "table" then crate.odds[item.rarity] else nil
+            if rarities.byId[item.rarity] ~= nil and (not isFinite(share) or share <= 0) then
+                table.insert(errors, `{label}: kann aus Kiste "{crateId}" nie fallen (Quote für "{item.rarity}" ist 0)`)
+            end
+            local perCrate = poolSizes[crateId]
+            if perCrate == nil then
+                perCrate = {}
+                poolSizes[crateId] = perCrate
+            end
+            if type(item.rarity) == "string" then
+                perCrate[item.rarity] = (perCrate[item.rarity] or 0) + 1
+            end
+        end
+        if exclusive and #item.crates > 1 then
+            table.insert(errors, `{label}: Items der Event-Kiste dürfen nur in "{EXCLUSIVE_CRATE}" stehen`)
+        end
+    end
+
+    for _, crate in crates.list do
+        if type(crate.odds) ~= "table" then
+            continue
+        end
+        for rarityId, share in crate.odds do
+            if isFinite(share) and share > 0 then
+                local size = (poolSizes[crate.id] or {})[rarityId] or 0
+                if size < MIN_POOL_ITEMS then
+                    table.insert(
+                        errors,
+                        `CrateItems: Kiste "{tostring(crate.id)}" hat keine Items der Seltenheit "{tostring(rarityId)}" (Quote {share}, mindestens {MIN_POOL_ITEMS})`
+                    )
+                end
+            end
+        end
     end
 end
 
@@ -1971,6 +2119,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkRarities(errors, data)
     checkQuotas(errors, data)
     checkCrates(errors, data)
+    checkCrateItems(errors, data)
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
     checkScreen(errors, data)

@@ -488,4 +488,159 @@ T.describe("Käufe (4.1)", function()
     end)
 end)
 
+T.describe("Kisten und Kisten-Items (4.2)", function()
+    local CrateItems = require("../src/shared/Data/CrateItems")
+
+    -- Entfernt alle Items, auf die `match` zutrifft, aus list und byId.
+    local function removeItems(data: any, match: (item: any) -> boolean)
+        local kept = {}
+        for _, item in data.CrateItems.list do
+            if match(item) then
+                data.CrateItems.byId[item.id] = nil
+            else
+                table.insert(kept, item)
+            end
+        end
+        data.CrateItems.list = kept
+    end
+
+    T.it("echte Daten: Gold- und Event-Kiste haben Pity 15/60 in eigenen Tabellen", function()
+        T.expect(DataCheck.run()).toEqual({})
+        T.expect(Crates.byId.event.pity).toEqual({ epic = 15, legendary = 60 })
+        T.expect(rawequal(Crates.byId.event.pity, Crates.byId.gold.pity)).toBe(false)
+        T.expect(Crates.byId.wood.pity).toBeNil()
+        T.expect(Crates.byId.iron.pity).toBeNil()
+    end)
+
+    T.it("echte Daten: jede Seltenheit mit Quote über 0 hat in jeder Kiste mindestens 3 Items (Soll)", function()
+        for _, crate in Crates.list do
+            for rarityId, share in crate.odds do
+                local count = 0
+                for _, item in CrateItems.list do
+                    if item.rarity == rarityId and table.find(item.crates, crate.id) ~= nil then
+                        count += 1
+                    end
+                end
+                if share > 0 then
+                    T.expect(count >= 3).toBe(true)
+                else
+                    T.expect(count).toBe(0)
+                end
+            end
+        end
+    end)
+
+    T.it("DataCheck meldet Quoten, die nicht 10000 ergeben", function()
+        local data = freshDataSet()
+        data.Crates.Odds.gold.uncommon = 3999
+        expectError(DataCheck.run(data), "Quoten ergeben 9999 statt 10000")
+        local data2 = freshDataSet()
+        data2.Crates.Odds.wood.epic = 101
+        expectError(DataCheck.run(data2), "Quoten ergeben 10001 statt 10000")
+    end)
+
+    T.it("DataCheck meldet eine Seltenheit mit Quote über 0 ohne Items im Pool", function()
+        local data = freshDataSet()
+        removeItems(data, function(item)
+            return item.rarity == "mythic" and table.find(item.crates, "gold") ~= nil
+        end)
+        expectError(DataCheck.run(data), 'Kiste "gold" hat keine Items der Seltenheit "mythic"')
+
+        local data2 = freshDataSet()
+        removeItems(data2, function(item)
+            return item.rarity == "common" and table.find(item.crates, "wood") ~= nil
+        end)
+        expectError(DataCheck.run(data2), 'Kiste "wood" hat keine Items der Seltenheit "common"')
+    end)
+
+    T.it("DataCheck meldet eine falsche Pity der Event-Kiste und eine unerreichbare Garantie", function()
+        local data = freshDataSet()
+        data.Crates.byId.event.pity = nil
+        expectError(DataCheck.run(data), "Crates event: pity muss epic = 15 und legendary = 60 sein")
+
+        local data2 = freshDataSet()
+        data2.Crates.byId.event.pity.legendary = 61
+        expectError(DataCheck.run(data2), "Crates event: pity")
+
+        local data3 = freshDataSet()
+        data3.Crates.byId.iron.pity = { epic = 15, legendary = 60 } -- Eisen hat keine Legendär-Quote
+        expectError(DataCheck.run(data3), 'Crates "iron".pity.legendary: keine Seltenheit ab "legendary"')
+
+        local data4 = freshDataSet()
+        data4.Crates.byId.wood.pity = { epic = 0, legendary = 2.5 }
+        local errors = table.concat(DataCheck.run(data4), "\n")
+        T.expect(errors).toContain('Crates "wood".pity.epic muss eine ganze Zahl ab 1 sein')
+        T.expect(errors).toContain('Crates "wood".pity.legendary muss eine ganze Zahl ab 1 sein')
+    end)
+
+    T.it("DataCheck meldet kaputte Items: doppelte ID, Seltenheit, Art, Kiste, Event-Exklusivität, Wirkung", function()
+        local function broken(change: (data: any) -> ()): { string }
+            local data = freshDataSet()
+            change(data)
+            return DataCheck.run(data)
+        end
+        expectError(
+            broken(function(d)
+                table.insert(d.CrateItems.list, d.CrateItems.list[1])
+            end),
+            'CrateItems: id "skin_common_1" ist doppelt'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.rarity = "selten"
+            end),
+            'CrateItems "skin_rare_1": unbekannte Seltenheit "selten"'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.kind = "hat"
+            end),
+            'CrateItems "skin_rare_1": kind muss'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.crates = { "wood", "silver" }
+            end),
+            'CrateItems "skin_rare_1": unbekannte Kiste "silver"'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.crates = {}
+            end),
+            'CrateItems "skin_rare_1": crates muss mindestens eine Kiste nennen'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_3.crates = { "event", "gold" }
+            end),
+            'CrateItems "skin_rare_3": Items der Event-Kiste dürfen nur in "event" stehen'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.effectBp = 50
+            end),
+            'CrateItems "skin_rare_1": effectBp muss in Paket 4.2 0 sein'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_legendary_1.crates = { "gold", "wood" }
+            end),
+            'CrateItems "skin_legendary_1": kann aus Kiste "wood" nie fallen'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.name = ""
+            end),
+            'CrateItems "skin_rare_1": name fehlt'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems = nil
+            end),
+            "CrateItems: list fehlt"
+        )
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+end)
+
 T.finish()

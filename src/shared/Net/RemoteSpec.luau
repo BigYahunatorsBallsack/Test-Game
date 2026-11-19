@@ -64,9 +64,9 @@ local list: { RemoteDef } = {
         direction = "ClientToServer",
         schema = {
             Validate.idIn(Crates.byId, CRATE_ID_MAX_LEN), -- crateId
-            Validate.oneOf({ 1, 10 }), -- count: Einzelöffnung oder 10er-Paket
+            Validate.oneOf({ 1, Crates.bundle.buy }), -- count: Einzelöffnung oder 10er-Paket (Data/Crates)
         },
-        limit = { calls = 1, per = 1 },
+        limit = { calls = 1, per = 1 }, -- der Client wartet 1,3 s, damit Netzschwankungen das Limit nicht reißen
         description = "Spieler will eine Kiste (1) oder das 10er-Paket öffnen.",
     },
     {

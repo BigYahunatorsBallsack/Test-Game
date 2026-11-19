@@ -1,8 +1,10 @@
 --!strict
 -- Kisten, Quoten und Pity (Konzept: "Kisten, Quoten und Monetarisierung").
 -- Quoten in Hundertstel-Prozent (10000 = 100 %). Anzeige und Auswurf lesen dieselben
--- Tabellen aus `Odds`. Die Event-Kiste verweist auf dieselbe Tabelle wie die Goldkiste
--- (gleiche Referenz, keine Kopie), damit die Quoten nie auseinanderlaufen.
+-- Tabellen aus `Odds` (Logic/CrateRoll: `displayOdds` und `roll` über `oddsOf`). Die Event-Kiste
+-- verweist auf dieselbe Tabelle wie die Goldkiste (gleiche Referenz, keine Kopie), damit die
+-- Quoten nie auseinanderlaufen. Pity: Gold- und Event-Kiste haben dieselben Grenzen, aber jede
+-- ihren eigenen Zähler im Profil (`pity.gold`, `pity.event`). Kisten ohne `pity` zählen nichts.
 
 export type OddsTable = { [string]: number } -- Seltenheits-ID -> Hundertstel-Prozent
 
@@ -17,7 +19,7 @@ export type Crate = {
     currency: "coins" | "gems",
     price: number,
     odds: OddsTable,
-    pity: Pity?, -- nur die Goldkiste garantiert etwas
+    pity: Pity?, -- nur Gold- und Event-Kiste garantieren etwas (je eigener Zähler)
     eventOnly: boolean, -- nur in der Saison kaufbar
 }
 
@@ -82,8 +84,9 @@ local list: { Crate } = {
         currency = "gems",
         price = 400,
         odds = Odds.gold, -- dieselbe Referenz wie die Goldkiste
-        -- Pity der Event-Kiste ist im Konzept nicht festgelegt, vorerst keine.
-        pity = nil,
+        -- Eigene Pity mit denselben Grenzen wie die Goldkiste (entschieden in Paket 4.2), eigener
+        -- Zähler `pity.event` im Profil: Öffnungen der Goldkiste zählen hier nicht und umgekehrt.
+        pity = { epic = 15, legendary = 60 },
         eventOnly = true,
     },
 }
