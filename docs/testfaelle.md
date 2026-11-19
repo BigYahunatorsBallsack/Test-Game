@@ -396,6 +396,29 @@ Tests: tests/purchases.spec.luau, tests/gems.spec.luau. Plan: Claude-Dokument "P
 - [ ] [Studio] Studio-Hilfe `DebugPurchase` mit derselben PurchaseId dreimal: Die Gems steigen genau einmal, das Banner erscheint einmal.
 - [ ] [Studio] Testkauf eines echten Developer Products in Studio: Gutschrift genau einmal, nach dem Rejoin noch da.
 
+## 4.2 Kisten: Quoten, Pity, Öffnen auf dem Server, Reveal
+
+Tests: tests/crateroll.spec.luau, tests/crateopen.spec.luau. Plan: Claude-Dokument "Paket 4.2: Kisten mit Quoten und Pity, Plan".
+
+- [x] [Lune] Simulation: 200.000 Öffnungen je Kiste ohne Pity, jede Seltenheit innerhalb von 4 Standardabweichungen der Tabelle; Seltenheiten mit 0 % kommen nie vor.
+- [x] [Lune] Pity: In 200.000 Goldkisten vergehen nie mehr als 14 Öffnungen ohne Episch oder besser und nie mehr als 59 ohne Legendär oder besser; die Rate Legendär oder besser liegt beim Wert des balance-analyst.
+- [x] [Lune] Pity mit festem Zufall: Die 15. Öffnung ohne Episch ist Episch oder besser, die 60. ohne Legendär ist Legendär oder besser; ein Legendär setzt beide Zähler zurück, ein Episch nur `sinceEpic`.
+- [x] [Lune] Im 10er-Paket zählt jede der 11 Öffnungen für die Pity, bezahlt werden 10.
+- [x] [Lune] Anzeige und Auswurf lesen dieselbe Tabelle: Die Anzeige-Quoten aus `CrateRoll` sind dieselbe Referenz wie die Tabelle des Wurfs.
+- [x] [Lune] Zu wenig Gems oder Münzen: Grund `notEnoughGems` oder `notEnoughCoins`, Profil unverändert.
+- [x] [Lune] Bei `ArePaidRandomItemsRestricted = true` oder unbekannter Policy lehnt der Server jede Kisten-Öffnung ab, Profil unverändert.
+- [x] [Lune] Event-Kiste außerhalb einer Saison: Grund `notInSeason`, Profil unverändert.
+- [x] [Lune] Ein Fehler mitten im Wurf lässt Bezahlung, Inventar und Pity unverändert.
+- [x] [Lune] Der Pity-Zähler übersteht Speichern und Laden (Neustart) unverändert.
+- [x] [Lune] Jedes gewürfelte Item kommt aus dem Pool der Kiste und hat die gewürfelte Seltenheit; Duplikate erhöhen den Zähler im Inventar.
+- [x] [Lune] Die Gratis-Öffnung bucht nichts ab und zählt für die Pity.
+- [x] [Lune] DataCheck meldet Quoten, die nicht 10000 ergeben, und eine Seltenheit mit Quote über 0 ohne Items im Pool.
+- [ ] [Studio] Das Kisten-Fenster zeigt vor dem Kauf Preis, alle Quoten und den Pity-Zähler der Goldkiste.
+- [ ] [Studio] Holzkiste mit Münzen und Goldkiste mit Gems (Studio-Hilfe `DebugGems`) öffnen: Reveal läuft, Guthaben sinkt um den Preis, Pity-Zähler zählt.
+- [ ] [Studio] 10 + 1 öffnen: 11 Karten, Preis von 10.
+- [ ] [Studio] Sammeln und Laufen gehen während des Reveals weiter.
+- [ ] [Studio] Rejoin: Inventar und Pity-Zähler sind noch da.
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.

@@ -23,6 +23,8 @@ export type Snapshot = {
     windCrystals: number, -- Windkristalle (Paket 2.7)
     windBonusBp: number, -- ihr Bonus auf alle Münzen (Hundertstel-Prozent)
     storm: Storm, -- Vorschau des Sandsturms
+    pity: { [string]: { sinceEpic: number, sinceLegendary: number } }, -- Kisten-Pity je Kiste (Paket 4.2)
+    cratesAllowed: boolean?, -- false/nil: Kisten in dieser Region gesperrt oder Policy unbekannt (Paket 4.2)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 

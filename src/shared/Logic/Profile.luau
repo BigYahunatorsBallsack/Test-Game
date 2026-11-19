@@ -13,6 +13,7 @@
 local BigNum = require("./BigNum")
 local Migrations = require("./Migrations")
 local Economy = require("../Data/Economy")
+local CratesData = require("../Data/Crates")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -99,7 +100,12 @@ function Profile.default(now: number?): Profile
         windCrystals = 0,
         prestiges = 0,
         runEarned = BigNum.serialize(BigNum.zero()),
-        pity = { gold = { sinceEpic = 0, sinceLegendary = 0 } },
+        -- Kisten-Pity (Paket 4.2): ein Zähler je Kiste mit Pity. Fehlt einer in einem alten
+        -- Spielstand, füllt Profile.migrate ihn mit 0/0 auf (keine Migration nötig).
+        pity = {
+            gold = { sinceEpic = 0, sinceLegendary = 0 },
+            event = { sinceEpic = 0, sinceLegendary = 0 },
+        },
         inventory = { skins = {}, companions = {}, toolVariants = {} },
         receipts = {},
         purchaseLog = {},
@@ -173,6 +179,11 @@ local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true, runEar
 -- Echte Listen (Paket 4.1). Sie haben eigene Regeln (repairPurchaseLog, repairReceipts), weil der
 -- DataStore nur lückenlose Listen ohne Textschlüssel speichern kann.
 local LIST_FIELDS: { [string]: boolean } = { receipts = true, purchaseLog = true }
+-- Zähler je Kiste in `pity` (Paket 4.2) und die Pity-Stufe in Data/Crates, auf die sie gekappt werden.
+local PITY_COUNTERS: { { field: string, tier: string } } = {
+    { field = "sinceEpic", tier = "epic" },
+    { field = "sinceLegendary", tier = "legendary" },
+}
 
 local function warn(warnings: { string }, path: string, text: string)
     warnings[#warnings + 1] = `{path}: {text}`
@@ -506,6 +517,43 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
             elseif count ~= math.floor(count) then
                 data.finds[findId] = math.floor(count)
             end
+        end
+    end
+    -- Kisten-Pity (Paket 4.2): je Kiste eine Tabelle mit `sinceEpic` und `sinceLegendary`, beide
+    -- ganze Zahlen ab 0. Fehlende oder kaputte Zähler werden 0, Brüche abgerundet. Bei Kisten mit
+    -- Pity werden sie auf Grenze - 1 gekappt (ab dort greift die Garantie ohnehin, siehe
+    -- Logic/CrateRoll). Ein Eintrag, der keine Tabelle ist, wird entfernt. Unbekannte Kisten-IDs
+    -- bleiben (wie unbekannte Knoten), ihre Zähler werden nur gesäubert.
+    if type(data.pity) == "table" then
+        local brokenEntries: { any } = {}
+        for crateId, counters in data.pity do
+            if type(counters) ~= "table" then
+                table.insert(brokenEntries, crateId)
+                continue
+            end
+            local crate = CratesData.byId[crateId]
+            local limits = if crate ~= nil and type(crate.pity) == "table" then crate.pity else nil
+            for _, entry in PITY_COUNTERS do
+                local value = counters[entry.field]
+                local repaired = value
+                if type(value) ~= "number" or isBadNumber(value) or value < 0 then
+                    repaired = 0
+                else
+                    repaired = math.floor(value)
+                    local limit = if limits then limits[entry.tier] else nil
+                    if type(limit) == "number" and limit >= 1 and repaired > limit - 1 then
+                        repaired = limit - 1
+                    end
+                end
+                if repaired ~= value then
+                    warn(warnings, `pity.{tostring(crateId)}.{entry.field}`, `ungültig ({tostring(value)}), auf {repaired} gesetzt`)
+                    counters[entry.field] = repaired
+                end
+            end
+        end
+        for _, crateId in brokenEntries do
+            warn(warnings, `pity.{tostring(crateId)}`, "keine Tabelle, entfernt")
+            data.pity[crateId] = nil
         end
     end
     -- Gems (Paket 4.1): ganze Zahl ab 0, höchstens Economy.purchases.maxGems. NaN und unendlich
