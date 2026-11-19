@@ -16,6 +16,15 @@ local Economy = require("../Data/Economy")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
+-- Ein Eintrag im Kaufprotokoll (Paket 4.1), nur für Support und Auswertung.
+export type PurchaseLogEntry = {
+    purchaseId: string,
+    productId: string, -- Produkt-ID aus den Daten, z. B. "gems_550" (nicht die Roblox-ProductId)
+    gems: number, -- tatsächlich gutgeschriebene Gems
+    robux: number, -- Preis laut Datentabelle
+    time: number, -- Unix-Zeit der Gutschrift
+}
+
 export type Profile = {
     version: number,
     coins: BigNum.Serialized,
@@ -35,7 +44,9 @@ export type Profile = {
         companions: { [string]: number },
         toolVariants: { [string]: number },
     },
-    receipts: { [string]: boolean }, -- verarbeitete PurchaseIds
+    receipts: { string }, -- PurchaseIds der zuletzt gutgeschriebenen Käufe, neueste am Ende (Paket 4.1)
+    purchaseLog: { PurchaseLogEntry }, -- die letzten Käufe, neueste am Ende (Paket 4.1)
+    spent: { robux: number, count: number }, -- Robux und Zahl aller gutgeschriebenen Käufe (Paket 4.1)
     boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft
     daily: { streak: number, lastDay: number },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
@@ -91,6 +102,8 @@ function Profile.default(now: number?): Profile
         pity = { gold = { sinceEpic = 0, sinceLegendary = 0 } },
         inventory = { skins = {}, companions = {}, toolVariants = {} },
         receipts = {},
+        purchaseLog = {},
+        spent = { robux = 0, count = 0 },
         boosts = { coinsUntil = 0 },
         daily = { streak = 0, lastDay = 0 },
         tutorial = { step = 1 },
@@ -157,6 +170,9 @@ end
 local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
 local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true, runEarned = true }
+-- Echte Listen (Paket 4.1). Sie haben eigene Regeln (repairPurchaseLog, repairReceipts), weil der
+-- DataStore nur lückenlose Listen ohne Textschlüssel speichern kann.
+local LIST_FIELDS: { [string]: boolean } = { receipts = true, purchaseLog = true }
 
 local function warn(warnings: { string }, path: string, text: string)
     warnings[#warnings + 1] = `{path}: {text}`
@@ -204,6 +220,9 @@ local function sanitizeInto(data: any, defaults: any, path: string, warnings: { 
         if current == nil then
             continue -- fehlende Felder füllt Profile.migrate
         end
+        if path == "" and LIST_FIELDS[key] then
+            continue -- eigene Regeln, siehe Profile.sanitize
+        end
         if path == "" and BIGNUM_FIELDS[key] then
             if not isValidBigNum(current) then
                 warn(warnings, fieldPath, "ungültiger Zahlentyp, auf 0 gesetzt")
@@ -226,6 +245,187 @@ local function sanitizeInto(data: any, defaults: any, path: string, warnings: { 
     end
 end
 
+-- Werte, die in der alten Tabellenform { [PurchaseId] = true } einen Beleg markieren: alles
+-- Speicherbare außer false. Lieber eine PurchaseId zu viel behalten als einen Kauf doppelt buchen.
+local RECEIPT_MARKER_TYPES: { [string]: boolean } = { boolean = true, number = true, string = true, table = true }
+
+-- Liest Belege in jeder Form als Liste von PurchaseIds: die Liste aus Version 4 und die Tabelle
+-- { [PurchaseId] = true } älterer Spielstände (Schlüssel sortiert zuerst, dann der Listenteil in
+-- seiner Reihenfolge). Nur nicht leere Texte, keine Doppelten. Ändert `value` nicht, gibt immer
+-- eine neue Liste zurück (auch für nil oder kaputte Werte: leere Liste).
+function Profile.receiptList(value: any): { string }
+    local ids: { string } = {}
+    if type(value) ~= "table" then
+        return ids
+    end
+    local seen: { [string]: boolean } = {}
+    local keys: { string } = {}
+    local positions: { number } = {}
+    for key, entry in value do
+        if type(key) == "string" then
+            if key ~= "" and entry ~= false and RECEIPT_MARKER_TYPES[type(entry)] then
+                table.insert(keys, key)
+            end
+        elseif type(key) == "number" and type(entry) == "string" and entry ~= "" then
+            table.insert(positions, key)
+        end
+    end
+    table.sort(keys)
+    table.sort(positions)
+    for _, key in keys do
+        if not seen[key] then
+            seen[key] = true
+            table.insert(ids, key)
+        end
+    end
+    for _, position in positions do
+        local id = value[position]
+        if not seen[id] then
+            seen[id] = true
+            table.insert(ids, id)
+        end
+    end
+    return ids
+end
+
+-- true, wenn `value` schon genau die Liste `list` ist (lückenlos, keine weiteren Schlüssel).
+local function isSameList(value: any, list: { any }, same: (any, any) -> boolean): boolean
+    local count = 0
+    for _ in value do
+        count += 1
+    end
+    if count ~= #list then
+        return false
+    end
+    for index, entry in list do
+        if not same(value[index], entry) then
+            return false
+        end
+    end
+    return true
+end
+
+local function isFiniteAtLeastZero(value: any): boolean
+    return type(value) == "number" and not isBadNumber(value) and value >= 0
+end
+
+-- Ein gültiger Eintrag im Kaufprotokoll als saubere Kopie (nur bekannte Felder), sonst nil.
+local function cleanLogEntry(entry: any): PurchaseLogEntry?
+    if type(entry) ~= "table" then
+        return nil
+    end
+    if type(entry.purchaseId) ~= "string" or entry.purchaseId == "" or type(entry.productId) ~= "string" then
+        return nil
+    end
+    if not isFiniteAtLeastZero(entry.gems) or not isFiniteAtLeastZero(entry.robux) or not isFiniteAtLeastZero(entry.time) then
+        return nil
+    end
+    return {
+        purchaseId = entry.purchaseId,
+        productId = entry.productId,
+        gems = math.floor(entry.gems),
+        robux = math.floor(entry.robux),
+        time = entry.time,
+    }
+end
+
+local function sameLogEntry(a: any, b: any): boolean
+    if type(a) ~= "table" then
+        return false
+    end
+    local count = 0
+    for _ in a do
+        count += 1
+    end
+    return count == 5
+        and a.purchaseId == b.purchaseId
+        and a.productId == b.productId
+        and a.gems == b.gems
+        and a.robux == b.robux
+        and a.time == b.time
+end
+
+local function sameValue(a: any, b: any): boolean
+    return a == b
+end
+
+-- Kaufprotokoll (Paket 4.1): lückenlose Liste gültiger Einträge, höchstens purchaseLogSize (die
+-- neuesten am Ende bleiben, nur mit `trim`). Kaputte Einträge und Textschlüssel werden entfernt.
+local function repairPurchaseLog(data: any, warnings: { string }, trim: boolean)
+    local current = data.purchaseLog
+    if current == nil then
+        return -- fehlende Felder füllt Profile.migrate
+    end
+    if type(current) ~= "table" then
+        warn(warnings, "purchaseLog", `{type(current)} statt Liste, geleert`)
+        data.purchaseLog = {}
+        return
+    end
+    local positions: { number } = {}
+    for key in current do
+        if type(key) == "number" then
+            table.insert(positions, key)
+        end
+    end
+    table.sort(positions)
+    local list: { PurchaseLogEntry } = {}
+    for _, position in positions do
+        local entry = cleanLogEntry(current[position])
+        if entry ~= nil then
+            table.insert(list, entry)
+        end
+    end
+    local limit = Economy.purchases.purchaseLogSize
+    local trimmed = trim and #list > limit
+    if trimmed then
+        list = table.move(list, #list - limit + 1, #list, 1, {})
+    end
+    if not isSameList(current, list, sameLogEntry) then
+        local text = if trimmed then `mehr als {limit} Einträge, die ältesten entfernt` else "ungültige Einträge entfernt oder Liste repariert"
+        warn(warnings, "purchaseLog", text)
+        data.purchaseLog = list
+    end
+end
+
+-- Belege (Paket 4.1): lückenlose Liste von PurchaseIds, höchstens receiptCacheSize (die neuesten am
+-- Ende bleiben, nur mit `trim`). Die alte Tabellenform wird in eine Liste gewandelt
+-- (Profile.receiptList). Ist das Feld gar keine Tabelle, kommen die PurchaseIds aus dem
+-- Kaufprotokoll zurück, damit ein dort stehender Kauf nicht ein zweites Mal gebucht wird.
+local function repairReceipts(data: any, warnings: { string }, trim: boolean)
+    local current = data.receipts
+    if current == nil then
+        return -- fehlende Felder füllt Profile.migrate
+    end
+    local list: { string }
+    if type(current) ~= "table" then
+        list = {}
+        if type(data.purchaseLog) == "table" then
+            for _, entry in data.purchaseLog do
+                if type(entry) == "table" and type(entry.purchaseId) == "string" and entry.purchaseId ~= "" then
+                    if table.find(list, entry.purchaseId) == nil then
+                        table.insert(list, entry.purchaseId)
+                    end
+                end
+            end
+        end
+        warn(warnings, "receipts", `{type(current)} statt Liste, aus dem Kaufprotokoll neu aufgebaut`)
+    else
+        list = Profile.receiptList(current)
+    end
+    local limit = Economy.purchases.receiptCacheSize
+    local trimmed = trim and #list > limit
+    if trimmed then
+        list = table.move(list, #list - limit + 1, #list, 1, {})
+    end
+    if type(current) ~= "table" then
+        data.receipts = list
+    elseif not isSameList(current, list, sameValue) then
+        local text = if trimmed then `mehr als {limit} Einträge, die ältesten entfernt` else "ungültige Einträge entfernt oder in Listenform gebracht"
+        warn(warnings, "receipts", text)
+        data.receipts = list
+    end
+end
+
 -- Repariert kaputte Felder eines migrierten Profils, beim Laden und vor jedem Speichern:
 --  * Feld mit falschem Typ oder Zahl NaN/unendlich: nur dieses Feld auf den Standard setzen.
 --  * Münzen und Tank ({m, e}): ist ein Teil kaputt, wird das ganze Feld 0.
@@ -233,7 +433,22 @@ end
 --    (NaN, unendlich, Nicht-Text-Schlüssel, nicht speicherbare Typen) werden entfernt.
 -- Unbekannte Felder oben im Profil bleiben unberührt. Gibt eine Liste mit Warntexten zurück
 -- (leer, wenn alles stimmt). Ändert `profile`. Nie auf Profile mit Status "too_new" anwenden.
-function Profile.sanitize(profile: Profile, now: number?): { string }
+--
+-- `options.trimLists = false` (beim Laden): Belege und Kaufprotokoll werden repariert, aber nicht
+-- gekürzt. Grund: Aus der alten Tabellenform { [PurchaseId] = true } ist die Kaufreihenfolge nicht
+-- bekannt, Kürzen würde beliebige PurchaseIds entfernen. Roblox schickt offene Belege gleich beim
+-- Beitreten erneut; bis dahin muss jede PurchaseId im Profil stehen, sonst würde doppelt gebucht.
+-- Gekürzt wird erst beim nächsten Speichern (Standard, trimLists nicht false). Bis dahin steht jede
+-- alte PurchaseId auch im zuletzt gespeicherten Stand, ein wiederholter Beleg gilt also sofort.
+-- Ehrlich: Der Schutz gilt nur, solange in der Sitzung noch nichts geschrieben wurde. Das erste
+-- Speichern und auch die erste neue Gutschrift (Purchases kürzt beim Anhängen) kürzen eine zu lange
+-- alte Liste alphabetisch, nicht nach Kaufzeit; ein danach wiederholter alter Beleg gälte als neu.
+-- Das reicht hier, weil es vor Paket 4.1 keinen ProcessReceipt gab: Alte Profile enthalten keine
+-- echten Belege, die alte Tabellenform ist leer (oder stammt aus Tests und Handarbeit).
+export type SanitizeOptions = { trimLists: boolean? }
+
+function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptions?): { string }
+    local trimLists = not (options ~= nil and options.trimLists == false)
     local warnings: { string } = {}
     sanitizeInto(profile, Profile.default(now), "", warnings)
     local data: any = profile
@@ -293,6 +508,39 @@ function Profile.sanitize(profile: Profile, now: number?): { string }
             end
         end
     end
+    -- Gems (Paket 4.1): ganze Zahl ab 0, höchstens Economy.purchases.maxGems. NaN und unendlich
+    -- setzt schon die allgemeine Prüfung oben auf 0.
+    if type(data.gems) == "number" then
+        local gems = data.gems
+        if gems < 0 then
+            warn(warnings, "gems", "negativ, auf 0 gesetzt")
+            gems = 0
+        elseif gems ~= math.floor(gems) then
+            warn(warnings, "gems", "keine ganze Zahl, abgerundet")
+            gems = math.floor(gems)
+        end
+        if gems > Economy.purchases.maxGems then
+            warn(warnings, "gems", "über der Obergrenze, gekappt")
+            gems = Economy.purchases.maxGems
+        end
+        data.gems = gems
+    end
+    -- Ausgaben (Paket 4.1): Robux und Zahl der Käufe sind ganze Zahlen ab 0.
+    if type(data.spent) == "table" then
+        for _, field in { "robux", "count" } do
+            local value = data.spent[field]
+            if type(value) == "number" and value < 0 then
+                warn(warnings, `spent.{field}`, "negativ, auf 0 gesetzt")
+                data.spent[field] = 0
+            elseif type(value) == "number" and value ~= math.floor(value) then
+                warn(warnings, `spent.{field}`, "keine ganze Zahl, abgerundet")
+                data.spent[field] = math.floor(value)
+            end
+        end
+    end
+    -- Kaufprotokoll zuerst: Ist `receipts` ganz kaputt, kommen die PurchaseIds von dort zurück.
+    repairPurchaseLog(data, warnings, trimLists)
+    repairReceipts(data, warnings, trimLists)
     return warnings
 end
 
