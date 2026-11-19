@@ -253,7 +253,7 @@ T.describe("Migration auf Version 2", function()
         local profile: any = a.load(77, function()
             return true
         end)
-        T.expect(profile.version).toBe(2)
+        T.expect(profile.version).toBe(Migrations.CURRENT_VERSION)
         T.expect(profile.tankMix).toEqual({ yellow = { m = 2, e = 1 } })
         -- Der Spieler sammelt in der Oase weiter und speichert.
         local state = Collecting.newState(NOW)

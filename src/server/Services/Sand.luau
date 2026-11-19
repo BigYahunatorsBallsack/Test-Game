@@ -36,6 +36,9 @@ local Zones = loadShared("Logic", "Zones")
 local BigNum = loadShared("Logic", "BigNum")
 local World = loadShared("Data", "World")
 local Tutorial = loadShared("Logic", "Tutorial")
+local Collection = loadShared("Logic", "Collection")
+local Wind = loadShared("Logic", "Wind")
+local Sandstorm = loadShared("Logic", "Sandstorm")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -69,6 +72,16 @@ function Sand.settle(player: Player)
     end
 end
 
+-- Holt die Sammelzeit je Zone ab, die der Finds-Service noch nicht gewürfelt hat (Paket 2.6).
+-- Gibt eine leere Tabelle zurück, wenn der Spieler keinen Zustand hat.
+function Sand.takeFindSeconds(player: Player): { [string]: number }
+    local state = states[player]
+    if state == nil then
+        return {}
+    end
+    return Collecting.takeFindSeconds(state)
+end
+
 -- Zustand für die Anzeige beim Client. Der Client rechnet damit nichts Maßgebliches.
 function Sand.snapshot(player: Player): any?
     local profile = PlayerData.get(player)
@@ -91,8 +104,25 @@ function Sand.snapshot(player: Player): any?
         zonesUnlocked = Zones.unlockedMap(profile),
         sellBonusBp = effects.sellBonusBp,
         luckBonusBp = effects.luckBonusBp,
+        collectionBonusBp = Collection.bonusBp(profile), -- Summe der fertigen Sets (Paket 2.6)
+        windCrystals = Wind.crystalsOf(profile), -- Sandsturm (Paket 2.7)
+        windBonusBp = Wind.bonusBp(profile),
+        storm = Sandstorm.preview(profile), -- Vorschau für Knopf und Fenster
         tutorialStep = Tutorial.stepOf(profile),
     }
+end
+
+-- Nach einem Sandsturm (Paket 2.7): Der Sammelzustand beginnt neu. Der Tank ist schon leer, der
+-- Rest eines Korns und nicht gewürfelte Sammelzeit gehören zum alten Lauf. Ob der Spieler die
+-- Taste hält, bleibt (der Client meldet das ohnehin jede Sekunde neu). Der Aufrufer ruft danach
+-- `Sand.setZone` und `Sand.refresh`.
+function Sand.resetAfterStorm(player: Player)
+    local state = states[player]
+    if state ~= nil then
+        state.carry = 0
+        state.findSeconds = {}
+        state.lastTick = now()
+    end
 end
 
 -- Werkzeug und Sammeln als Spieler-Attribute (Paket 2.4), damit alle Clients die Maschine eines

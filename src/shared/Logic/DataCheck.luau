@@ -19,6 +19,7 @@ local EFFECT_KINDS = {
     sellBonus = true,
     luckBonus = true,
     grantedBySandstorm = true,
+    zoneKey = true,
 }
 -- Welche Wirkung in welchen Ast gehört (Konzept: Sammeln = Rate, Tank = Kapazität,
 -- Verkauf = Preisfaktor, Glück = Fundchance).
@@ -29,6 +30,7 @@ local BRANCH_OF_EFFECT = {
     sellBonus = "sell",
     luckBonus = "luck",
     grantedBySandstorm = "sandstorm",
+    zoneKey = "sandstorm",
 }
 local BP_EFFECTS = { rateBonus = true, sellBonus = true, luckBonus = true }
 local CONDITION_KINDS = { tankAtLeast = true, sold = true, node = true }
@@ -57,6 +59,7 @@ export type DataSet = {
     TreeSounds: any,
     ToolLooks: any,
     Weather: any,
+    Collection: any,
 }
 
 local DataCheck = {}
@@ -83,6 +86,7 @@ function DataCheck.defaults(): DataSet
         TreeSounds = require("../Data/TreeSounds"),
         ToolLooks = require("../Data/ToolLooks"),
         Weather = require("../Data/Weather"),
+        Collection = require("../Data/Collection"),
     }
 end
 
@@ -353,10 +357,22 @@ local function checkZones(errors: { string }, data: DataSet)
             table.insert(errors, `{label}: requires muss "start" oder eine Knoten-ID sein`)
         elseif type(tree) ~= "table" or type(tree.byId) ~= "table" or tree.byId[zone.requires] == nil then
             table.insert(errors, `{label}: Knoten "{zone.requires}" fehlt in UpgradeTree`)
+        else
+            -- Der Sandsturm (Paket 2.7) setzt die Zonen zurück und vergibt nur seine eigenen Knoten.
+            -- Verlangt eine Zone einen vergebenen Knoten, ist sie nach dem Reset nie mehr zu öffnen,
+            -- wenn kein Sturm sie vergibt; sie darf also nur einen kaufbaren Knoten verlangen.
+            local required = tree.byId[zone.requires]
+            if type(required) == "table" and (required.granted == true or (type(required.effect) == "table" and required.effect.kind == "grantedBySandstorm")) then
+                table.insert(errors, `{label}: verlangt den vergebenen Knoten "{zone.requires}", eine Zone braucht einen kaufbaren Knoten`)
+            end
         end
     end
     if not hasStart then
         table.insert(errors, "Zones: keine Startzone (requires = \"start\")")
+    end
+    -- Der Sandsturm und Zones.resolve setzen den Spieler auf die erste Zone der Liste zurück.
+    if isList(zones.list) and type(zones.list[1]) == "table" and zones.list[1].requires ~= "start" then
+        table.insert(errors, "Zones: die erste Zone der Liste muss die Startzone sein (requires = \"start\")")
     end
 end
 
@@ -535,6 +551,9 @@ local function checkFinds(errors: { string }, data: DataSet)
     local ids: { [string]: boolean } = {}
     local perSet: { [string]: number } = {}
     for _, find in finds.list do
+        if type(find.id) ~= "string" or type(find.setId) ~= "string" then
+            continue -- checkCollection meldet fehlende Felder, hier nur nicht werfen
+        end
         if ids[find.id] then
             table.insert(errors, `Finds: id "{tostring(find.id)}" ist doppelt`)
         end
@@ -554,6 +573,47 @@ local function checkFinds(errors: { string }, data: DataSet)
                 table.insert(errors, `Finds: Set "{find.setId}" hat zu viele Fundstücke`)
             end
         end
+    end
+end
+
+-- Sandsturm (Paket 2.7): Economy.sandstorm. Die Grenzen sind Schutz gegen Tippfehler, keine Balance.
+local MAX_CRYSTAL_CAP = 10_000_000
+local MAX_CRYSTAL_BONUS_BP = 1_000_000_000
+local MAX_CRYSTAL_SCALE = 1000
+
+local function checkSandstorm(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    local cfg = economy.sandstorm
+    if type(cfg) ~= "table" then
+        table.insert(errors, "Economy.sandstorm: Tabelle fehlt")
+        return
+    end
+    local tree = data.UpgradeTree
+    local node = if type(cfg.requiresNode) == "string" and type(tree) == "table" and type(tree.byId) == "table" then tree.byId[cfg.requiresNode] else nil
+    if node == nil then
+        table.insert(errors, "Economy.sandstorm.requiresNode: Knoten fehlt in UpgradeTree")
+    elseif node.granted == true or (type(node.effect) == "table" and node.effect.kind == "grantedBySandstorm") then
+        table.insert(errors, "Economy.sandstorm.requiresNode: der Knoten darf nicht vom Sturm vergeben werden")
+    end
+    if not isFinite(cfg.crystalUnit) or cfg.crystalUnit <= 0 then
+        table.insert(errors, "Economy.sandstorm.crystalUnit muss eine Zahl über 0 sein")
+    end
+    if not isFinite(cfg.crystalExponent) or cfg.crystalExponent <= 0 or cfg.crystalExponent > 1 then
+        table.insert(errors, "Economy.sandstorm.crystalExponent muss in (0, 1] liegen")
+    end
+    if not isFinite(cfg.crystalScale) or cfg.crystalScale <= 0 or cfg.crystalScale > MAX_CRYSTAL_SCALE then
+        table.insert(errors, `Economy.sandstorm.crystalScale muss in (0, {MAX_CRYSTAL_SCALE}] liegen`)
+    end
+    if not isInt(cfg.maxCrystals) or cfg.maxCrystals < 1 or cfg.maxCrystals > MAX_CRYSTAL_CAP then
+        table.insert(errors, `Economy.sandstorm.maxCrystals muss eine ganze Zahl von 1 bis {MAX_CRYSTAL_CAP} sein`)
+    elseif isInt(economy.windCrystalBonusBp) and cfg.maxCrystals * economy.windCrystalBonusBp > MAX_CRYSTAL_BONUS_BP then
+        table.insert(errors, "Economy.sandstorm: maxCrystals mal windCrystalBonusBp ergibt einen unsinnig hohen Bonus")
+    end
+    if not isInt(cfg.minCrystals) or cfg.minCrystals < 1 or (isInt(cfg.maxCrystals) and cfg.minCrystals > cfg.maxCrystals) then
+        table.insert(errors, "Economy.sandstorm.minCrystals muss eine ganze Zahl ab 1 und höchstens maxCrystals sein")
     end
 end
 
@@ -1450,6 +1510,140 @@ local function checkSandMaterials(errors: { string }, data: DataSet)
     end
 end
 
+-- Obergrenzen für Fundchance, Wetter-Bonus, Wert und Sammlungsbonus (gegen Tippfehler in den Daten).
+local MAX_FIND_CHANCE_PER_SECOND_BP = 1000 -- 10 % pro Sekunde (heute 2 %)
+local MAX_ZONE_FIND_FACTOR_BP = 50000 -- x5 (heute bis x2)
+local MAX_FIND_BASE_VALUE = 100
+local MAX_WEATHER_FIND_BONUS_BP = 20000 -- +200 % (heute +15 %)
+local MAX_RARITY_VALUE_FACTOR = 100000 -- heute bis 1500
+local MAX_COLLECTION_BONUS_BP = 50000 -- +500 % über alle Zonen (heute +125 % bis +160 %)
+
+-- Fundliste und Sammlung (Paket 2.6): ID-Muster, vollständige Sets, jede Seltenheit in jeder Zone,
+-- Set-Boni, Zonenbücher und die Quotentabelle je Zone.
+local function checkCollection(errors: { string }, data: DataSet)
+    local finds, zones, rarities, odds, collection = data.Finds, data.Zones, data.Rarities, data.FindOdds, data.Collection
+    if type(finds) ~= "table" or not isList(finds.list) or not isList(finds.sets) then
+        return -- checkFinds meldet das
+    end
+    if type(zones) ~= "table" or not isList(zones.list) or type(rarities) ~= "table" or not isList(rarities.list) then
+        return
+    end
+
+    -- Jedes Set hat genau `size` Fundstücke, die IDs folgen dem Muster "<Zone>_s<Set>_<Slot>".
+    local perSet: { [string]: number } = {}
+    local perZoneRarity: { [string]: { [string]: boolean } } = {}
+    for _, find in finds.list do
+        if type(find.id) ~= "string" or type(find.setId) ~= "string" or type(find.zoneId) ~= "string" or type(find.rarityId) ~= "string" then
+            table.insert(errors, "Finds: ein Eintrag braucht id, setId, zoneId und rarityId als Text")
+            continue
+        end
+        perSet[find.setId] = (perSet[find.setId] or 0) + 1
+        local findSet = finds.setsById[find.setId]
+        if findSet ~= nil then
+            -- Feste IDs "<Zone>_s<Set>_<Slot>" (Slot = Reihenfolge im Set): Eine Umbenennung ließe
+            -- gespeicherte Sammlungen still ihren Slot verlieren.
+            local expected = `{findSet.zoneId}_s{findSet.index}_{perSet[find.setId]}`
+            if find.id ~= expected then
+                table.insert(errors, `Finds "{tostring(find.id)}": ID muss "{expected}" lauten`)
+            end
+        end
+        perZoneRarity[find.zoneId] = perZoneRarity[find.zoneId] or {}
+        perZoneRarity[find.zoneId][find.rarityId] = true
+        if type(find.name) ~= "string" or find.name == "" then
+            table.insert(errors, `Finds "{tostring(find.id)}": Name fehlt`)
+        end
+    end
+    for _, findSet in finds.sets do
+        if perSet[findSet.id] ~= findSet.size then
+            table.insert(errors, `Finds: Set "{tostring(findSet.id)}" braucht genau {findSet.size} Fundstücke`)
+        end
+    end
+    -- Jede Zone hat jede Seltenheit (sonst fiele ein Fund auf eine tiefere Stufe zurück).
+    for _, zone in zones.list do
+        for _, rarity in rarities.list do
+            if not (perZoneRarity[zone.id] and perZoneRarity[zone.id][rarity.id]) then
+                table.insert(errors, `Finds: Zone "{zone.id}" hat kein Fundstück der Seltenheit "{rarity.id}"`)
+            end
+        end
+    end
+
+    -- Quotentabelle je Zone und der sichere erste Fund.
+    if type(odds) == "table" then
+        local names = odds.zoneOddsTable
+        if type(names) ~= "table" then
+            table.insert(errors, "FindOdds.zoneOddsTable fehlt")
+        else
+            for _, zone in zones.list do
+                local name = names[zone.id]
+                if type(name) ~= "string" or type(odds.tables) ~= "table" or odds.tables[name] == nil then
+                    table.insert(errors, `FindOdds.zoneOddsTable für Zone "{zone.id}" zeigt auf keine bekannte Tabelle`)
+                end
+            end
+        end
+        positive(errors, "FindOdds.firstFindGuaranteeSeconds", odds.firstFindGuaranteeSeconds)
+        -- Obergrenzen gegen Tippfehler (zum Beispiel 20000 statt 200 ergäbe vier Funde pro Sekunde).
+        if isFinite(odds.findChancePerSecond) and odds.findChancePerSecond > MAX_FIND_CHANCE_PER_SECOND_BP then
+            table.insert(errors, `FindOdds.findChancePerSecond darf höchstens {MAX_FIND_CHANCE_PER_SECOND_BP} sein`)
+        end
+        if type(odds.zoneFindChanceFactor) == "table" then
+            for zoneId, factor in odds.zoneFindChanceFactor do
+                if isFinite(factor) and factor > MAX_ZONE_FIND_FACTOR_BP then
+                    table.insert(errors, `FindOdds.zoneFindChanceFactor "{tostring(zoneId)}" darf höchstens {MAX_ZONE_FIND_FACTOR_BP} sein`)
+                end
+            end
+        end
+        if isFinite(odds.findBaseValue) and odds.findBaseValue > MAX_FIND_BASE_VALUE then
+            table.insert(errors, `FindOdds.findBaseValue darf höchstens {MAX_FIND_BASE_VALUE} sein`)
+        end
+    end
+    if type(data.Weather) == "table" and type(data.Weather.zones) == "table" then
+        for zoneId, schedule in data.Weather.zones do
+            if type(schedule) == "table" and isFinite(schedule.findChanceBonusBp) and schedule.findChanceBonusBp > MAX_WEATHER_FIND_BONUS_BP then
+                table.insert(errors, `Weather.zones "{tostring(zoneId)}".findChanceBonusBp darf höchstens {MAX_WEATHER_FIND_BONUS_BP} sein`)
+            end
+        end
+    end
+    for _, rarity in rarities.list do
+        if isFinite(rarity.valueFactor) and rarity.valueFactor > MAX_RARITY_VALUE_FACTOR then
+            table.insert(errors, `Rarities "{tostring(rarity.id)}".valueFactor darf höchstens {MAX_RARITY_VALUE_FACTOR} sein`)
+        end
+    end
+
+    -- Set-Boni je Set-Nummer und ein Zonenbuch je Zone.
+    if type(collection) ~= "table" or type(collection.setBonusBp) ~= "table" or not isList(collection.zoneBooks) then
+        table.insert(errors, "Collection: setBonusBp und zoneBooks fehlen")
+        return
+    end
+    local bonusTotal = 0
+    for index = 1, finds.SETS_PER_ZONE do
+        local bonus = collection.setBonusBp[index]
+        if not isInt(bonus) or bonus < 0 then
+            table.insert(errors, `Collection.setBonusBp[{index}] muss eine ganze Zahl ab 0 sein`)
+        else
+            bonusTotal += bonus
+        end
+    end
+    -- Alle Zonen zusammen dürfen den Gesamtbonus nicht über die Grenze heben.
+    if bonusTotal * #zones.list > MAX_COLLECTION_BONUS_BP then
+        table.insert(errors, `Collection.setBonusBp: der Gesamtbonus aller Zonen darf höchstens {MAX_COLLECTION_BONUS_BP} sein`)
+    end
+    local booked: { [string]: boolean } = {}
+    for _, book in collection.zoneBooks do
+        if type(zones.byId) == "table" and zones.byId[book.zoneId] == nil then
+            table.insert(errors, `Collection.zoneBooks: unbekannte Zone "{tostring(book.zoneId)}"`)
+        end
+        if type(book.title) ~= "string" or book.title == "" or type(book.toolSkinId) ~= "string" or book.toolSkinId == "" then
+            table.insert(errors, `Collection.zoneBooks "{tostring(book.zoneId)}": Titel und Skin fehlen`)
+        end
+        booked[book.zoneId] = true
+    end
+    for _, zone in zones.list do
+        if not booked[zone.id] then
+            table.insert(errors, `Collection.zoneBooks: Zone "{zone.id}" hat kein Zonenbuch`)
+        end
+    end
+end
+
 -- Wetter (Paket 2.5): bekannte Zonen und Arten, gültige Zeiten.
 local function checkWeather(errors: { string }, data: DataSet)
     local weather = data.Weather
@@ -1530,7 +1724,9 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkGemPacks(errors, data)
     checkProducts(errors, data)
     checkFinds(errors, data)
+    checkCollection(errors, data)
     checkEconomy(errors, data)
+    checkSandstorm(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

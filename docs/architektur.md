@@ -30,8 +30,8 @@ Regeln:
 | PlayerData | Profil laden, halten, speichern (ProfileStore) | 1.1 |
 | Economy | Münzen und Gems buchen, Verkaufspreis, Boni | 1.2, 1.3 |
 | Sand | Sammeln, Tank, Verkaufen | 1.2 |
-| Finds | Fundstücke, Sammlung, Sets | 2.6 |
-| Upgrades | Skilltree-Käufe (Mini-Kauf seit 1.6), Zonen-Freischaltung, Sandsturm | 1.6, 2.1, 2.5, 2.7 |
+| Finds | Fundstücke, Sammlung, Sets | 2.6 (fertig) |
+| Upgrades | Skilltree-Käufe (Mini-Kauf seit 1.6), Zonen-Freischaltung, Sandsturm | 1.6, 2.1, 2.5, 2.7 (fertig) |
 | Crates | Kisten öffnen, Quoten, Pity | 4.2, 4.3 |
 | Shop | Käufe, Gamepasses, Policy-Funktionen | 4.1, 4.4, 4.6 |
 | Events | Event-Kalender, Daily Reward, Koloss | 5.1, 5.4 bis 5.6 |
@@ -40,7 +40,7 @@ Regeln:
 
 ### Controllers (Client)
 
-`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4). `SkillTree` zeigt den Skilltree als Vollbild-Ebene (Paket 2.2, siehe unten), `Tutorial` zeigt Hinweistext, Strahl und Markierung der ersten 2 Minuten.
+`State` hält den vom Server gesendeten Zustand (`StateSync`) und die Meldungen (`Notify`). `Input` übersetzt Eingaben in Absichten (`SetCollecting`, `Sell`). `Hud` zeigt Münzen, Tank und Meldungen (schlichte Fassung bis zum UI-Paket). `Dig` verformt das Terrain beim Sammeln, nur auf diesem Client (Paket 1.4). `SkillTree` zeigt den Skilltree als Vollbild-Ebene (Paket 2.2, siehe unten), `Tutorial` zeigt Hinweistext, Strahl und Markierung der ersten 2 Minuten. `Sandstorm` zeigt Knopf, Vorschau-Fenster und die Sturm-Animation (Paket 2.7).
 
 ## Datenfluss
 
@@ -71,7 +71,7 @@ Die Remotes liegen zur Laufzeit unter `ReplicatedStorage.Remotes` und werden aus
 
 ## Profil und Migration
 
-Das Profil ist ein versionierter Datensatz (`Profile.luau`, aktuelle Version in `Migrations.CURRENT_VERSION`). Felder: `version`, `coins {m,e}`, `tank {m,e}`, `gems`, `nodes`, `zones`, `currentZone`, `finds`, `windCrystals`, `prestiges`, `pity`, `inventory {skins, companions, toolVariants}`, `receipts`, `boosts {coinsUntil}`, `daily {streak, lastDay}`, `lastSeen`, `createdAt`.
+Das Profil ist ein versionierter Datensatz (`Profile.luau`, aktuelle Version in `Migrations.CURRENT_VERSION`). Felder: `version`, `coins {m,e}`, `tank {m,e}`, `gems`, `nodes`, `zones`, `currentZone`, `finds`, `windCrystals`, `prestiges`, `runEarned {m,e}`, `pity`, `inventory {skins, companions, toolVariants}`, `receipts`, `boosts {coinsUntil}`, `daily {streak, lastDay}`, `lastSeen`, `createdAt`.
 
 `Profile.migrate(data, migrations?)` gibt `(profile, status)` zurück:
 
@@ -170,7 +170,7 @@ Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durc
 
 ## Entscheidungen
 
-- Meilensteine: `collect_tool_3` (Eimerkette) = Meilenstein 1 schaltet die Oase frei, `collect_tool_4` (Mini-Bagger) den Canyon, `collect_tool_5` (Saugroboter) den Salzsee. Werkzeugknoten heißen `collect_tool_2` bis `collect_tool_6`. Die Ruinenstadt verlangt `sandstorm_1`, den der erste Sandsturm vergibt. Zonen verweisen direkt auf diese IDs.
+- Meilensteine: `collect_tool_3` (Eimerkette) = Meilenstein 1 schaltet die Oase frei, `collect_tool_4` (Mini-Bagger) den Canyon, `collect_tool_5` (Saugroboter) den Salzsee. Werkzeugknoten heißen `collect_tool_2` bis `collect_tool_6`. Die Ruinenstadt verlangt seit 2.7 `sandstorm_ruins` (Ruinenkarte), einen kaufbaren Knoten, der `sandstorm_1` (vom ersten Sandsturm vergeben) und den Saugroboter verlangt. Zonen verweisen direkt auf diese IDs und nie auf einen vergebenen Knoten (DataCheck).
 - Die Hand (Stufe 1) ist Startausrüstung ohne Knoten (`nodeId = "start"`).
 - Spielstand mit ProfileStore (Paket 1.1), siehe oben.
 - Remote-Verstöße: verwerfen und zählen, kein Kick.
@@ -206,4 +206,31 @@ Keine neue Remote, kein neues Profilfeld. Ausgelöst wird die Sequenz nicht durc
 - **Sandsorten:** `SandTypes.terrainMaterial` gibt jeder Sorte ein eigenes Roblox-Terrain-Material (Sand, Sandstone, Salt, Glacier, Basalt), weil Roblox nur eine Farbe je Material kennt. Der Server füllt die Platzhalter-Felder und setzt die Farben (`SetMaterialColor` aus `colorHex`). `Dig` grabt in allen diesen Materialien. `Terrain.dig.maxDepthByZone` gibt dem Canyon eine größere Tiefengrenze (`SandDig.tryDig(..., zoneId)`).
 - **Wetter:** `Data/Weather` (Zeitplan und Aussehen je Zone) und das reine Modul `Logic/Weather.stateAt(zoneId, serverZeit)`: ein fester Zyklus aus der Serverzeit, alle Clients sehen dasselbe ohne Remote. `Controllers/Weather` zeigt Regen und Staubwind als Partikel um die Kamera und Nebel/Dunst über Atmosphäre und Farbkorrektur, mit weichen Übergängen. In 2.5 ist das Wetter nur Optik, `findChanceBonusBp` liest Paket 2.6.
 - **Client:** `Controllers/ZoneMenu` (Knopf "Zonen", Liste mit Sandsorte, Status und Reisen-Knopf, Tor-Anzeigen mit Schild). `Hud` zeigt Zone, Werkzeug und Rate und die Meldungen `zoneUnlocked`, `zoneEntered` und `zoneLocked`.
-- **Offen für Paket 2.7:** Soll ein Sandsturm Zonen 2 bis 4 wieder sperren? Zonen stehen im Profil und hängen nicht mehr nur an Knoten, damit 2.7 beides kann.
+- **Entschieden in 2.7 (18.11.2026):** Der Sandsturm sperrt Oase, Canyon und Salzsee wieder und die Ruinenstadt braucht in jedem Lauf den Knoten `sandstorm_ruins`.
+
+## Fundstücke, Reveal und Sammlung (Paket 2.6)
+
+- **Funde entstehen nur aus echter Sammelzeit.** `Collecting.update` zählt in `state.findSeconds` (je Zone), wie lange Sand wirklich in den Tank floss. Läuft der Tank in einem Fenster voll, zählt nur die Zeit bis "voll". Alle Aufrufe (Halten, Verkaufen, Kaufen, Zonenwechsel) landen im selben Zähler, `Collecting.takeFindSeconds` holt ihn ab. Es gibt keine neue Remote vom Client zum Server.
+- **Würfeln (`Logic/FindRoll`, rein, Zufall als Funktion):** Chance pro Sekunde = `findChancePerSecond` × `zoneFindChanceFactor` × Glück-Ast × (1 + Regen-Bonus mal Stärke). Im Fenster 1 − (1 − p)^t. Die Seltenheit kommt aus `FindOdds.zoneOddsTable` (heute alle `base`), danach ein gleichverteilter Fund der Zone mit dieser Seltenheit (fehlt sie, die nächst tiefere). Glück ändert nur die Chance. Wert = `findBaseValue` × Sandfaktor × Grundrate des Werkzeugs × Wertfaktor, beim Fund festgeschrieben (kein Knoten-Bonus, kein Sammlungsbonus).
+- **Erster Fund sicher:** Ohne bekannten Fund und nach `firstFindGuaranteeSeconds` (60) Sitzungs-Sammelzeit kommt ein Gewöhnlicher Fund.
+- **Sammlung (`Logic/Collection`, `Data/Collection`):** Gespeichert wird nur `profile.finds` (ID → Anzahl, keine Migration). Slots, Sets, Bonus und Zonenbücher werden daraus berechnet. Der Bonus (`setBonusBp` je Set-Nummer) ist ein eigener Faktor auf die Münzen pro Sand (`Collecting.pricePerSand` und `priceOf`), wirkt in allen Zonen und nicht auf Fundwerte. Ein Zonenbuch (6 von 6 Sets) nennt Titel und Werkzeug-Skin, beides ist in 2.6 nur Anzeige.
+- **Doppelte Funde** werden sofort für ihren festen Wert verkauft (Entscheidung 18.11.2026): `Collection.record` zählt hoch und bucht die Münzen als BigNum.
+- **Fundliste:** 150 Platzhalter mit festen IDs `<zone>_s<set>_<slot>`. Paket 3.3 ändert nur Namen und Beschreibungen. `DataCheck.checkCollection` prüft: 5 Funde je Set, ID-Muster, jede Seltenheit in jeder Zone, Set-Boni, Zonenbücher, `zoneOddsTable`.
+- **Server (`Services/Finds`):** Alle 0,25 s `Sand.takeFindSeconds` abholen, würfeln, `Collection.record`, dann `Notify { kind = "find", ... }` (Fund, Seltenheit, neu oder doppelt, Münzen, Set-Stand, `setCompleted`, `zoneBookCompleted`, Bonus), `CollectionSync` (Zähler, Bonus, Bücher) und `Sand.refresh`. Studio-Hilfe: Attribute `DebugFindSet` und `DebugFindZone` am Spieler füllen ein Set oder eine Zone (nur in Studio).
+- **Client:** `Controllers/Reveal` (Warteschlange, Objekt im Sand, kleine Karte bis Ungewöhnlich, große Karte mit Aufladen und Lichtstoß ab Selten, Blitz bei Mythisch, Banner für Set und Zonenbuch, Tipp überspringt, ohne Effekte im Rückfallmodus) und `Controllers/CollectionBook` (Knopf "Sammlung", Reiter je Zone, 6 Sets mit 5 Slots, Bonus). `State` hält die Sammlung (`getCollection`, `onCollectionChanged`). Sounds sind leere IDs bis Paket 3.5.
+- **Client-Start:** `init.client` startet jeden Controller in `pcall`, damit ein Fehler (zum Beispiel ein in Studio fehlender Enum-Wert) die folgenden Controller nicht verhindert.
+- **Offen:** Fundstellen im Nebel des Salzsees, Offline-Funde (5.3), Starterpaket-Auslöser (4.5), Titel über dem Kopf und Werkzeug-Skin als Optik.
+
+## Sandsturm (Paket 2.7)
+
+- **Ablauf:** Der Knopf "Sandsturm" erscheint, sobald `Economy.sandstorm.requiresNode` (`collect_tool_4`, Canyon frei) gekauft ist. Das Fenster zeigt die Vorschau des Servers (Kristalle jetzt, Bonus davor und danach, Einnahmen des Laufs) und die Liste "wird zurückgesetzt" und "bleibt". "Sturm auslösen" fragt mit einem zweiten Tipp nach, dann ruft der Client `Prestige` ohne Werte auf. Danach zieht eine Sandwand über den Bildschirm, ein Banner nennt die neuen Kristalle und den Bonus.
+- **Kristalle (`Logic/Sandstorm`, rein):** `floor(crystalScale × (Einnahmen / crystalUnit) ^ crystalExponent)` aus `Economy.sandstorm`, gerechnet über den Logarithmus (kein Überlauf), höchstens `maxCrystals` gehalten. Einnahmen = `profile.runEarned` plus Wert des vollen Tanks (`Collecting.tankValue`, dieselbe Rechnung wie beim Verkauf). Mindestens `minCrystals` Gewinn, sonst Grund `tooFew`, ohne den Knoten `requires`.
+- **`runEarned` (neues Profilfeld, Version 3):** Alle Münzen aus Verkäufen und verkauften Duplikaten laufen über `Wind.credit`, das auf `coins` und `runEarned` bucht. Knotenkäufe senken nur die Münzen. Die Migration schätzt `runEarned` aus den Münzen. `Logic/Wind` ist ein Blatt-Modul (Kristalle, Bonus, Buchung), damit Collecting, Collection und FindRoll es nutzen können, ohne Kreise.
+- **Bonus:** `Wind.multiplier` = 1 + Kristalle × `windCrystalBonusBp`/10000. Er ist ein eigener Faktor auf `pricePerSand`, `priceOf`, den Rest ohne Mix und den Fundwert beim Würfeln, multipliziert mit Verkauf-Ast und Sammlungsbonus.
+- **Reset:** Zurück gehen `coins`, `tank`, `tankMix`, `runEarned`, alle bekannten gekauften `nodes`, `zones` und `currentZone`. Bleiben: `finds`, `inventory`, `gems`, `receipts`, `pity`, `boosts`, `daily`, `tutorial` und die Zeitstempel. `windCrystals` und `prestiges` steigen. Vergebene Knoten (`sandstorm_1`) werden neu vergeben, auch unbekannte Knoten-IDs gehen zurück (sonst bliebe ein Knoten eines neueren Servers stehen und wirkte gratis). Die Listen stehen in `Sandstorm.RESET_FIELDS`, `UPDATED_FIELDS` und `KEEP_FIELDS`, ein Lune-Test verlangt, dass jedes Feld aus `Profile.default` in genau einer steht.
+- **Zonen:** Nach dem Sturm ist nur das Dünenmeer frei (`Zone.unlockNew` auf den neuen Knoten), `currentZone` = erste Zone. Die Ruinenstadt braucht `sandstorm_ruins` (Effekt `zoneKey`, Ast Sandstorm, Spalte 4 im Baum). `ZoneService.resetAfterStorm` setzt den Sammelzustand auf das Dünenmeer und den Charakter an den Spawn.
+- **Sicherheit:** `Prestige` hat Schema `{}` und Limit 1 pro 5 s. `Upgrades.onPrestige` rechnet `Sand.settle` ab und ruft `Sandstorm.apply`, das erst alles ausrechnet (auch die Zonen, an einem Schattenprofil) und dann nur noch einfache Zuweisungen ohne Warten schreibt. Ein zweiter schneller Aufruf trifft auf das zurückgesetzte Profil (`requires`). Die Nacharbeit (Sammelzustand, Zone, Meldung, Anzeige) läuft Schritt für Schritt in `pcall` und kippt den gebuchten Sturm nicht; die Antwort an den Client trägt dieselben Werte wie die Meldung, damit die Animation auch bei einer ausgefallenen Meldung läuft. `DataCheck.checkSandstorm` begrenzt die Werte, und keine Zone darf einen vergebenen Knoten verlangen.
+- **Studio-Hilfe:** `DebugCoins` hebt auch `runEarned` auf mindestens diesen Wert, so lässt sich der Sturm ohne langen Lauf testen (Knoten `collect_tool_4` kaufen oder per Attribut Münzen setzen).
+- **Werte (Balance 2.7, docs/balance/sandstorm_2_7.md):** Einheit 1 Mio., Exponent 0,25, Faktor 4, mindestens 20 Kristalle (etwa 625 Mio. Einnahmen, im ersten Lauf 3,5 min vor dem Baumende), höchstens 100.000 gehaltene Kristalle (das Balance-Dokument nennt es "je Sturm", im Code ist es die Obergrenze der gehaltenen; `Wind.crystalsOf` und `sanitize` kappen kaputte Werte), `sandstorm_ruins` kostet 250 Mio. Ein früher Sturm lohnt sich nie, mit Exponent 0,25 ist das Baumende der beste Zeitpunkt. Der Knopf erscheint ab dem Canyon, vor 20 Kristallen zeigt das Fenster "Noch zu früh" mit den nötigen Einnahmen (`Sandstorm.earningsFor`).
+- **Offen für spätere Pakete:** (1) 2x Münzen (4.4) muss in den gebuchten Verkaufsbetrag eingehen, den `Wind.credit` zählt, sonst haben Pass-Käufer weniger Kristalle. (2) Läufe werden mit jedem Sturm kürzer (feste Knotenpreise, linearer Bonus): 6.4 plant einen Ruinen-Ast hinter der Karte oder Sturm-Knoten für Kristalle. (3) Weitere Sturm-Knoten, Sturm-Optik in der Welt (Phase 3), Sounds (3.5).
+- **Security-Review 2.7:** Kein kritischer oder hoher Befund (kein Zugriff des Clients auf Kristalle, Münzen oder `runEarned`, keine Doppelauslösung). Eingearbeitet: unbekannte Knoten überleben den Sturm nicht mehr (M1), Nacharbeit je Schritt in `pcall` und Animation auch aus der Antwort (N1), Zonen vor dem Schreiben berechnet (N2), DataCheck verlangt die Startzone als erste Zone (N3), Kristalle beim Lesen und in `sanitize` gekappt (N4), Kommentar zur Fundzeit (N5). Offen für spätere Pakete: (N6) eine Bedingung je vergebenem Knoten, falls es weitere gibt; die Quellen für `runEarned` bei Daily, Offline-Ertrag (5.3), Events und 2x Münzen bewusst festlegen und gekaufte Münzen nie über `Wind.credit` buchen; `Sand.snapshot` rechnet die Vorschau bei jedem Sync (bei Bedarf zwischenspeichern).

@@ -14,8 +14,9 @@
 -- günstig und kommen darum früh (Saugroboter und Großmaschine kurz nach dem Mini-Bagger).
 -- Entscheidung von Waltuh (18.11.2026): keine Sperren über Raten-Knoten, stattdessen hebt
 -- Paket 6.4 die Werkzeugpreise an (docs/balance/skilltree_2_1.md, Befunde).
--- sandstorm_1 wird vom ersten Sandsturm vergeben (nicht gekauft) und schaltet die
--- Ruinenstadt frei.
+-- sandstorm_1 wird vom ersten Sandsturm vergeben (nicht gekauft) und bleibt über alle Stürme.
+-- sandstorm_ruins (Paket 2.7) schaltet die Ruinenstadt frei, verlangt sandstorm_1 und den
+-- Saugroboter und wird in jedem Lauf neu gekauft: der Sandsturm setzt alle gekauften Knoten zurück.
 --
 -- Gespeichert werden nur die gekauften IDs. Knoten dürfen hinzukommen, wegfallen oder neue
 -- Werte bekommen, ohne Migration (siehe Logic/TreeEffects). Nur eine umbenannte ID braucht
@@ -29,9 +30,10 @@
 --   sellBonus          bp Hundertstel-Prozent auf den Münzpreis pro Sand
 --   luckBonus          bp Hundertstel-Prozent auf die Fundchance (Wirkung ab Paket 2.6)
 --   grantedBySandstorm vergeben statt gekauft
+--   zoneKey            keine eigene Wirkung: schaltet Zonen frei, die diesen Knoten verlangen (Data/Zones)
 -- Boni (bp) eines Typs addieren sich. Jeder Knoten gehört zum Ast seiner Wirkung (DataCheck).
 export type Effect = {
-    kind: "setTool" | "rateBonus" | "setTank" | "sellBonus" | "luckBonus" | "grantedBySandstorm",
+    kind: "setTool" | "rateBonus" | "setTank" | "sellBonus" | "luckBonus" | "grantedBySandstorm" | "zoneKey",
     toolId: string?, -- bei "setTool": Eintrag in Tools
     bp: number?, -- bei "rateBonus", "sellBonus", "luckBonus": Hundertstel-Prozent (5000 = +50 %)
     capacity: number?, -- bei "setTank": Tankgröße in Sand
@@ -454,6 +456,15 @@ local list: { Node } = {
         cost = 0,
         effect = { kind = "grantedBySandstorm" },
         granted = true,
+    },
+    {
+        id = "sandstorm_ruins",
+        name = "Ruinenkarte",
+        description = "Öffnet die Ruinenstadt für diesen Lauf",
+        branch = "sandstorm",
+        requires = { "sandstorm_1", "collect_tool_5" },
+        cost = 250_000_000, -- docs/balance/sandstorm_2_7.md: kostet etwa 32 s Ertrag und verkürzt den Lauf
+        effect = { kind = "zoneKey" },
     },
 }
 

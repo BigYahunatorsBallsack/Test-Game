@@ -31,7 +31,7 @@ local function isValidBigNum(value: any): boolean
 end
 
 local Migrations = {
-    CURRENT_VERSION = 2,
+    CURRENT_VERSION = 3,
     steps = {} :: { [number]: Step },
 }
 
@@ -44,6 +44,18 @@ Migrations.steps[1] = function(profile: any): any
     if isValidBigNum(tank) and tank.m > 0 then
         local sandType = LEGACY_SAND_TYPE[profile.currentZone] or LEGACY_FALLBACK_SAND_TYPE
         profile.tankMix[sandType] = { m = tank.m, e = tank.e }
+    end
+    return profile
+end
+
+-- Version 2 -> 3 (Paket 2.7, Sandsturm): `runEarned` zählt die Verkaufseinnahmen des Laufs. Ältere
+-- Spielstände kennen sie nicht. Als Schätzung gelten die aktuellen Münzen (eine untere Grenze, die
+-- Ausgaben nicht kennt), so fängt ein bestehender Lauf nicht bei 0 an.
+Migrations.steps[2] = function(profile: any): any
+    if isValidBigNum(profile.coins) and profile.coins.m > 0 then
+        profile.runEarned = { m = profile.coins.m, e = profile.coins.e }
+    else
+        profile.runEarned = { m = 0, e = 0 }
     end
     return profile
 end

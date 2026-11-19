@@ -291,23 +291,26 @@ Plan (Opus-Fassung vom 18.11.2026): Freischaltung über Knoten-IDs (zusätzlich 
 
 ## 2.6 Fundstücke, Reveal und Sammlung
 
-Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Funde nur für echte Sammelzeit (`collectSeconds` aus `Collecting.update`), Chance mal Zone, Glück-Ast und Regen, Seltenheit nach der Quotentabelle der Zone (`FindOdds.zoneOddsTable`), Fund gleich verteilt unter den Funden der Zone mit dieser Seltenheit, Wert beim Fund festgeschrieben. 150 Platzhalter mit festen IDs (`dunes_s1_1` bis `ruins_s6_5`, Namen in 3.3). Sammlung, Sets, Bonus und Zonenbuch werden aus `profile.finds` berechnet (`Logic/Collection`, `Data/Collection`), der Sammlungsbonus ist ein eigener Faktor auf die Münzen pro Sand. Doppelte Funde werden sofort zu ihrem festen Wert verkauft (Entscheidung von Waltuh am 18.11.2026). Reveal und Sammlungsbuch im Client, neue Remote `CollectionSync` (nur Server zum Client). Vor dem PR läuft der `security-reviewer` (Münzen, Profil).
+Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Funde nur für echte Sammelzeit (`collectSeconds` aus `Collecting.update`), Chance mal Zone, Glück-Ast und Regen, Seltenheit nach der Quotentabelle der Zone (`FindOdds.zoneOddsTable`), Fund gleich verteilt unter den Funden der Zone mit dieser Seltenheit, Wert beim Fund festgeschrieben. 150 Platzhalter mit festen IDs (`dunes_s1_1` bis `ruins_s6_5`, Namen in 3.3). Sammlung, Sets, Bonus und Zonenbuch werden aus `profile.finds` berechnet (`Logic/Collection`, `Data/Collection`), der Sammlungsbonus ist ein eigener Faktor auf die Münzen pro Sand. Doppelte Funde werden sofort zu ihrem festen Wert verkauft (Entscheidung von Waltuh am 18.11.2026). Seltenheiten je Set nach dem Vorschlag des `balance-analyst` (`docs/balance/collection_2_6.md`): Set 1 = 5 Gewöhnliche, Set 2 = 1G 3U 1S, Set 3 = 3U 2S, Sets 4 bis 6 wie im Plan; Set-Boni 3, 3, 4, 4, 6, 10 %. Reveal und Sammlungsbuch im Client, neue Remote `CollectionSync` (nur Server zum Client). Vor dem PR läuft der `security-reviewer` (Münzen, Profil).
 
-- [ ] [Lune] Chance: Ohne Sammelzeit kein Fund, negative oder kaputte Zeit zählt als 0. Die Chance im Fenster folgt 1 − (1 − p)^t und bleibt höchstens 100 %. Pro Tick höchstens ein Fund.
-- [ ] [Lune] Faktoren: Zone, Glück-Ast und Regen multiplizieren die Chance, nicht die Verteilung. Regen zählt nur, solange er aktiv ist (beim Ein- und Ausblenden anteilig).
-- [ ] [Lune] Verteilung: 200.000 Würfe treffen jede Seltenheit innerhalb der statistischen Toleranz der Tabelle.
-- [ ] [Lune] Auswahl: Der Fund kommt immer aus der aktuellen Zone und hat die gewürfelte Seltenheit. Fehlt sie in der Zone, kommt die nächst tiefere.
-- [ ] [Lune] Wert: entspricht `findBaseValue` × Sandfaktor × Werkzeug-Grundrate × Wertfaktor, wird beim Fund festgeschrieben und ändert sich nicht mit dem nächsten Werkzeug.
-- [ ] [Lune] Neu oder doppelt: Ein neuer Fund setzt den Zähler auf 1 ohne Münzen. Ein doppelter erhöht den Zähler und bucht seinen Wert als BigNum, auch bei großen Münzständen.
-- [ ] [Lune] Voller Tank: `collectSeconds` endet bei "voll", danach gibt es keine Funde.
-- [ ] [Lune] Erster Fund sicher: Nach 60 s Sammeln ohne jeden Fund kommt ein Gewöhnlicher Fund, danach greift die Regel nie wieder.
-- [ ] [Lune] Sammlung: Ein Set mit 5 von 5 ist fertig, mit 4 von 5 nicht. Der Bonus ist die Summe der fertigen Sets. Das Zonenbuch ist nur bei 6 von 6 fertig. Unbekannte IDs zählen nicht und bleiben im Profil.
-- [ ] [Lune] Preis: Die Münzen pro Sand steigen mit dem Sammlungsbonus, auch beim gemischten Tank. Funde selbst bekommen den Bonus nicht.
-- [ ] [Lune] `Profile.sanitize` entfernt kaputte Zähler in `finds` (keine ganze Zahl, kleiner 1, NaN), gültige bleiben.
-- [ ] [Lune] `DataCheck`: 150 Funde, je Set genau 5, jede Zone hat jede Seltenheit, IDs nach Muster, `setBonusBp` und `zoneBooks` gültig, `zoneOddsTable` zeigt auf bekannte Tabellen. Kaputte Daten werden abgelehnt.
-- [ ] [Lune] Zeit-Simulation aus 2.1 mit Sammlungsbonus: Die Werkzeugzeiten werden im ersten Lauf höchstens 10 % kürzer.
-- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
-- [ ] [Shell] `security-reviewer` findet keine offenen Punkte bei Funden, Münzen aus Duplikaten und Profil.
+- [x] [Lune] Chance: Ohne Sammelzeit kein Fund, negative oder kaputte Zeit zählt als 0. Die Chance im Fenster folgt 1 − (1 − p)^t und bleibt höchstens 100 %. Pro Tick höchstens ein Fund.
+- [x] [Lune] Faktoren: Zone, Glück-Ast und Regen multiplizieren die Chance, nicht die Verteilung. Regen zählt nur, solange er aktiv ist (beim Ein- und Ausblenden anteilig).
+- [x] [Lune] Verteilung: 200.000 Würfe treffen jede Seltenheit innerhalb der statistischen Toleranz der Tabelle.
+- [x] [Lune] Auswahl: Der Fund kommt immer aus der aktuellen Zone und hat die gewürfelte Seltenheit. Fehlt sie in der Zone, kommt die nächst tiefere.
+- [x] [Lune] Wert: entspricht `findBaseValue` × Sandfaktor × Werkzeug-Grundrate × Wertfaktor, wird beim Fund festgeschrieben und ändert sich nicht mit dem nächsten Werkzeug.
+- [x] [Lune] Neu oder doppelt: Ein neuer Fund setzt den Zähler auf 1 ohne Münzen. Ein doppelter erhöht den Zähler und bucht seinen Wert als BigNum, auch bei großen Münzständen.
+- [x] [Lune] Voller Tank: `collectSeconds` endet bei "voll", danach gibt es keine Funde.
+- [x] [Lune] Erster Fund sicher: Nach 60 s Sammeln ohne jeden Fund kommt ein Gewöhnlicher Fund, danach greift die Regel nie wieder.
+- [x] [Lune] Sammlung: Ein Set mit 5 von 5 ist fertig, mit 4 von 5 nicht. Der Bonus ist die Summe der fertigen Sets. Das Zonenbuch ist nur bei 6 von 6 fertig. Unbekannte IDs zählen nicht und bleiben im Profil.
+- [x] [Lune] Preis: Die Münzen pro Sand steigen mit dem Sammlungsbonus, auch beim gemischten Tank. Funde selbst bekommen den Bonus nicht.
+- [x] [Lune] `Profile.sanitize` entfernt kaputte Zähler in `finds` (keine ganze Zahl, kleiner 1, NaN), gültige bleiben.
+- [x] [Lune] `DataCheck`: 150 Funde, je Set genau 5, jede Zone hat jede Seltenheit, IDs nach Muster, `setBonusBp` und `zoneBooks` gültig, `zoneOddsTable` zeigt auf bekannte Tabellen. Kaputte Daten werden abgelehnt.
+- [x] [Lune] Zeit-Simulation aus 2.1 mit Sammlungsbonus: Die Werkzeugzeiten werden im ersten Lauf höchstens 10 % kürzer. Geprüft mit der Python-Simulation `docs/balance/collection_2_6.py` (im Mittel 0,0 %, im schlechtesten Fall 4,8 % kürzer), kein Lune-Test.
+- [x] [Lune] Review: Ein Tank mit Bruchteil hält das Sammeln nicht endlos offen. Ein voller Tank mit laufendem Halten gibt keine Sammelzeit. Chance über 100 % durch kaputte Daten gibt höchstens einen Fund je Aufruf.
+- [x] [Lune] Review: Die 150 Fund-IDs sind fest (`<Zone>_s<Set>_<Slot>` in Reihenfolge), `DataCheck` lehnt umbenannte IDs, doppelte IDs, falsche Zonen, unbekannte Seltenheiten, Einträge ohne ID und zu hohe Chance, Wetter-Bonus, Wertfaktor oder Sammlungsbonus ab.
+- [x] [Lune] Review: Sand ohne Mix-Eintrag bekommt den Sammlungsbonus, Fundwerte mit Bruchteil werden abgerundet, der Zähler eines Fundstücks ist bei 2^31 gedeckelt, ein Profil der Version 1 mit Funden bleibt erhalten.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [x] [Shell] `security-reviewer` findet keine offenen Punkte bei Funden, Münzen aus Duplikaten und Profil (kein kritischer oder hoher Befund, M1 bis M3 und N1, N2, N6, N7, N9 eingearbeitet).
 - [ ] [Studio] Sammeln bringt nach etwa einer Minute den ersten Fund mit Reveal, Sammeln und Laufen gehen dabei weiter.
 - [ ] [Studio] Ein doppelter Fund zeigt "+X Münzen", die Münzen steigen.
 - [ ] [Studio] Ein fertiges Set (im Studio per Befehl gesetzt): Meldung, die Münzen pro Sand steigen sichtbar.
@@ -316,8 +319,23 @@ Plan (Opus-Fassung vom 18.11.2026, Doc "Plan Paket 2.6"): Der Server würfelt Fu
 
 ## 2.7 Sandsturm (Prestige)
 
-- [ ] [Lune] Der Reset setzt Münzen und Werkzeugstufe zurück, behält aber Sammlung und Skins.
-- [ ] [Lune] Die Windkristalle werden einmal gutgeschrieben, auch bei zwei schnellen Aufrufen.
+Tests: tests/sandstorm.spec.luau. Plan: Claude-Dokument "Paket 2.7: Sandsturm (Prestige), Plan". Waltuh hat Variante A gewählt (Zonen neu, Ruinenstadt am Laufende).
+
+- [x] [Lune] Der Reset setzt Münzen und Werkzeugstufe zurück, behält aber Sammlung und Skins.
+- [x] [Lune] Die Windkristalle werden einmal gutgeschrieben, auch bei zwei schnellen Aufrufen.
+- [x] [Lune] Ohne `collect_tool_4` gibt der Sturm `requires`, mit dem Knoten aber unter `minCrystals` (20) Kristallen `tooFew`. In beiden Fällen bleibt das Profil unverändert.
+- [x] [Lune] Jedes Feld aus `Profile.default` steht genau in einer der Listen "zurücksetzen" oder "behalten".
+- [x] [Lune] Gems, Belege, Pity, Boosts, Daily, Tutorial und Inventar sind nach dem Sturm gleich wie vorher.
+- [x] [Lune] Die Kristallformel ist monoton, rundet ab, gibt unter einer Einheit 0 und bleibt bei 10^300 Münzen endlich und unter der Obergrenze.
+- [x] [Lune] `runEarned` zählt Sandverkäufe und verkaufte Duplikate, nicht Knotenkäufe, und steht nach dem Sturm auf 0.
+- [x] [Lune] Der erste Sturm vergibt `sandstorm_1`, ein zweiter behält ihn; `prestiges` zählt hoch.
+- [x] [Lune] Mit N Kristallen ist der Preis pro Sand das (1 + N x 2 %)-Fache, zusammen mit Verkauf-Ast und Sammlungsbonus multipliziert; der Fundwert steigt genauso.
+- [x] [Lune] Nach dem Sturm ist die Oase gesperrt, bis die Eimerkette gekauft ist; die Ruinenstadt braucht `sandstorm_ruins`; `Zone.resolve` liefert "reset" für einen Spieler, der im Canyon stand.
+- [x] [Lune] Ein altes Profil (Version 2) bekommt `runEarned`; ein kaputtes `runEarned` wird 0.
+- [x] [Lune] DataCheck meldet einen unbekannten oder vergebenen `requiresNode` und Formelwerte außerhalb der Grenzen.
+- [ ] [Studio] Vor dem Canyon (Mini-Bagger) kein Sturm-Knopf, danach erscheint er; das Fenster zeigt "Noch zu früh: ab ... verdienten Münzen gibt es 20 Kristalle", ab 20 Kristallen die Vorschau mit "Du bekommst N Windkristalle" und der Knopf pulsiert.
+- [ ] [Studio] Der Sturm braucht zwei Tipps (Nachfrage), danach läuft die Sandwand und das Banner nennt Kristalle und Bonus.
+- [ ] [Studio] Nach dem Sturm: Hand, 0 Münzen, Spawn im Dünenmeer, Sammlungsbuch unverändert, Kristalle in der Anzeige, höherer Preis pro Sand.
 
 ## 5.1 Daily Reward
 

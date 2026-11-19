@@ -11,6 +11,7 @@
 --   lastTick  Server-Zeit, bis zu der schon abgerechnet wurde
 --   holdUntil bis wann das letzte SetCollecting(true) gilt (Frist gegen hängende Clients)
 --   carry     Bruchteil eines Korns aus der letzten Abrechnung (Tank enthält nur ganze Körner)
+--   findSeconds Sekunden, in denen wirklich Sand floss, je Zone (für die Fundchance, Paket 2.6)
 -- Gespeichert wird nur profile.tank, profile.tankMix und profile.coins (Zahlentyp BigNum).
 --
 -- Gemischter Tank (Paket 2.5): `tank` ist die Gesamtmenge, `tankMix` merkt sich je Sandsorte, wie
@@ -25,12 +26,16 @@ local SandTypes = require("../Data/SandTypes")
 local Economy = require("../Data/Economy")
 local UpgradeTree = require("../Data/UpgradeTree")
 local TreeEffects = require("./TreeEffects")
+local Collection = require("./Collection")
+local Wind = require("./Wind")
 
 export type State = {
     holding: boolean,
     lastTick: number,
     holdUntil: number,
     carry: number,
+    -- Echte Sammelzeit je Zone, die der Finds-Service noch nicht abgeholt hat (Paket 2.6).
+    findSeconds: { [string]: number },
 }
 
 export type UpdateResult = {
@@ -86,11 +91,16 @@ function Collecting.zoneOf(profile: any): Zones.Zone
     return zone
 end
 
--- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1).
--- Boni aus Windkristallen, Freunden und Boosts kommen mit ihren Paketen dazu.
+-- Münzen pro Sand in der aktuellen Zone: Grundpreis mal Sandfaktor mal Verkauf-Ast (Paket 2.1)
+-- mal Sammlungsbonus (Paket 2.6). Boni aus Windkristallen, Freunden und Boosts kommen mit ihren
+-- Paketen dazu.
 function Collecting.pricePerSand(profile: any): number
     local sandType = SandTypes.byId[Collecting.zoneOf(profile).sandTypeId]
-    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
+    return Economy.baseCoinsPerSand
+        * sandType.priceFactor
+        * TreeEffects.sellMultiplier(profile)
+        * Collection.bonusMultiplier(profile)
+        * Wind.multiplier(profile)
 end
 
 -- Alle Schreibzugriffe auf den Tank laufen über addSand und clearTank, damit `tank` und `tankMix`
@@ -111,7 +121,11 @@ function Collecting.priceOf(profile: any, sandTypeId: string): number
     if sandType == nil then
         return 0
     end
-    return Economy.baseCoinsPerSand * sandType.priceFactor * TreeEffects.sellMultiplier(profile)
+    return Economy.baseCoinsPerSand
+        * sandType.priceFactor
+        * TreeEffects.sellMultiplier(profile)
+        * Collection.bonusMultiplier(profile)
+        * Wind.multiplier(profile)
 end
 
 -- Die Sandsorte der aktuellen Zone.
@@ -145,7 +159,7 @@ function Collecting.clearTank(profile: any)
 end
 
 function Collecting.newState(now: number): State
-    return { holding = false, lastTick = now, holdUntil = now, carry = 0 }
+    return { holding = false, lastTick = now, holdUntil = now, carry = 0, findSeconds = {} }
 end
 
 local function tankOf(profile: any): BigNum.BigNum
@@ -172,9 +186,11 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     end
     local tank = tankOf(profile)
     local capacity = Collecting.capacityOf(profile, options)
-    local space = math.max(capacity - math.max(BigNum.toNumber(tank), 0), 0)
+    -- Ganze Körner: ein Tank mit Bruchteil (Altdaten, spätere Pakete) darf das Halten nie ewig offen lassen.
+    local space = math.max(math.floor(capacity - math.max(BigNum.toNumber(tank), 0)), 0)
 
-    local accrued = Collecting.rateOf(profile) * dt + state.carry
+    local carryBefore = state.carry
+    local accrued = Collecting.rateOf(profile) * dt + carryBefore
     local whole = math.floor(accrued)
     state.carry = accrued - whole
     local added = math.min(whole, math.floor(space))
@@ -182,6 +198,17 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
         Collecting.addSand(profile, added)
     end
     result.added = added
+    -- Echte Sammelzeit für die Fundchance: läuft der Tank in diesem Fenster voll, zählt nur die
+    -- Zeit bis "voll".
+    local rate = Collecting.rateOf(profile)
+    local flowSeconds = dt
+    if rate > 0 and whole > space then
+        flowSeconds = math.clamp((space - carryBefore) / rate, 0, dt)
+    end
+    if flowSeconds > 0 then
+        local zoneId = Collecting.zoneOf(profile).id
+        state.findSeconds[zoneId] = (state.findSeconds[zoneId] or 0) + flowSeconds
+    end
     state.lastTick = now
 
     if added >= space then
@@ -222,15 +249,13 @@ function Collecting.setZone(state: State, profile: any, zoneId: string, now: num
     return result
 end
 
--- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
--- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
--- Tank. Ändert profile.coins, profile.tank und profile.tankMix.
-function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
-    Collecting.update(state, profile, now, options)
+-- Münzen, die der Tank jetzt beim Verkauf brächte (ganze Münzen). Jede Sandsorte im Tank wird mit
+-- ihrem eigenen Faktor bezahlt. Ändert nichts. Auch der Sandsturm (Paket 2.7) nutzt das für seine
+-- Vorschau, damit Anzeige und Verkauf dieselbe Rechnung haben.
+function Collecting.tankValue(profile: any): BigNum.BigNum
     local tank = tankOf(profile)
     if tank.m <= 0 then
-        Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
-        return nil, nil
+        return BigNum.zero()
     end
     local mix = mixOf(profile)
     -- Billigste Sorte zuerst und nie mehr als der Tank: Ein zu großer Mix (kaputte oder
@@ -260,11 +285,24 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
     end
     -- Sand ohne Eintrag im Mix (alte Daten, Debug-Werte) zählt zum billigsten Preis.
     if remaining.m > 0 then
-        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile)))
+        earned = BigNum.add(earned, BigNum.mulNumber(remaining, Economy.baseCoinsPerSand * cheapestFactor() * TreeEffects.sellMultiplier(profile) * Collection.bonusMultiplier(profile) * Wind.multiplier(profile)))
     end
     -- Ganze Münzen: Ein Bruchteil aus dem Verkauf-Ast (zum Beispiel 15 Sand mal 1,1) verfällt.
-    earned = BigNum.floor(earned)
-    profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned))
+    return BigNum.floor(earned)
+end
+
+-- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
+-- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
+-- Tank. Ändert profile.coins, profile.runEarned, profile.tank und profile.tankMix.
+function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
+    Collecting.update(state, profile, now, options)
+    local tank = tankOf(profile)
+    if tank.m <= 0 then
+        Collecting.clearTank(profile) -- ein Mix ohne Tank verfällt
+        return nil, nil
+    end
+    local earned = Collecting.tankValue(profile)
+    Wind.credit(profile, earned)
     Collecting.clearTank(profile)
     return earned, tank
 end
@@ -276,6 +314,15 @@ function Collecting.inRange(dx: number, dy: number, dz: number, range: number): 
         return false
     end
     return squared <= range * range
+end
+
+-- Holt die gesammelte Sammelzeit je Zone ab (und setzt sie zurück). Der Finds-Service ruft das in
+-- jedem Tick auf. Zeit aus allen Aufrufen von `update` (Sammeln, Verkaufen, Kaufen, Zonenwechsel)
+-- landet hier, nichts geht verloren.
+function Collecting.takeFindSeconds(state: State): { [string]: number }
+    local taken = state.findSeconds
+    state.findSeconds = {}
+    return taken
 end
 
 return Collecting

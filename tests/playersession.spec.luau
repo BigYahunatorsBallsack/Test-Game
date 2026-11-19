@@ -92,13 +92,16 @@ T.describe("PlayerSession", function()
                 p.settings = { music = true }
                 return p
             end,
+            [2] = function(p: any) -- Paket 2.7: nur die Version zählt hier
+                return p
+            end,
         }
         local h = newHarness(world, "A", steps)
         local profile: any = h.manager.load(USER, present)
-        T.expect(profile.version).toBe(2)
+        T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
         T.expect(profile.gems).toBe(77)
         h.manager.release(USER)
-        T.expect(world.saved[KEY].version).toBe(2)
+        T.expect(world.saved[KEY].version).toBe(Profile.CURRENT_VERSION)
         T.expect(world.saved[KEY].settings).toEqual({ music = true })
     end)
 

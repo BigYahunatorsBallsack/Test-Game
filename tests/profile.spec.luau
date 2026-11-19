@@ -16,6 +16,9 @@ local exampleMigrations: { [number]: Migrations.Step } = {
         profile.legacyGems = profile.gems
         return profile
     end,
+    [2] = function(profile: any) -- Paket 2.7: nur die Version zählt hier
+        return profile
+    end,
 }
 
 local function v1Profile(): any
@@ -34,7 +37,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(nil, nil, NOW)
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
-        T.expect(Profile.CURRENT_VERSION).toBe(2) -- 2 seit Paket 2.5 (gemischter Tank)
+        T.expect(Profile.CURRENT_VERSION).toBe(3) -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -66,12 +69,12 @@ T.describe("Profile", function()
         T.expect(b.nodes.x).toBeNil()
     end)
 
-    T.it("ein Profil der Version 1 wird schrittweise auf Version 2 gebracht", function()
+    T.it("ein Profil der Version 1 wird schrittweise auf die aktuelle Version gebracht", function()
         local original = v1Profile()
         local profile, status = Profile.migrate(original, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.version).toBe(2)
+        T.expect(migrated.version).toBe(3)
         T.expect(migrated.settings).toEqual({ music = true })
         T.expect(migrated.legacyGems).toBe(120)
         -- Vorhandene Werte bleiben erhalten.

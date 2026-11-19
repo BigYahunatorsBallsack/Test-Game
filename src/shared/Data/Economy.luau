@@ -35,6 +35,23 @@ local Economy = {
     -- Sandsturm: jeder Windkristall gibt +2 % auf alle Münzen (Startwert, Konzept).
     windCrystalBonusBp = 200,
 
+    -- Sandsturm (Paket 2.7). Kristalle = floor(crystalScale x (runEarned / crystalUnit) ^ crystalExponent),
+    -- runEarned = Münzen aus Verkäufen seit dem letzten Sturm. `requiresNode`: Knoten, ab dem der Sturm
+    -- möglich ist (Canyon frei). `minCrystals`: so viele muss der Lauf mindestens bringen.
+    -- `maxCrystals`: Obergrenze der gehaltenen Kristalle (Schutz gegen Überlauf), erst bei etwa
+    -- 3,9 x 10^23 Münzen im Lauf erreicht.
+    -- Werte vom balance-analyst, Begründung und Simulation: docs/balance/sandstorm_2_7.md.
+    -- Exponent 0,25 statt 0,5: Bei 0,5 lohnt es sich, nach dem Baumende ohne Kauf weiterzusammeln.
+    -- minCrystals 20: erreicht etwa 3,5 min vor dem Baumende von Lauf 1, ein früher Sturm lohnt nie.
+    sandstorm = {
+        requiresNode = "collect_tool_4",
+        crystalUnit = 1_000_000,
+        crystalExponent = 0.25,
+        crystalScale = 4,
+        minCrystals = 20,
+        maxCrystals = 100_000,
+    },
+
     -- Freunde-Bonus: 10 % mehr Münzen pro Freund im Server, höchstens 50 %.
     friendBonusPerFriendBp = 1000,
     friendBonusMaxBp = 5000,

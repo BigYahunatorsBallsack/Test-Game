@@ -12,6 +12,7 @@ local columns: { [string]: number } = {
     rateBonus = 1,
     sellBonus = 2,
     grantedBySandstorm = 3,
+    zoneKey = 4,
 }
 
 -- Platzhalter-Zeichen und -Farbe je Wirkung (Farbe als RGB-Zahlen, damit das Modul rein bleibt).
@@ -22,6 +23,7 @@ local looks: { [string]: { glyph: string, color: { number } } } = {
     rateBonus = { glyph = "R", color = { 225, 130, 80 } },
     sellBonus = { glyph = "$", color = { 200, 150, 215 } },
     grantedBySandstorm = { glyph = "S", color = { 190, 170, 140 } },
+    zoneKey = { glyph = "K", color = { 190, 170, 140 } },
 }
 
 return {

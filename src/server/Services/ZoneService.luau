@@ -258,6 +258,24 @@ function ZoneService.unlockNew(player: Player)
     end
 end
 
+-- Nach einem Sandsturm (Paket 2.7): Das Profil hat die Zonen schon zurückgesetzt. Hier wird die
+-- Zone des Sammelzustands auf das Dünenmeer gesetzt und der Charakter an dessen Spawn gestellt.
+-- Der Aufrufer ruft danach `Sand.refresh`.
+function ZoneService.resetAfterStorm(player: Player)
+    local profile = PlayerData.get(player)
+    if profile == nil then
+        return
+    end
+    local first = Zones.list[1].id
+    Sand.setZone(player, first)
+    local root = aliveRoot(player)
+    local area = World.zonesById[first]
+    if root ~= nil and area ~= nil then
+        teleport(player, root, area.spawn)
+    end
+    notifyEntered(player, first, now())
+end
+
 function ZoneService.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
