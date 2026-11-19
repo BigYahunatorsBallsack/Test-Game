@@ -1,7 +1,7 @@
 --!strict
 -- Client-Bootstrap: lädt die Controller und ruft erst alle Init(), dann alle Start().
 
-local CONTROLLER_NAMES = { "State", "Input", "Hud", "Dig", "ToolVisual", "ZoneMenu", "Weather", "Reveal", "CollectionBook", "Sandstorm", "SkillTree", "Tutorial" }
+local CONTROLLER_NAMES = { "State", "Input", "Hud", "Dig", "ToolVisual", "ZoneMenu", "Weather", "Reveal", "CollectionBook", "Sandstorm", "GemShop", "SkillTree", "Tutorial" }
 
 type Controller = {
     Init: () -> (),

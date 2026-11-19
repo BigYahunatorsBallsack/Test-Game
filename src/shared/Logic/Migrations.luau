@@ -17,6 +17,8 @@ local LEGACY_SAND_TYPE = {
     ruins = "black",
 }
 local LEGACY_FALLBACK_SAND_TYPE = "yellow"
+-- Werte, die in der alten Beleg-Tabelle (bis Version 3) einen Beleg markieren.
+local LEGACY_RECEIPT_MARKER_TYPES: { [string]: boolean } = { boolean = true, number = true, string = true, table = true }
 
 local function isValidBigNum(value: any): boolean
     return type(value) == "table"
@@ -31,7 +33,7 @@ local function isValidBigNum(value: any): boolean
 end
 
 local Migrations = {
-    CURRENT_VERSION = 3,
+    CURRENT_VERSION = 4,
     steps = {} :: { [number]: Step },
 }
 
@@ -57,6 +59,50 @@ Migrations.steps[2] = function(profile: any): any
     else
         profile.runEarned = { m = 0, e = 0 }
     end
+    return profile
+end
+
+-- Version 3 -> 4 (Paket 4.1, sichere Käufe): `receipts` war eine Tabelle { [PurchaseId] = true } und
+-- wird eine Liste der PurchaseIds (neueste am Ende, Länge begrenzt in Profile.sanitize). Die alte
+-- Tabelle kennt keine Reihenfolge, darum kommen ihre Schlüssel sortiert (gleiches Ergebnis bei jedem
+-- Laden). Steht schon ein Listenteil drin (kaputtes Versionsfeld), folgt er danach in seiner
+-- Reihenfolge. Jede PurchaseId bleibt erhalten, damit kein bezahlter Kauf zweimal gebucht wird.
+-- `purchaseLog` und `spent` füllt Profile.migrate mit den Standardwerten.
+Migrations.steps[3] = function(profile: any): any
+    local old = profile.receipts
+    local ids: { string } = {}
+    if type(old) == "table" then
+        local seen: { [string]: boolean } = {}
+        local keys: { string } = {}
+        local positions: { number } = {}
+        for key, value in old do
+            if type(key) == "string" then
+                -- Jeder speicherbare Wert außer false markiert einen Beleg (lieber eine PurchaseId
+                -- zu viel behalten als einen Kauf doppelt buchen).
+                if key ~= "" and value ~= false and LEGACY_RECEIPT_MARKER_TYPES[type(value)] then
+                    table.insert(keys, key)
+                end
+            elseif type(key) == "number" and type(value) == "string" and value ~= "" then
+                table.insert(positions, key)
+            end
+        end
+        table.sort(keys)
+        table.sort(positions)
+        for _, key in keys do
+            if not seen[key] then
+                seen[key] = true
+                table.insert(ids, key)
+            end
+        end
+        for _, position in positions do
+            local id = old[position]
+            if not seen[id] then
+                seen[id] = true
+                table.insert(ids, id)
+            end
+        end
+    end
+    profile.receipts = ids
     return profile
 end
 

@@ -385,4 +385,107 @@ T.describe("Terrain-Daten (1.4)", function()
     end)
 end)
 
+T.describe("Käufe (4.1)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("Economy.purchases hat die Werte aus dem Plan und besteht die Prüfung", function()
+        T.expect(Economy.purchases).toEqual({
+            receiptCacheSize = 100,
+            purchaseLogSize = 50,
+            saveTimeoutSeconds = 30,
+            maxGems = 10_000_000,
+        })
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("DataCheck meldet purchases-Werte außerhalb der Grenzen", function()
+        expectError(broken(function(d) d.Economy.purchases = nil end), "Economy.purchases: Tabelle fehlt")
+        expectError(broken(function(d) d.Economy.purchases.receiptCacheSize = 0 end), "receiptCacheSize")
+        expectError(broken(function(d) d.Economy.purchases.receiptCacheSize = 49 end), "receiptCacheSize muss eine ganze Zahl von 50")
+        expectError(broken(function(d) d.Economy.purchases.receiptCacheSize = 1001 end), "receiptCacheSize")
+        expectError(broken(function(d) d.Economy.purchases.receiptCacheSize = 10.5 end), "receiptCacheSize")
+        expectError(broken(function(d) d.Economy.purchases.purchaseLogSize = 0 end), "purchaseLogSize")
+        expectError(broken(function(d) d.Economy.purchases.purchaseLogSize = 501 end), "purchaseLogSize")
+        expectError(broken(function(d) d.Economy.purchases.saveTimeoutSeconds = 0 end), "saveTimeoutSeconds")
+        expectError(broken(function(d) d.Economy.purchases.saveTimeoutSeconds = 121 end), "saveTimeoutSeconds")
+        expectError(broken(function(d) d.Economy.purchases.saveTimeoutSeconds = 0 / 0 end), "saveTimeoutSeconds")
+        expectError(broken(function(d) d.Economy.purchases.maxGems = 0 end), "maxGems")
+        expectError(broken(function(d) d.Economy.purchases.maxGems = 999_999 end), "maxGems muss eine ganze Zahl von 1000000")
+        expectError(broken(function(d) d.Economy.purchases.maxGems = 2e9 end), "maxGems")
+        expectError(broken(function(d) d.Economy.purchases.maxGems = "viel" end), "maxGems")
+        expectError(broken(function(d) d.Economy.purchases.maxGems = 5000 end), "mehr Gems als Economy.purchases.maxGems")
+        -- Belege mindestens so viele wie Protokolleinträge.
+        expectError(broken(function(d)
+            d.Economy.purchases.receiptCacheSize = 100
+            d.Economy.purchases.purchaseLogSize = 101
+        end), "receiptCacheSize muss mindestens so groß wie purchaseLogSize sein")
+        -- Die Grenzen selbst sind erlaubt.
+        T.expect(broken(function(d)
+            d.Economy.purchases.receiptCacheSize = 1000
+            d.Economy.purchases.purchaseLogSize = 500
+            d.Economy.purchases.saveTimeoutSeconds = 120
+            d.Economy.purchases.maxGems = 1e9
+        end)).toEqual({})
+        T.expect(broken(function(d)
+            d.Economy.purchases.receiptCacheSize = 50
+            d.Economy.purchases.purchaseLogSize = 50
+            d.Economy.purchases.saveTimeoutSeconds = 1
+            d.Economy.purchases.maxGems = 1_000_000
+        end)).toEqual({})
+        T.expect(broken(function(d)
+            d.Economy.purchases.purchaseLogSize = 1
+        end)).toEqual({})
+    end)
+
+    T.it("DataCheck meldet doppelte ProductIds, der Platzhalter 0 darf mehrfach vorkommen", function()
+        expectError(broken(function(d)
+            d.GemPacks.byId.gems_100.productId = 111
+            d.GemPacks.byId.gems_550.productId = 111
+        end), "productId 111 ist doppelt")
+        expectError(broken(function(d)
+            d.GemPacks.byId.gems_1200.productId = 222
+            d.Products.byId.starter_pack.productId = 222
+        end), "productId 222 ist doppelt")
+        expectError(broken(function(d)
+            d.Products.byId.coin_boost.productId = 333
+            d.Products.byId.season_pass.productId = 333
+        end), "productId 333 ist doppelt")
+        expectError(broken(function(d)
+            d.Products.byId.double_coins.productId = 444
+            d.Products.byId.auto_dig.productId = 444
+        end), "productId 444 ist doppelt")
+        -- Gamepasses und Developer Products haben bei Roblox getrennte Nummernkreise.
+        T.expect(broken(function(d)
+            d.Products.byId.big_tank.productId = 555
+            d.GemPacks.byId.gems_100.productId = 555
+        end)).toEqual({})
+        -- Echte Daten: alle 0 (Platzhalter), keine Meldung.
+        for _, pack in GemPacks.list do
+            T.expect(pack.productId).toBe(0)
+        end
+    end)
+
+    T.it("DataCheck meldet eine Produkt-ID, die in GemPacks und in Products steht", function()
+        local errors = broken(function(d)
+            local copy = table.clone(d.Products.byId.coin_boost)
+            copy.id = "gems_550"
+            table.insert(d.Products.list, copy)
+            d.Products.byId.gems_550 = copy
+        end)
+        expectError(errors, 'Produkt-ID "gems_550" steht in GemPacks und in Products')
+        -- Auch als Gamepass: Handler und Studio-Käufe finden Produkte über diese ID.
+        local asPass = broken(function(d)
+            d.Products.byId.big_tank.id = "gems_100"
+            d.Products.byId.gems_100 = d.Products.byId.big_tank
+            d.Products.byId.big_tank = nil
+        end)
+        expectError(asPass, 'Produkt-ID "gems_100" steht in GemPacks und in Products')
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+end)
+
 T.finish()

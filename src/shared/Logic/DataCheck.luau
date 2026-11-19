@@ -9,6 +9,19 @@ local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
 local HEX_PATTERN = "^#%x%x%x%x%x%x$"
 
+-- Grenzen für Economy.purchases (Paket 4.1): ganze Zahlen in diesen Bereichen.
+--  * receiptCacheSize ab 50: Ein noch nicht bestätigter Beleg darf nicht von wenigen neueren Käufen
+--    aus der Liste gedrängt werden (sonst bucht der nächste Versuch doppelt). Außerdem muss die
+--    Liste mindestens so lang sein wie das Kaufprotokoll (siehe checkPurchases).
+--  * maxGems ab 1_000_000: sanitize kappt Guthaben über maxGems bei jedem Laden und Speichern. Ein zu
+--    kleiner Wert würde bezahlte Gems vernichten (siehe Kommentar in Economy.purchases).
+local PURCHASE_LIMITS: { { key: string, min: number, max: number } } = {
+    { key = "receiptCacheSize", min = 50, max = 1000 },
+    { key = "purchaseLogSize", min = 1, max = 500 },
+    { key = "saveTimeoutSeconds", min = 1, max = 120 },
+    { key = "maxGems", min = 1_000_000, max = 1e9 },
+}
+
 local CURRENCIES = { coins = true, gems = true }
 local PRODUCT_KINDS = { gamepass = true, developerProduct = true, direct = true }
 local DAILY_KINDS = { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
@@ -513,6 +526,87 @@ local function checkProducts(errors: { string }, data: DataSet)
         end
         if not isInt(product.productId) or product.productId < 0 then
             table.insert(errors, `{label}: productId muss eine ganze Zahl ab 0 sein`)
+        end
+    end
+end
+
+-- Käufe (Paket 4.1): Grenzen der Kaufabwicklung, Belege mindestens so viele wie Protokolleinträge
+-- (jeder protokollierte Kauf steht auch in den Belegen; ist `receipts` kaputt, baut sanitize sie aus
+-- dem Protokoll neu auf), und kein Gem-Paket liegt über maxGems.
+local function checkPurchases(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    local cfg = economy.purchases
+    if type(cfg) ~= "table" then
+        table.insert(errors, "Economy.purchases: Tabelle fehlt")
+        return
+    end
+    for _, limit in PURCHASE_LIMITS do
+        local value = cfg[limit.key]
+        if not isInt(value) or value < limit.min or value > limit.max then
+            table.insert(errors, `Economy.purchases.{limit.key} muss eine ganze Zahl von {limit.min} bis {limit.max} sein`)
+        end
+    end
+    if isInt(cfg.receiptCacheSize) and isInt(cfg.purchaseLogSize) and cfg.receiptCacheSize < cfg.purchaseLogSize then
+        table.insert(errors, "Economy.purchases.receiptCacheSize muss mindestens so groß wie purchaseLogSize sein")
+    end
+    local packs = data.GemPacks
+    if isInt(cfg.maxGems) and type(packs) == "table" and isList(packs.list) then
+        for _, pack in packs.list do
+            if isInt(pack.gems) and pack.gems > cfg.maxGems then
+                table.insert(errors, `GemPacks "{tostring(pack.id)}": mehr Gems als Economy.purchases.maxGems`)
+            end
+        end
+    end
+end
+
+-- Eine ProductId (außer dem Platzhalter 0) darf nur einmal vorkommen, sonst wüsste ProcessReceipt
+-- nicht, welches Produkt gekauft wurde. Developer Products (Gem-Pakete und alle Produkte außer
+-- Gamepasses) und Gamepasses haben bei Roblox getrennte Nummernkreise und werden getrennt geprüft.
+-- Außerdem darf keine Produkt-ID (`id`) in GemPacks und Products zugleich stehen: Purchases findet
+-- Handler und Studio-Käufe über diese ID (doppelte innerhalb einer Tabelle meldet checkIds).
+local function checkProductIds(errors: { string }, data: DataSet)
+    local packIds: { [string]: boolean } = {}
+    local packList = data.GemPacks
+    local productList = data.Products
+    if type(packList) == "table" and isList(packList.list) and type(productList) == "table" and isList(productList.list) then
+        for _, pack in packList.list do
+            if type(pack.id) == "string" then
+                packIds[pack.id] = true
+            end
+        end
+        for _, product in productList.list do
+            if type(product.id) == "string" and packIds[product.id] then
+                table.insert(errors, `Produkt-ID "{product.id}" steht in GemPacks und in Products`)
+            end
+        end
+    end
+    local seen: { [string]: string } = {} -- "Nummernkreis:productId" -> erster Eintrag
+    local function add(space: string, productId: any, label: string)
+        if not isInt(productId) or productId == 0 then
+            return -- Platzhalter oder schon von checkGemPacks/checkProducts gemeldet
+        end
+        local key = `{space}:{productId}`
+        local first = seen[key]
+        if first ~= nil then
+            table.insert(errors, `productId {productId} ist doppelt: {first} und {label}`)
+        else
+            seen[key] = label
+        end
+    end
+    local packs = data.GemPacks
+    if type(packs) == "table" and isList(packs.list) then
+        for _, pack in packs.list do
+            add("product", pack.productId, `GemPacks "{tostring(pack.id)}"`)
+        end
+    end
+    local products = data.Products
+    if type(products) == "table" and isList(products.list) then
+        for _, product in products.list do
+            local space = if product.kind == "gamepass" then "gamepass" else "product"
+            add(space, product.productId, `Products "{tostring(product.id)}"`)
         end
     end
 end
@@ -1887,10 +1981,12 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkZones(errors, data)
     checkGemPacks(errors, data)
     checkProducts(errors, data)
+    checkProductIds(errors, data)
     checkFinds(errors, data)
     checkCollection(errors, data)
     checkEconomy(errors, data)
     checkSandstorm(errors, data)
+    checkPurchases(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

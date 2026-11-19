@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 export type Snapshot = {
     coins: { m: number, e: number },
+    gems: number, -- Gems (Paket 4.1)
     tank: { m: number, e: number },
     capacity: number,
     rate: number,

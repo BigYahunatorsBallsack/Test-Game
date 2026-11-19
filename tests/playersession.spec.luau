@@ -6,6 +6,7 @@ local FakeStore = require("./lib/fakestore")
 local PlayerSession = require("../src/shared/Logic/PlayerSession")
 local Profile = require("../src/shared/Logic/Profile")
 local Migrations = require("../src/shared/Logic/Migrations")
+local Economy = require("../src/shared/Data/Economy")
 
 local USER = 42
 local KEY = PlayerSession.keyFor(USER)
@@ -18,7 +19,7 @@ type Harness = {
     clock: { time: number },
 }
 
-local function newHarness(world: FakeStore.World, serverName: string, migrations: any?): Harness
+local function newHarness(world: FakeStore.World, serverName: string, migrations: any?, wait: ((number) -> ())?): Harness
     local kicks = {}
     local logs = {}
     local clock = { time = START }
@@ -34,6 +35,16 @@ local function newHarness(world: FakeStore.World, serverName: string, migrations
             table.insert(logs, message)
         end,
         migrations = migrations,
+        -- Paket 4.1: Fake-Uhr. Warten rückt die Uhr vor und lässt den Test eingreifen.
+        clock = function()
+            return clock.time
+        end,
+        wait = if wait ~= nil
+            then function(seconds: number)
+                clock.time += seconds
+                wait(seconds)
+            end
+            else nil,
     })
     return { manager = manager, kicks = kicks, logs = logs, clock = clock }
 end
@@ -93,6 +104,9 @@ T.describe("PlayerSession", function()
                 return p
             end,
             [2] = function(p: any) -- Paket 2.7: nur die Version zählt hier
+                return p
+            end,
+            [3] = function(p: any) -- Paket 4.1: nur die Version zählt hier
                 return p
             end,
         }
@@ -349,6 +363,215 @@ T.describe("Profile.sanitize", function()
         T.expect(profile.daily).toEqual({ streak = 0, lastDay = 0 })
         T.expect(profile.boosts.coinsUntil).toBe(0)
         T.expect(profile.gems).toBe(5)
+    end)
+end)
+
+-- Paket 4.1: Speichern anstoßen und warten, bis der gespeicherte Stand eine Bedingung erfüllt.
+T.describe("PlayerSession: bestätigtes Speichern (Paket 4.1)", function()
+    local function hasMarker(saved: any): boolean
+        return type(saved) == "table" and saved.marker == "ja"
+    end
+
+    T.it("isActive: erst nach dem Laden, nicht mehr nach dem Verlassen oder einer Übernahme", function()
+        local world = FakeStore.newWorld()
+        local h = newHarness(world, "A")
+        T.expect(h.manager.isActive(USER)).toBe(false)
+        h.manager.load(USER, present)
+        T.expect(h.manager.isActive(USER)).toBe(true)
+        h.manager.release(USER)
+        T.expect(h.manager.isActive(USER)).toBe(false)
+        h.manager.load(USER, present)
+        FakeStore.endFromOutside(world, KEY)
+        T.expect(h.manager.isActive(USER)).toBe(false)
+    end)
+
+    T.it("saveAndWait: true erst, wenn der gespeicherte Stand die Bedingung erfüllt", function()
+        local world = FakeStore.newWorld()
+        local h = newHarness(world, "A", nil, function() end)
+        local profile: any = h.manager.load(USER, present)
+        T.expect(h.manager.isSaved(USER, hasMarker)).toBe(false)
+        profile.marker = "ja"
+        T.expect(h.manager.isSaved(USER, hasMarker)).toBe(false) -- nur im Speicher, nicht gespeichert
+        local writes = world.writes
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(true)
+        T.expect(world.writes).toBe(writes + 1)
+        T.expect(world.saved[KEY].marker).toBe("ja")
+        T.expect(h.manager.isSaved(USER, hasMarker)).toBe(true)
+        -- Schon gespeichert: kein weiteres Speichern nötig.
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(true)
+        T.expect(world.writes).toBe(writes + 1)
+    end)
+
+    T.it("saveAndWait wartet auf ein verzögertes Speichern", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local polls = 0
+        local h = newHarness(world, "A", nil, function()
+            polls += 1
+            if polls == 3 then
+                FakeStore.flushSaves(world) -- das Speichern kommt nach drei Wartezyklen an
+            end
+        end)
+        local profile: any = h.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(true)
+        T.expect(polls).toBe(3)
+        T.expect(world.saved[KEY].marker).toBe("ja")
+    end)
+
+    T.it("Speichern schlägt fehl: false nach der Zeitgrenze, nichts geschrieben", function()
+        local world = FakeStore.newWorld()
+        world.failSaves = true
+        local h = newHarness(world, "A", nil, function() end)
+        local profile: any = h.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(false)
+        T.expect(h.clock.time - START >= 30).toBe(true)
+        T.expect(world.saved[KEY]).toBeNil()
+        T.expect(profile.marker).toBe("ja") -- der Stand im Speicher bleibt
+    end)
+
+    T.it("Sitzung von außen übernommen (ohne letztes Speichern): false erst nach der Zeitgrenze", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local h = newHarness(world, "A", nil, function()
+            FakeStore.endFromOutside(world, KEY)
+        end)
+        local profile: any = h.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(false)
+        -- Kein Abbruch beim Sitzungsende: bis zur Zeitgrenze könnte noch ein letztes Speichern kommen.
+        T.expect(h.clock.time - START >= 30).toBe(true)
+        T.expect(FakeStore.flushSaves(world)).toBe(1) -- das verzögerte Speichern schreibt nicht mehr
+        T.expect(world.saved[KEY]).toBeNil()
+    end)
+
+    T.it("Fake-Speicher beendet wie ProfileStore: erst inaktiv und onSessionEnd, danach schreiben und onAfterSave", function()
+        local world = FakeStore.newWorld()
+        local store = FakeStore.newServer(world, "A")
+        local session = store.startSession(KEY, function(): boolean
+            return false
+        end)
+        session.setData({ marker = "ja" })
+        local order: { string } = {}
+        session.onSave(function()
+            table.insert(order, `onSave aktiv={tostring(session.isActive())}`)
+        end)
+        session.onSessionEnd(function()
+            table.insert(order, `onSessionEnd gespeichert={tostring(world.saved[KEY] ~= nil)}`)
+        end)
+        session.onAfterSave(function(saved: any)
+            table.insert(order, `onAfterSave aktiv={tostring(session.isActive())} marker={tostring(saved.marker)}`)
+        end)
+        session.endSession()
+        T.expect(order).toEqual({
+            "onSave aktiv=true",
+            "onSessionEnd gespeichert=false",
+            "onAfterSave aktiv=false marker=ja",
+        })
+        T.expect(session.lastSaved().marker).toBe("ja")
+        T.expect(world.locks[KEY]).toBeNil()
+    end)
+
+    T.it("Spieler verlässt das Spiel während des Wartens: das letzte Speichern nach dem Sitzungsende zählt", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local h: Harness
+        local polls = 0
+        local sawInactive = false
+        h = newHarness(world, "A", nil, function()
+            polls += 1
+            if polls == 2 then
+                h.manager.release(USER) -- letztes Speichern ist angestoßen, aber noch nicht geschrieben
+            elseif polls == 3 then
+                sawInactive = not h.manager.isActive(USER) and world.saved[KEY] == nil
+            elseif polls == 5 then
+                FakeStore.flushSaves(world) -- jetzt erst kommt das letzte Schreiben an
+            end
+        end)
+        local profile: any = h.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(true)
+        T.expect(sawInactive).toBe(true)
+        T.expect(polls).toBe(5)
+        T.expect(world.saved[KEY].marker).toBe("ja")
+    end)
+
+    T.it("Spieler verlässt das Spiel und das letzte Speichern scheitert: false nach der Zeitgrenze", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local h: Harness
+        local polls = 0
+        h = newHarness(world, "A", nil, function()
+            polls += 1
+            if polls == 2 then
+                h.manager.release(USER)
+                world.failSaves = true
+                FakeStore.flushSaves(world)
+            end
+        end)
+        local profile: any = h.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(false)
+        T.expect(h.clock.time - START >= 30).toBe(true)
+        T.expect(world.saved[KEY]).toBeNil()
+    end)
+
+    T.it("bestätigt auch über den zuletzt gespeicherten Stand, wenn kein onAfterSave mehr kommt", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local h: Harness
+        local polls = 0
+        h = newHarness(world, "A", nil, function()
+            polls += 1
+            if polls == 2 then
+                h.manager.release(USER)
+                FakeStore.flushSaves(world)
+            end
+        end)
+        local profile: any = h.manager.load(USER, present)
+        -- Wie ein Speicher, der beim Beenden alle Rückrufe trennt: Der Rückruf kommt nie an, nur
+        -- der zuletzt gespeicherte Stand (LastSavedData) ändert sich.
+        local session = world.sessions[KEY]
+        local realOnAfterSave = session.onAfterSave
+        session.onAfterSave = function(_callback: any): () -> ()
+            return realOnAfterSave(function() end)
+        end
+        profile.marker = "ja"
+        T.expect(h.manager.saveAndWait(USER, hasMarker, 30)).toBe(true)
+        T.expect(h.clock.time - START < 30).toBe(true)
+    end)
+
+    T.it("ein altes Profil mit mehr Belegen als receiptCacheSize: beim Laden alle, beim Speichern gekürzt", function()
+        local world = FakeStore.newWorld()
+        local limit = Economy.purchases.receiptCacheSize
+        local old: any = Profile.default(START)
+        old.version = 3
+        old.purchaseLog = nil
+        old.spent = nil
+        old.receipts = {}
+        for index = 1, limit + 50 do
+            old.receipts[`alt_{string.format("%03d", index)}`] = true
+        end
+        world.saved[KEY] = old
+        local h = newHarness(world, "A", nil, function() end)
+        local profile: any = h.manager.load(USER, present)
+        T.expect(#profile.receipts).toBe(limit + 50) -- keine PurchaseId geht beim Laden verloren
+        FakeStore.autosave(world, KEY)
+        T.expect(#world.saved[KEY].receipts).toBe(limit)
+        T.expect(#profile.receipts).toBe(limit)
+    end)
+
+    T.it("nicht geladen, ohne Warten oder mit fehlerhafter Bedingung: false ohne Fehler", function()
+        local world = FakeStore.newWorld()
+        local noWait = newHarness(world, "A")
+        T.expect(noWait.manager.saveAndWait(USER, hasMarker, 30)).toBe(false)
+        local profile: any = noWait.manager.load(USER, present)
+        profile.marker = "ja"
+        T.expect(noWait.manager.saveAndWait(USER, hasMarker, 30)).toBe(false) -- kein Warten eingestellt
+        T.expect(noWait.manager.saveAndWait(USER, function(): boolean
+            error("kaputt")
+        end, 30)).toBe(false)
     end)
 end)
 

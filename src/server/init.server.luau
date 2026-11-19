@@ -1,6 +1,6 @@
 --!strict
 -- Server-Bootstrap. Reihenfolge: Daten prüfen, Remotes anlegen, Services laden,
--- alle Init(), dann alle Start(). Jeder Schritt wird gedruckt.
+-- alle Init(), dann alle Start(), dann die optionalen AfterStart(). Jeder Schritt wird gedruckt.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +10,7 @@ local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds",
 type Service = {
     Init: () -> (),
     Start: () -> (),
+    AfterStart: (() -> ())?, -- optional: Prüfungen, wenn alle Services gestartet sind
 }
 
 print("[Server] Dune Baron startet")
@@ -46,6 +47,26 @@ end
 for _, entry in services do
     entry.service.Start()
     print(`[Server] Start: {entry.name}`)
+end
+
+-- 5. Nach allen Start(): Abschlussprüfungen (zum Beispiel Shop: jedes Produkt mit ProductId hat
+-- einen Handler). Das ist eine laute Prüfung für Entwickler, keine Sperre: Ein Fehler wird gemeldet,
+-- der Server läuft weiter, und die anderen AfterStart() laufen trotzdem. Die eigentliche Absicherung
+-- bleibt, eine ProductId erst einzutragen, wenn ihr Handler existiert.
+local afterStartFailures: { string } = {}
+for _, entry in services do
+    local afterStart = entry.service.AfterStart
+    if afterStart ~= nil then
+        local ok, err = pcall(afterStart)
+        if ok then
+            print(`[Server] AfterStart: {entry.name}`)
+        else
+            table.insert(afterStartFailures, `{entry.name}: {tostring(err)}`)
+        end
+    end
+end
+for _, failure in afterStartFailures do
+    warn(`[Server] AfterStart fehlgeschlagen, bitte beheben: {failure}`)
 end
 
 print("[Server] Dune Baron läuft")
