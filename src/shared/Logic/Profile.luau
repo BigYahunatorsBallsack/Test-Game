@@ -12,6 +12,7 @@
 
 local BigNum = require("./BigNum")
 local Migrations = require("./Migrations")
+local Economy = require("../Data/Economy")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -264,6 +265,13 @@ function Profile.sanitize(profile: Profile, now: number?): { string }
     if type(data.windCrystals) == "number" and data.windCrystals < 0 then
         warn(warnings, "windCrystals", "negativ, auf 0 gesetzt")
         data.windCrystals = 0
+    end
+    if type(data.windCrystals) == "number" and data.windCrystals > Economy.sandstorm.maxCrystals then
+        warn(warnings, "windCrystals", "über der Obergrenze, gekappt")
+        data.windCrystals = Economy.sandstorm.maxCrystals
+    end
+    if type(data.prestiges) == "number" and data.prestiges ~= math.floor(data.prestiges) then
+        data.prestiges = math.floor(data.prestiges)
     end
     if type(data.prestiges) == "number" and data.prestiges < 0 then
         warn(warnings, "prestiges", "negativ, auf 0 gesetzt")

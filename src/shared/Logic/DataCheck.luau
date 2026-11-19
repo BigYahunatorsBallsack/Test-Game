@@ -370,6 +370,10 @@ local function checkZones(errors: { string }, data: DataSet)
     if not hasStart then
         table.insert(errors, "Zones: keine Startzone (requires = \"start\")")
     end
+    -- Der Sandsturm und Zones.resolve setzen den Spieler auf die erste Zone der Liste zurück.
+    if isList(zones.list) and type(zones.list[1]) == "table" and zones.list[1].requires ~= "start" then
+        table.insert(errors, "Zones: die erste Zone der Liste muss die Startzone sein (requires = \"start\")")
+    end
 end
 
 local function checkUpgradeTree(errors: { string }, data: DataSet)

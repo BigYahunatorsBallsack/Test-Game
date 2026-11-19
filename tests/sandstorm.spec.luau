@@ -199,6 +199,18 @@ T.describe("Bedingungen", function()
         T.expect(profile.windCrystals).toBe(cfg.maxCrystals)
     end)
 
+    T.it("ein riesiger Kristallwert im Profil macht den Faktor nicht unendlich (Obergrenze), sanitize kappt ihn", function()
+        local profile = fresh()
+        profile.windCrystals = 1e300
+        T.expect(Wind.crystalsOf(profile)).toBe(Economy.sandstorm.maxCrystals)
+        T.expect(Wind.multiplier(profile) < math.huge).toBe(true)
+        local state = Collecting.newState(0)
+        Collecting.addSand(profile, 10, "yellow")
+        T.expect(Collecting.sell(state, profile, 0) ~= nil).toBe(true) -- wirft nicht
+        Profile.sanitize(profile, NOW)
+        T.expect(profile.windCrystals).toBe(Economy.sandstorm.maxCrystals)
+    end)
+
     T.it("kaputte Profile werfen nicht (Knoten keine Tabelle, Kristalle NaN)", function()
         local profile = runner()
         profile.windCrystals = 0 / 0
@@ -318,12 +330,13 @@ T.describe("Reset", function()
         T.expect(profile.windCrystals).toBe(12)
     end)
 
-    T.it("unbekannte Knoten-IDs im Profil bleiben, bekannte gekaufte gehen zurück", function()
+    T.it("auch unbekannte Knoten-IDs gehen zurück, nur vergebene Knoten bleiben (kein Gratis-Knoten durch einen älteren Server)", function()
         local profile = runner()
-        profile.nodes.alter_knoten_ohne_eintrag = true
+        profile.nodes.knoten_aus_neuerem_baum = true
         Sandstorm.apply(profile, DATA)
-        T.expect(profile.nodes.alter_knoten_ohne_eintrag).toBe(true)
+        T.expect(profile.nodes.knoten_aus_neuerem_baum).toBeNil()
         T.expect(profile.nodes.collect_tool_2).toBeNil()
+        T.expect(profile.nodes).toEqual({ sandstorm_1 = true })
     end)
 
     T.it("danach läuft der Lauf von vorn: Hand, Kauf der Schaufel mit neuen Münzen", function()
@@ -593,6 +606,14 @@ T.describe("Datenprüfung und Remote", function()
         end
         data.Zones = zones
         hasError(DataCheck.run(data), "vergebenen Knoten")
+    end)
+
+    T.it("die erste Zone der Liste muss die Startzone sein (dorthin setzt der Sturm zurück)", function()
+        local data: any = DataCheck.defaults()
+        local zones = deepCopy(data.Zones)
+        zones.list[1], zones.list[2] = zones.list[2], zones.list[1]
+        data.Zones = zones
+        hasError(DataCheck.run(data), "erste Zone")
     end)
 
     T.it("sandstorm_ruins verlangt sandstorm_1 und den Saugroboter und ist kaufbar", function()

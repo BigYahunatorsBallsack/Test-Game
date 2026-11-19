@@ -281,6 +281,8 @@ function Sandstorm.Start()
         setOpen(false)
     end)
 
+    local playStorm: (any) -> () -- unten definiert, der Knopf braucht sie schon
+
     goButton.Activated:Connect(function()
         local snapshot = State.get()
         local storm = if snapshot ~= nil then snapshot.storm else nil
@@ -312,13 +314,16 @@ function Sandstorm.Start()
             showMessage(REASONS.unknown)
         elseif result.ok ~= true then
             showMessage(REASONS[result.reason] or REASONS.unknown)
+        elseif type(result.crystals) == "number" and type(result.bonusBp) == "number" then
+            -- Die Animation startet hier oder über die Meldung "sandstorm", je nachdem, was zuerst
+            -- kommt (`playing` verhindert, dass sie doppelt läuft).
+            task.spawn(playStorm, result)
         end
-        -- Bei Erfolg kommt die Animation über die Meldung "sandstorm".
     end)
 
     -- Animation: Wand von links, Halten, Wand nach rechts, dazu das Banner.
     local playing = false
-    local function playStorm(payload: any)
+    playStorm = function(payload: any)
         if playing then
             return
         end

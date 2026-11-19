@@ -63,7 +63,8 @@ local function onPrestige(player: Player): any
     if profile == nil then
         return { ok = false, reason = "unknown" }
     end
-    -- Das offene Sammelfenster zählt noch zum alten Lauf (Sand im Tank, Fundzeit).
+    -- Das offene Sammelfenster zählt noch zum alten Lauf (Sand im Tank). Die Fundzeit der letzten
+    -- Zehntelsekunden verfällt mit dem Lauf (`Sand.resetAfterStorm`), das ist beabsichtigt.
     local settled, settleErr = pcall(Sand.settle, player)
     if not settled then
         warn(`[Upgrades] Abrechnung vor dem Sandsturm fehlgeschlagen: {tostring(settleErr)}`)
@@ -72,9 +73,20 @@ local function onPrestige(player: Player): any
     if result == nil then
         return { ok = false, reason = reason }
     end
-    local worked, err = pcall(function()
+    -- Jeder Schritt der Nacharbeit einzeln, damit ein Fehler die übrigen nicht verhindert.
+    local function step(label: string, fn: () -> ())
+        local worked, err = pcall(fn)
+        if not worked then
+            warn(`[Upgrades] {label} nach dem Sandsturm fehlgeschlagen: {tostring(err)}`)
+        end
+    end
+    step("Sammelzustand", function()
         Sand.resetAfterStorm(player)
+    end)
+    step("Zonenwechsel", function()
         ZoneService.resetAfterStorm(player)
+    end)
+    step("Meldung", function()
         Net.fire(player, "Notify", {
             kind = "sandstorm",
             crystals = result.crystals,
@@ -84,14 +96,18 @@ local function onPrestige(player: Player): any
             first = result.first,
         })
     end)
-    if not worked then
-        warn(`[Upgrades] Nacharbeit nach dem Sandsturm fehlgeschlagen: {tostring(err)}`)
-    end
-    local refreshed, refreshErr = pcall(Sand.refresh, player)
-    if not refreshed then
-        warn(`[Upgrades] Anzeige nach dem Sandsturm fehlgeschlagen: {tostring(refreshErr)}`)
-    end
-    return { ok = true, crystals = result.crystals, total = result.total, first = result.first }
+    step("Anzeige", function()
+        Sand.refresh(player)
+    end)
+    -- Die Antwort trägt dieselben Werte, damit der Client die Animation auch dann zeigt, wenn die
+    -- Meldung ausgefallen ist.
+    return {
+        ok = true,
+        crystals = result.crystals,
+        total = result.total,
+        bonusBp = result.bonusBpAfter,
+        first = result.first,
+    }
 end
 
 function Upgrades.Init()

@@ -23,7 +23,9 @@ function Wind.crystalsOf(profile: any): number
     if type(count) ~= "number" or count ~= count or count < 1 or count == math.huge then
         return 0
     end
-    return math.floor(count)
+    -- Obergrenze auch beim Lesen: Ein riesiger Wert (kaputte oder von außen bearbeitete Daten)
+    -- machte den Faktor unendlich, und BigNum wirft bei unendlichen Zahlen.
+    return math.min(math.floor(count), Economy.sandstorm.maxCrystals)
 end
 
 -- Bonus aller Kristalle in Hundertstel-Prozent.

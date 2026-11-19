@@ -6,9 +6,9 @@
 --     mindestens `minCrystals` bringt.
 --  2. Kristalle = floor(crystalScale x (Einnahmen / crystalUnit) ^ crystalExponent). Einnahmen sind
 --     `profile.runEarned` plus der Wert des vollen Tanks (er wird mitgezählt, nichts geht verloren).
---  3. Zurück geht alles, was zum Lauf gehört: Münzen, Tank, gekaufte Knoten (also Werkzeug), Zonen
+--  3. Zurück geht alles, was zum Lauf gehört: Münzen, Tank, alle Knoten (also Werkzeug), Zonen
 --     und die Einnahmen des Laufs. Es bleiben Sammlung, Skins und Inventar, Gems, Belege, Pity,
---     Boosts, Daily und Tutorial. Vergebene Knoten (`sandstorm_1`) bleiben und werden vergeben.
+--     Boosts, Daily und Tutorial. Vergebene Knoten (`sandstorm_1`) werden neu vergeben.
 --  4. Die Zonen starten neu: nur das Dünenmeer ist frei, die Ruinenstadt braucht in jedem Lauf den
 --     Knoten `sandstorm_ruins`. So führt jeder Lauf durch alle Zonen und alle Bücher bleiben im Spiel.
 --
@@ -161,33 +161,31 @@ function Sandstorm.apply(profile: any, data: any?): (Result?, Reason?)
         return nil, view.reason
     end
 
-    -- Erst alles ausrechnen ...
+    -- Erst alles ausrechnen (auch die Zonen, an einem Schattenprofil) ...
+    -- Es bleiben nur vergebene Knoten. Auch unbekannte IDs gehen zurück: Käme ein neuer Knoten
+    -- auf einem Server mit neuerem Baum ins Profil und ein älterer Server löste den Sturm aus,
+    -- bliebe er sonst stehen und wirkte im nächsten Lauf gratis.
     local nodes: { [string]: boolean } = {}
-    if type(profile.nodes) == "table" then
-        for nodeId, owned in profile.nodes do
-            -- Unbekannte IDs bleiben (Profil-Regel), gekaufte bekannte Knoten gehen zurück.
-            if UpgradeTree.byId[nodeId] == nil and owned == true then
-                nodes[nodeId] = true
-            end
-        end
-    end
     for _, node in UpgradeTree.list do
         if node.granted == true or node.effect.kind == "grantedBySandstorm" then
             nodes[node.id] = true
         end
     end
+    local shadow: any = { nodes = nodes, zones = {} }
+    ZoneLogic.unlockNew(shadow) -- Start-Zonen und Zonen, die ein vergebener Knoten freischaltet
     local prestiges = view.prestiges + 1
+    local startZone = ZonesData.list[1].id
 
-    -- ... dann schreiben (keine Wartezeit dazwischen).
-    profile.coins = BigNum.serialize(BigNum.zero())
-    profile.runEarned = BigNum.serialize(BigNum.zero())
-    Collecting.clearTank(profile)
-    profile.nodes = nodes
-    profile.zones = {}
-    ZoneLogic.unlockNew(profile) -- Start-Zonen und Zonen, die ein vergebener Knoten freischaltet
-    profile.currentZone = ZonesData.list[1].id
+    -- ... dann nur noch einfache Zuweisungen, die nichts werfen können (keine Wartezeit dazwischen).
     profile.windCrystals = view.crystalsAfter
     profile.prestiges = prestiges
+    profile.coins = BigNum.serialize(BigNum.zero())
+    profile.runEarned = BigNum.serialize(BigNum.zero())
+    profile.tank = BigNum.serialize(BigNum.zero())
+    profile.tankMix = {}
+    profile.nodes = nodes
+    profile.zones = shadow.zones
+    profile.currentZone = startZone
 
     return {
         crystals = view.gain,
