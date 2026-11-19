@@ -41,10 +41,8 @@ local DISC_FADE_SECONDS = 1.2
 local DISC_FADE_EASING = Enum.EasingStyle.Sine
 local MAX_DISCS = 24
 
--- Anzeige für den Handy-Test
+-- Anzeige für den Handy-Test (Platz im HUD-Stapel aus Data/Screen: lines.debugY)
 local OVERLAY_REFRESH_SECONDS = 0.5
-local OVERLAY_POSITION = UDim2.new(0, 16, 0, 132)
-local OVERLAY_SIZE = UDim2.new(0, 240, 0, 22)
 local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 
 local DIG_MODE_ATTRIBUTE = "DigMode"
@@ -64,6 +62,8 @@ local ToolLook = loadShared("Logic", "ToolLook")
 local BigNum = loadShared("Logic", "BigNum")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
+local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local VOXEL = TerrainData.voxelSize
 local CHUNK = TerrainData.chunkSize
@@ -214,7 +214,9 @@ local function digTerrain(now: number, hit: RaycastResult, toolId: string?, zone
             baselines[ref.key] = nil
         end
     end
-    emitParticles(hit.Position, ToolLook.dustCount(toolId), toolId)
+    -- Auf schlanker Grafikstufe weniger Staub (mindestens ein Partikel).
+    local dust = math.max(1, math.ceil(ToolLook.dustCount(toolId) * Graphics.settings().particleFactor))
+    emitParticles(hit.Position, dust, toolId)
 end
 
 local function regrowChunk(action: any)
@@ -331,14 +333,19 @@ local function createOverlay(): TextLabel
     label.Name = "Info"
     label.BackgroundTransparency = 0.5
     label.BackgroundColor3 = Color3.new(0, 0, 0)
-    label.Position = OVERLAY_POSITION
-    label.Size = OVERLAY_SIZE
     label.Font = Enum.Font.Gotham
     label.TextScaled = true
     label.TextColor3 = OVERLAY_TEXT_COLOR
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = "Graben: ..."
     label.Parent = gui
+    local function place(layout: any)
+        local data = Screen.classData()
+        label.Position = UDim2.fromOffset(layout.hud.x + data.hud.pad, data.lines.debugY)
+        label.Size = UDim2.fromOffset(data.lines.w, data.lines.h)
+    end
+    place(Screen.layout())
+    Screen.onLayoutChanged(place)
     gui.Parent = player:WaitForChild("PlayerGui")
     return label
 end
@@ -351,7 +358,7 @@ local function overlayText(): string
     end
     local fps = PerfGuard.fps(perf)
     local fpsText = if fps ~= nil then tostring(math.floor(fps + 0.5)) else "--"
-    return `Graben: {modeText} | {fpsText} FPS | Blöcke {SandDig.openCount(digState)}/{TerrainData.regrow.maxDirtyChunks}`
+    return `{modeText} | {fpsText} FPS | {SandDig.openCount(digState)}/{TerrainData.regrow.maxDirtyChunks} | {Graphics.level()}`
 end
 
 -- Läuft gerade die Rückfallvariante (schwaches Gerät)? ToolVisual spart dann den Sandfluss.
@@ -381,6 +388,9 @@ function Dig.Start()
     local now = os.clock()
     digState = SandDig.new(TerrainData)
     perf = PerfGuard.new(TerrainData.perf, now)
+    -- Der Rückfall des Wächters ist die Grafikstufe "minimal" (Paket 3.6).
+    Graphics.setFallbackProvider(Dig.isFallback)
+    Graphics.start()
     readForcedMode()
     player:GetAttributeChangedSignal(DIG_MODE_ATTRIBUTE):Connect(readForcedMode)
     createEffects()

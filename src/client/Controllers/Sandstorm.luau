@@ -1,10 +1,11 @@
 --!strict
--- Sandstorm-Controller (Paket 2.7)
--- Knopf "Sandsturm" unten links (neben "Sammlung"), sichtbar sobald der Knoten für den Canyon
+-- Sandstorm-Controller (Paket 2.7, Handy-Durchgang 3.6)
+-- Knopf "Sandsturm" in der Menüleiste (Controllers/Screen), sichtbar sobald der Knoten für den Canyon
 -- gekauft ist (der Server meldet das in `storm.unlocked`). Der Knopf öffnet ein Fenster mit der
 -- Vorschau (Kristalle jetzt, Bonus davor und danach) und der Liste "wird zurückgesetzt" und "bleibt".
 -- "Sturm auslösen" fragt einmal nach (zweiter Tipp innerhalb von CONFIRM_SECONDS), dann schickt der
--- Client `Prestige` ohne Werte. Alle Zahlen kommen vom Server, der Client rechnet nichts Maßgebliches.
+-- Client `Prestige` ohne Werte. Das Fenster scrollt, der Knopf "Sturm auslösen" und die Meldung
+-- stehen in einem festen Fuß und verdecken so keinen Text. Alle Zahlen kommen vom Server, der Client rechnet nichts Maßgebliches.
 -- Nach dem Sturm (Notify kind = "sandstorm") zieht eine Sandwand über den Bildschirm, danach kommt
 -- ein Banner mit den neuen Kristallen. Sounds: leere IDs bis Paket 3.5.
 
@@ -14,12 +15,13 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 -- Knopf und Fenster
-local BUTTON_POSITION = UDim2.new(0, 292, 1, -72)
-local BUTTON_SIZE = UDim2.new(0, 150, 0, 48)
-local PANEL_SCALE = Vector2.new(0.92, 0.8)
-local PANEL_MAX_SIZE = Vector2.new(480, 440)
-local PANEL_FADE_SECONDS = 0.18
-local PANEL_EASING = Enum.EasingStyle.Quad
+local MENU_ORDER = 3 -- Platz in der Menüleiste (nach Zonen und Sammlung)
+local FOOTER_HEIGHT = 82
+local GO_BUTTON_HEIGHT = 48
+local BOX_PADDING = 12
+local TEXT_SIZE_BIG = 18
+local TEXT_SIZE_NORMAL = 16
+local TEXT_SIZE_SMALL = 14
 local CONFIRM_SECONDS = 4 -- so lange gilt der zweite Tipp als Bestätigung
 local MESSAGE_SECONDS = 3
 local READY_PULSE_SECONDS = 0.8 -- der Knopf pulsiert, wenn der Sturm Kristalle bringt
@@ -31,6 +33,7 @@ local WALL_HOLD_SECONDS = 0.5
 local WALL_OUT_SECONDS = 1.1
 local WALL_EASING = Enum.EasingStyle.Sine
 local WALL_TRANSPARENCY = 0.08
+local BANNER_MARGIN = 24 -- Abstand des Banners zum Bildrand bei schmalem Bildschirm
 local BANNER_SECONDS = 3.2
 local BANNER_FADE_SECONDS = 0.3
 
@@ -63,6 +66,7 @@ local function loadShared(folder: string, name: string): any
 end
 local BigNum = loadShared("Logic", "BigNum")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local Sandstorm = {}
 
@@ -95,6 +99,25 @@ local function newText(parent: Instance, name: string, position: UDim2, size: UD
     return l
 end
 
+-- Textzeile mit fester Schriftgröße, die in der Breite umbricht und in der Höhe mitwächst.
+local function autoText(parent: Instance, name: string, order: number, font: Enum.Font, textSize: number, color: Color3, text: string): TextLabel
+    local l = Instance.new("TextLabel")
+    l.Name = name
+    l.LayoutOrder = order
+    l.BackgroundTransparency = 1
+    l.Size = UDim2.new(1, 0, 0, 0)
+    l.AutomaticSize = Enum.AutomaticSize.Y
+    l.Font = font
+    l.TextSize = textSize
+    l.TextColor3 = color
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.TextYAlignment = Enum.TextYAlignment.Top
+    l.TextWrapped = true
+    l.Text = text
+    l.Parent = parent
+    return l
+end
+
 local function playSound(key: string)
     local id = SOUND_IDS[key]
     if id == nil or id == "" then
@@ -115,85 +138,82 @@ function Sandstorm.Start()
     local remotes = ReplicatedStorage:WaitForChild("Remotes")
     local prestige = remotes:WaitForChild("Prestige") :: RemoteFunction
 
+    -- Ebene für Sandwand und Banner (ganzer Bildschirm). Knopf und Fenster gehören Controllers/Screen.
     local gui = Instance.new("ScreenGui")
     gui.Name = "DuneBaronSandstorm"
     gui.ResetOnSpawn = false
     gui.DisplayOrder = 8
     gui.IgnoreGuiInset = true
 
-    local openButton = Instance.new("TextButton")
-    openButton.Name = "StormButton"
-    openButton.Position = BUTTON_POSITION
-    openButton.Size = BUTTON_SIZE
+    local controls = Screen.controls()
+    local resetConfirm: () -> () = function() end
+    local refresh: () -> () = function() end
+    local messageLabel = newText(gui, "Message", UDim2.new(0, 16, 0, 2), UDim2.new(1, -32, 0, 22), Enum.Font.GothamBold, WARN_COLOR, "")
+    local window = Screen.createWindow({
+        name = "SandstormWindow",
+        title = "Sandsturm",
+        footerHeight = FOOTER_HEIGHT,
+        onOpen = function()
+            resetConfirm()
+            messageLabel.Text = ""
+            refresh()
+        end,
+        onClose = function()
+            resetConfirm()
+            messageLabel.Text = ""
+        end,
+    })
+    local openButton = Screen.addMenuButton("StormButton", "Sandsturm", MENU_ORDER)
     openButton.BackgroundColor3 = BUTTON_COLOR
-    openButton.BackgroundTransparency = 0.25
-    openButton.Font = Enum.Font.GothamBold
-    openButton.TextColor3 = TEXT_COLOR
-    openButton.TextScaled = true
-    openButton.Text = "Sandsturm"
     openButton.Visible = false -- erst ab dem Knoten für den Canyon
-    openButton.Parent = gui
-    Instance.new("UICorner").Parent = openButton
+    messageLabel.Parent = window.footer
+    messageLabel.TextSize = TEXT_SIZE_NORMAL
+    messageLabel.TextScaled = false
 
-    local panel = Instance.new("Frame")
-    panel.Name = "Panel"
-    panel.AnchorPoint = Vector2.new(0.5, 0.5)
-    panel.Position = UDim2.fromScale(0.5, 0.5)
-    panel.Size = UDim2.fromScale(PANEL_SCALE.X, PANEL_SCALE.Y)
-    panel.BackgroundColor3 = PANEL_COLOR
-    panel.BackgroundTransparency = 0.1
-    panel.Visible = false
-    panel.Parent = gui
-    Instance.new("UICorner").Parent = panel
-    local constraint = Instance.new("UISizeConstraint")
-    constraint.MaxSize = PANEL_MAX_SIZE
-    constraint.Parent = panel
-
-    newText(panel, "Title", UDim2.new(0, 16, 0, 10), UDim2.new(1, -72, 0, 32), Enum.Font.GothamBold, TEXT_COLOR, "Sandsturm")
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "Close"
-    closeButton.AnchorPoint = Vector2.new(1, 0)
-    closeButton.Position = UDim2.new(1, -8, 0, 8)
-    closeButton.Size = UDim2.new(0, 40, 0, 32)
-    closeButton.BackgroundColor3 = BUTTON_COLOR
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.TextColor3 = TEXT_COLOR
-    closeButton.TextScaled = true
-    closeButton.Text = "X"
-    closeButton.Parent = panel
-    Instance.new("UICorner").Parent = closeButton
-
-    -- Vorschau
+    -- Vorschau (scrollt mit dem Fenster)
     local previewBox = Instance.new("Frame")
     previewBox.Name = "Preview"
-    previewBox.Position = UDim2.new(0, 12, 0, 52)
-    previewBox.Size = UDim2.new(1, -24, 0, 132)
+    previewBox.LayoutOrder = 1
+    previewBox.Size = UDim2.new(1, 0, 0, 0)
+    previewBox.AutomaticSize = Enum.AutomaticSize.Y
     previewBox.BackgroundColor3 = ROW_COLOR
     previewBox.BackgroundTransparency = 0.2
-    previewBox.Parent = panel
+    previewBox.Parent = window.body
     Instance.new("UICorner").Parent = previewBox
-    local gainLabel = newText(previewBox, "Gain", UDim2.new(0, 12, 0, 8), UDim2.new(1, -24, 0, 36), Enum.Font.GothamBold, GOOD_COLOR, "")
-    local bonusLabel = newText(previewBox, "Bonus", UDim2.new(0, 12, 0, 50), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, "")
-    local earnedLabel = newText(previewBox, "Earned", UDim2.new(0, 12, 0, 80), UDim2.new(1, -24, 0, 22), Enum.Font.Gotham, MUTED_COLOR, "")
-    local stormsLabel = newText(previewBox, "Storms", UDim2.new(0, 12, 0, 104), UDim2.new(1, -24, 0, 20), Enum.Font.Gotham, MUTED_COLOR, "")
+    local previewPadding = Instance.new("UIPadding")
+    previewPadding.PaddingTop = UDim.new(0, BOX_PADDING)
+    previewPadding.PaddingBottom = UDim.new(0, BOX_PADDING)
+    previewPadding.PaddingLeft = UDim.new(0, BOX_PADDING)
+    previewPadding.PaddingRight = UDim.new(0, BOX_PADDING)
+    previewPadding.Parent = previewBox
+    local previewList = Instance.new("UIListLayout")
+    previewList.SortOrder = Enum.SortOrder.LayoutOrder
+    previewList.Padding = UDim.new(0, 6)
+    previewList.Parent = previewBox
+    local gainLabel = autoText(previewBox, "Gain", 1, Enum.Font.GothamBold, TEXT_SIZE_BIG, GOOD_COLOR, "")
+    local bonusLabel = autoText(previewBox, "Bonus", 2, Enum.Font.GothamBold, TEXT_SIZE_NORMAL, TEXT_COLOR, "")
+    local earnedLabel = autoText(previewBox, "Earned", 3, Enum.Font.Gotham, TEXT_SIZE_SMALL, MUTED_COLOR, "")
+    local stormsLabel = autoText(previewBox, "Storms", 4, Enum.Font.Gotham, TEXT_SIZE_SMALL, MUTED_COLOR, "")
 
-    local resetLabel = newText(panel, "Reset", UDim2.new(0, 16, 0, 196), UDim2.new(1, -32, 0, 44), Enum.Font.Gotham, WARN_COLOR, RESET_TEXT)
-    local keepLabel = newText(panel, "Keep", UDim2.new(0, 16, 0, 246), UDim2.new(1, -32, 0, 30), Enum.Font.Gotham, GOOD_COLOR, KEEP_TEXT)
-    local messageLabel = newText(panel, "Message", UDim2.new(0, 16, 1, -104), UDim2.new(1, -32, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
-    resetLabel.TextXAlignment = Enum.TextXAlignment.Left
+    autoText(window.body, "Reset", 2, Enum.Font.Gotham, TEXT_SIZE_NORMAL, WARN_COLOR, RESET_TEXT)
+    autoText(window.body, "Keep", 3, Enum.Font.Gotham, TEXT_SIZE_NORMAL, GOOD_COLOR, KEEP_TEXT)
 
     local goButton = Instance.new("TextButton")
     goButton.Name = "Go"
     goButton.AnchorPoint = Vector2.new(0.5, 1)
-    goButton.Position = UDim2.new(0.5, 0, 1, -16)
-    goButton.Size = UDim2.new(1, -32, 0, 56)
+    goButton.Position = UDim2.new(0.5, 0, 1, -8)
+    goButton.Size = UDim2.new(1, -32, 0, math.max(GO_BUTTON_HEIGHT, controls.rowButtonH))
     goButton.BackgroundColor3 = READY_COLOR
     goButton.Font = Enum.Font.GothamBold
     goButton.TextColor3 = PANEL_COLOR
     goButton.TextScaled = true
     goButton.Text = "Sturm auslösen"
-    goButton.Parent = panel
+    goButton.Parent = window.footer
     Instance.new("UICorner").Parent = goButton
+    local goPadding = Instance.new("UIPadding")
+    goPadding.PaddingTop = UDim.new(0, 8)
+    goPadding.PaddingBottom = UDim.new(0, 8)
+    goPadding.Parent = goButton
 
     -- Sturm-Animation und Banner (liegen über allem)
     local wall = Instance.new("Frame")
@@ -207,7 +227,8 @@ function Sandstorm.Start()
     wall.ZIndex = 20
     wall.Parent = gui
 
-    local banner = newText(gui, "Banner", UDim2.new(0.5, -260, 0.32, 0), UDim2.new(0, 520, 0, 90), Enum.Font.GothamBold, TEXT_COLOR, "")
+    local banner = newText(gui, "Banner", UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 90), Enum.Font.GothamBold, TEXT_COLOR, "")
+    banner.AnchorPoint = Vector2.new(0.5, 0)
     banner.TextXAlignment = Enum.TextXAlignment.Center
     banner.TextTransparency = 1
     banner.TextStrokeTransparency = 1
@@ -229,13 +250,13 @@ function Sandstorm.Start()
         end)
     end
 
-    local function resetConfirm()
+    resetConfirm = function()
         confirmToken += 1
         confirming = false
         goButton.Text = "Sturm auslösen"
     end
 
-    local function refresh()
+    refresh = function()
         local snapshot = State.get()
         local storm = if snapshot ~= nil then snapshot.storm else nil
         if storm == nil then
@@ -263,23 +284,14 @@ function Sandstorm.Start()
         end
     end
 
-    local fade = TweenInfo.new(PANEL_FADE_SECONDS, PANEL_EASING)
     local function setOpen(open: boolean)
-        panel.Visible = open
-        resetConfirm()
-        messageLabel.Text = ""
         if open then
-            panel.BackgroundTransparency = 1
-            TweenService:Create(panel, fade, { BackgroundTransparency = 0.1 }):Play()
-            refresh()
+            window.open()
+        else
+            window.close()
         end
     end
-    openButton.Activated:Connect(function()
-        setOpen(not panel.Visible)
-    end)
-    closeButton.Activated:Connect(function()
-        setOpen(false)
-    end)
+    openButton.Activated:Connect(window.toggle)
 
     local playStorm: (any) -> () -- unten definiert, der Knopf braucht sie schon
 
@@ -329,6 +341,9 @@ function Sandstorm.Start()
         end
         playing = true
         setOpen(false)
+        -- Das Banner ist am schmalen Bildschirm schmaler als der Standard.
+        local bannerData = Screen.classData().stormBanner
+        banner.Size = UDim2.fromOffset(math.min(bannerData.w, Screen.layout().viewport.width - BANNER_MARGIN), bannerData.h)
         playSound("storm")
         wall.Position = UDim2.fromScale(-1, 0)
         wall.Visible = true

@@ -4,6 +4,8 @@
 -- pulsierender Markierung zum Ziel (Sandfeld oder Händlerstand). Der Schritt kommt vom Server
 -- (State.tutorialStep), der Client entscheidet nichts. Nach dem letzten Schritt verschwindet
 -- alles.
+-- Der Banner liegt im freien Streifen zwischen HUD und Knopf "Baum" (Paket 3.6, Logic/ScreenLayout),
+-- am Handy also nie über Münzen, Tank oder Menüspalte.
 -- Ziele: Teile mit dem Tag World.sandField.tag bzw. World.sellStand.tag, der nächste gewinnt.
 -- Gibt es kein Sandfeld mit Tag, zeigt der Strahl auf das Platzhalter-Sandfeld (Data/Terrain).
 
@@ -16,8 +18,7 @@ local TweenService = game:GetService("TweenService")
 -- Animationen und Anzeige
 local BANNER_FADE_SECONDS = 0.35
 local BANNER_FADE_EASING = Enum.EasingStyle.Sine
-local BANNER_POSITION = UDim2.new(0.5, 0, 0, 16)
-local BANNER_SIZE = UDim2.new(0, 460, 0, 64)
+local BANNER_PAD = 12
 local MARKER_PULSE_SECONDS = 0.7
 local MARKER_PULSE_EASING = Enum.EasingStyle.Sine
 local MARKER_SIZE_MIN = 1.2
@@ -44,6 +45,7 @@ local TutorialData = loadShared("Data", "Tutorial")
 local TerrainData = loadShared("Data", "Terrain")
 local World = loadShared("Data", "World")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local Tutorial = {}
 
@@ -92,23 +94,17 @@ function Tutorial.Start()
 
     local banner = Instance.new("Frame")
     banner.Name = "Banner"
-    banner.AnchorPoint = Vector2.new(0.5, 0)
-    banner.Position = BANNER_POSITION
-    banner.Size = BANNER_SIZE
     banner.BackgroundColor3 = PANEL_COLOR
     banner.BackgroundTransparency = 1
     banner.Visible = false
     banner.Parent = gui
     Instance.new("UICorner").Parent = banner
-    local constraint = Instance.new("UISizeConstraint")
-    constraint.MaxSize = Vector2.new(460, 64)
-    constraint.Parent = banner
 
     local stepLabel = Instance.new("TextLabel")
     stepLabel.Name = "Step"
     stepLabel.BackgroundTransparency = 1
-    stepLabel.Position = UDim2.new(0, 12, 0, 4)
-    stepLabel.Size = UDim2.new(1, -24, 0, 16)
+    stepLabel.Position = UDim2.new(0, BANNER_PAD, 0, 3)
+    stepLabel.Size = UDim2.new(1, -2 * BANNER_PAD, 0, 15)
     stepLabel.Font = Enum.Font.GothamBold
     stepLabel.TextColor3 = STEP_TEXT_COLOR
     stepLabel.TextScaled = true
@@ -119,8 +115,8 @@ function Tutorial.Start()
     local textLabel = Instance.new("TextLabel")
     textLabel.Name = "Text"
     textLabel.BackgroundTransparency = 1
-    textLabel.Position = UDim2.new(0, 12, 0, 22)
-    textLabel.Size = UDim2.new(1, -24, 0, 38)
+    textLabel.Position = UDim2.new(0, BANNER_PAD, 0, 19)
+    textLabel.Size = UDim2.new(1, -2 * BANNER_PAD, 1, -22)
     textLabel.Font = Enum.Font.GothamBold
     textLabel.TextColor3 = TEXT_COLOR
     textLabel.TextScaled = true
@@ -128,6 +124,14 @@ function Tutorial.Start()
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.TextTransparency = 1
     textLabel.Parent = banner
+
+    local function applyLayout(layout: any)
+        local rect = layout.banner
+        banner.Position = UDim2.fromOffset(rect.x, rect.y)
+        banner.Size = UDim2.fromOffset(rect.w, rect.h)
+    end
+    applyLayout(Screen.layout())
+    Screen.onLayoutChanged(applyLayout)
 
     gui.Parent = player:WaitForChild("PlayerGui")
 

@@ -337,6 +337,33 @@ Tests: tests/sandstorm.spec.luau. Plan: Claude-Dokument "Paket 2.7: Sandsturm (P
 - [ ] [Studio] Der Sturm braucht zwei Tipps (Nachfrage), danach läuft die Sandwand und das Banner nennt Kristalle und Bonus.
 - [ ] [Studio] Nach dem Sturm: Hand, 0 Münzen, Spawn im Dünenmeer, Sammlungsbuch unverändert, Kristalle in der Anzeige, höherer Preis pro Sand.
 
+## 3.6 Handy-Durchgang
+
+Tests: tests/screenlayout.spec.luau, tests/graphicslevel.spec.luau, dazu Erweiterungen in tests/treecamera.spec.luau und tests/treelayout.spec.luau. Plan: Claude-Dokument "Paket 3.6: Handy-Durchgang, Plan". Referenzgrößen im Emulator: iPhone SE quer (568 x 320), iPhone 14 quer, 360er Android, iPad und PC.
+
+- [ ] [Lune] Größenklasse: 568 x 320, 667 x 375 und 375 x 667 sind kompakt; 1024 x 768 und 1920 x 1080 sind normal; die Grenze liegt genau bei 500 (kürzere Seite).
+- [ ] [Lune] Fenstergröße: bleibt bei allen Testgrößen innerhalb der sicheren Fläche, hält Ober- und Untergrenze ein, auch bei 0 x 0, negativen Werten und NaN ohne Fehler.
+- [ ] [Lune] Tippflächen: Jeder Knopf aus `Data/Screen` (Baum, Menü, Schließen, Reisen, Reiter, Graben) ist in jeder Klasse mindestens 44 px hoch und breit.
+- [ ] [Lune] Menüleiste: Am Handy steht sie als Spalte rechts unter "Baum", ohne Überlappung mit HUD, Tutorial-Banner, Baum-Knopf, Graben-Knopf und Sprungknopf-Zone. Bis 5 Knöpfe liegen bei 568 x 320 vollständig im Bild, mehr als eine Spalte entsteht nur, wenn eine nicht reicht. Am PC steht sie als Reihe unten links und bricht in eine zweite Reihe um.
+- [ ] [Lune] Tutorial-Banner: überlappt bei Breiten von 568 bis 2560 (und im Hochformat 375 x 667) weder HUD-Panel, Baum-Knopf noch Menüspalte und ist mindestens 240 px breit.
+- [ ] [Lune] Grafikstufe: PC hoch, Touch schlank, Grafikregler 1 bis 3 schlank, Rückfall des Bildraten-Wächters minimal (auch am PC), das Attribut `GraphicsLevel` gewinnt immer, ein ungültiges Attribut wird ignoriert.
+- [ ] [Lune] Stufen-Daten: Partikelfaktor hoch = 1, schlank höchstens 0,5, minimal = 0; minimal schaltet alles ab, was schlank abschaltet.
+- [ ] [Lune] Baum: Knotengröße mal kleinster Zoom bleibt mindestens 44 px, `zoom.startCompact` liegt zwischen min und max, `tapMaxMovePixelsTouch` ist nicht kleiner als `tapMaxMovePixels`, `TreeCamera.isTap` kennt die Touch-Toleranz.
+- [ ] [Lune] `DataCheck` lehnt kaputte Werte in `Data/Screen` und den neuen TreeLayout-Werten ab (Knopf unter 44 px, Faktor außerhalb von 0 bis 1, fehlende Stufe).
+- [ ] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Bei 568 x 320: HUD, Tutorial-Banner, Menüspalte, Graben- und Sprungknopf überlappen nicht, alle Texte sind lesbar.
+- [ ] [Studio] Zonen: alle fünf Zonen sind erreichbar (Scrollen), Reisen klappt, das Fenster ragt nicht aus dem Bild.
+- [ ] [Studio] Sammlung: alle fünf Reiter sind erreichbar, Sets scrollen, Fundnamen sind lesbar.
+- [ ] [Studio] Sandsturm: "Sturm auslösen" verdeckt keinen Text, die Nachfrage mit zwei Tipps klappt.
+- [ ] [Studio] Nur ein Fenster zur Zeit: Sammlung öffnen schließt Zonen, den Baum öffnen schließt beide.
+- [ ] [Studio] Graben am Handy: Halten sammelt, Loslassen und Abrutschen stoppen, Springen geht gleichzeitig. Im Baum ist der Knopf weg.
+- [ ] [Studio] Baum: Er öffnet mit mehr Überblick, Knoten lassen sich gut antippen, die Karte ist lesbar, der Kauf klappt.
+- [ ] [Studio] Reveal: Die kleine Karte verdeckt die Menüspalte nicht, die große Karte passt ganz aufs Bild.
+- [ ] [Studio] Drehen oder die Emulator-Größe wechseln bei offenem Fenster: Das Layout passt sich an.
+- [ ] [Studio] Grafik: Das Handy zeigt "schlank" in der Debug-Anzeige, Bloom und Partikel sind sichtbar reduziert. Der PC zeigt "hoch". Das Attribut `GraphicsLevel` schaltet um.
+- [ ] [Studio] PC: Alles sieht aus und bedient sich wie vorher.
+- [ ] [Studio] Echtes schwaches Handy: Das Spiel läuft flüssig und alle Menüs sind bedienbar (Fertig, wenn).
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.
