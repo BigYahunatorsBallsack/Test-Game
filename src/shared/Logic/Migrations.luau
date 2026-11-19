@@ -33,7 +33,7 @@ local function isValidBigNum(value: any): boolean
 end
 
 local Migrations = {
-    CURRENT_VERSION = 6,
+    CURRENT_VERSION = 7,
     steps = {} :: { [number]: Step },
 }
 
@@ -134,6 +134,19 @@ Migrations.steps[5] = function(profile: any): any
         profile.settings = { autoDig = true }
     elseif type(profile.settings.autoDig) ~= "boolean" then
         profile.settings.autoDig = true
+    end
+    return profile
+end
+
+-- Version 6 -> 7 (Paket 4.5, Angebote): `offers` ({ [offerId] = { since, bought } }) ist neu. Nur
+-- anlegen, was fehlt: Läuft die Kette bei einem kaputten Versionsfeld erneut, bleibt ein vorhandener
+-- Merker "gekauft" erhalten (er steht für einen bezahlten Einmalkauf). Die Einträge je Angebot
+-- ({ since = 0, bought = false }) füllt Profile.migrate danach aus dem Standardprofil auf.
+-- Das Fenster alter Spielstände, die schon einen Fund ab "Selten" haben, startet nicht hier (die
+-- Migration kennt keine Uhr), sondern beim Laden auf dem Server (Logic/Offers.migrateStart).
+Migrations.steps[6] = function(profile: any): any
+    if type(profile.offers) ~= "table" then
+        profile.offers = {}
     end
     return profile
 end

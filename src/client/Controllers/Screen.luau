@@ -239,6 +239,16 @@ function Screen.addMenuButton(id: string, text: string, order: number): TextButt
     return button
 end
 
+-- Ist irgendein Fenster offen? (Angebots-Hinweise warten darauf, Paket 4.5.)
+function Screen.isAnyWindowOpen(): boolean
+    for _, entry in windowEntries do
+        if entry.window.isOpen() then
+            return true
+        end
+    end
+    return false
+end
+
 function Screen.closeAllWindows()
     for _, entry in windowEntries do
         entry.window.close()

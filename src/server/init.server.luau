@@ -5,9 +5,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Reihenfolge der Services (fest). Neue Services hier am Ende ergänzen, außer eine Abhängigkeit
--- verlangt einen anderen Platz: Passes (Paket 4.4) steht vor Shop, damit es den Münz-Boost-Handler in
--- seinem Start registriert, bevor Shop.Start ProcessReceipt setzt.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Shop", "Events" }
+-- verlangt einen anderen Platz: Passes (Paket 4.4) und Offers (Paket 4.5) stehen vor Shop, damit sie
+-- ihre Kauf-Handler (Münz-Boost, Starterpaket) in ihrem Start registrieren, bevor Shop.Start
+-- ProcessReceipt setzt. Offers steht nach Finds und meldet sich in Init für gebuchte Funde an.
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events" }
 
 type Service = {
     Init: () -> (),

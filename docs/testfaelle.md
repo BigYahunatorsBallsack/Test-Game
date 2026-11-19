@@ -463,16 +463,16 @@ Tests: tests/perks.spec.luau, tests/passes.spec.luau, tests/data.spec.luau, test
 
 ## 4.5 Shop-Oberfläche und Angebote (Starterpaket)
 
-Plan: Claude-Dokument "Paket 4.5: Shop und Angebote, Plan". Fertig, wenn: Angebote erscheinen nach dem Reveal und blockieren nichts.
+Tests: tests/offers.spec.luau (Auslöser, Zustände, alte Spielstände, Kauf, Version 7, Hinweise; auch die Pflichtfälle für Käufe mit "starter_pack": doppelter Beleg, Speichern schlägt fehl, Profil nicht geladen, Absturz vor dem Speichern), tests/data.spec.luau ("Angebote (4.5)", DataCheck), tests/profile.spec.luau, tests/playersession.spec.luau. Plan: Claude-Dokument "Paket 4.5: Shop und Angebote, Plan". Fertig, wenn: Angebote erscheinen nach dem Reveal und blockieren nichts.
 
-- [ ] [Lune] Der erste Fund ab "Selten" startet das Starterpaket-Fenster (Server-Uhr), weitere Funde verschieben es nicht; Funde darunter und Kisten-Items starten nichts.
-- [ ] [Lune] Zustand des Angebots: verborgen vor dem Auslöser, aktiv bis Start + 24 h, danach abgelaufen, nach dem Kauf gekauft; kaputte Zeiten zählen als nicht gestartet.
-- [ ] [Lune] Alte Spielstände mit schon vorhandenem Selten-Fund bekommen das Fenster ab dem ersten Laden nach dem Update.
-- [ ] [Lune] Kauf "starter_pack" über ProcessReceipt: genau 300 Gems (gekappt bei maxGems), je ein Exemplar der festen Items aus den Daten, Merker "gekauft"; derselbe Beleg zweimal bucht nur einmal; kein Zufall.
-- [ ] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gutgeschrieben (nie NotProcessedYet für immer).
-- [ ] [Lune] Migration 6 → 7 legt `offers` an; `sanitize` repariert kaputte Werte; Sandsturm behält `offers`.
-- [ ] [Lune] Reihenfolge der Hinweise: ein Angebots-Hinweis wartet, solange ein Reveal läuft oder wartet und solange das Tutorial läuft; je Angebot höchstens ein Hinweis pro Sitzung.
-- [ ] [Lune] DataCheck: Angebote verweisen auf bekannte Produkte und Items, die Items sind fest (keine Kiste, kein Zufall), Fenster und Gems sind gültig.
+- [x] [Lune] Der erste Fund ab "Selten" startet das Starterpaket-Fenster (Server-Uhr), weitere Funde verschieben es nicht; Funde darunter und Kisten-Items starten nichts.
+- [x] [Lune] Zustand des Angebots: verborgen vor dem Auslöser, aktiv bis Start + 24 h, danach abgelaufen, nach dem Kauf gekauft; kaputte Zeiten zählen als nicht gestartet.
+- [x] [Lune] Alte Spielstände mit schon vorhandenem Selten-Fund bekommen das Fenster ab dem ersten Laden nach dem Update.
+- [x] [Lune] Kauf "starter_pack" über ProcessReceipt: genau 300 Gems (gekappt bei maxGems), je ein Exemplar der festen Items aus den Daten, Merker "gekauft"; derselbe Beleg zweimal bucht nur einmal; kein Zufall.
+- [x] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gutgeschrieben (nie NotProcessedYet für immer).
+- [x] [Lune] Migration 6 → 7 legt `offers` an; `sanitize` repariert kaputte Werte; Sandsturm behält `offers`.
+- [x] [Lune] Reihenfolge der Hinweise: ein Angebots-Hinweis wartet, solange ein Reveal läuft oder wartet und solange das Tutorial läuft; je Angebot höchstens ein Hinweis pro Sitzung.
+- [x] [Lune] DataCheck: Angebote verweisen auf bekannte Produkte und Items, die Items sind fest (keine Kiste, kein Zufall), Fenster und Gems sind gültig.
 - [ ] [Studio] `DebugFindZone` oder ein echter Selten-Fund: Nach dem Reveal erscheint der kleine Angebots-Hinweis, nie davor; Sammeln und Laufen gehen weiter.
 - [ ] [Studio] Der Hinweis lässt sich schließen; "Ansehen" öffnet den Shop im Bereich "Angebote" mit Countdown.
 - [ ] [Studio] `DebugPurchase` "starter_pack": 300 Gems, Glasschaufel und Begleiter im Inventar, das Angebot verschwindet; Rejoin: bleibt gekauft.

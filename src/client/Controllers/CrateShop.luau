@@ -191,6 +191,21 @@ local function canAfford(snapshot: any, crate: any, count: number): boolean
     return BigNum.compare(BigNum.deserialize(snapshot.coins), BigNum.new(total)) >= 0
 end
 
+-- Für den Shop (Paket 4.5): Läuft gerade ein Kisten-Reveal? Kann das Kisten-Fenster geöffnet werden?
+local revealActive = false
+local openWindow: (() -> ())? = nil
+
+function CrateShop.isRevealing(): boolean
+    return revealActive
+end
+
+-- Öffnet das Kisten-Fenster (nur wenn der Server Kisten erlaubt, sonst tut es nichts).
+function CrateShop.open()
+    if openWindow ~= nil then
+        openWindow()
+    end
+end
+
 function CrateShop.Init() end
 
 function CrateShop.Start()
@@ -206,6 +221,11 @@ function CrateShop.Start()
     })
     local openButton = Screen.addMenuButton("CratesButton", "Kisten", MENU_ORDER)
     openButton.Visible = false -- erst, wenn der Server Kisten erlaubt
+    openWindow = function()
+        if openButton.Visible then
+            window.open()
+        end
+    end
     openButton.Activated:Connect(window.toggle)
 
     local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, GEM_COLOR, "")
@@ -292,11 +312,13 @@ function CrateShop.Start()
     local revealStartedAt = 0
     local skipRequested = false
     local revealFinished = true
+    revealActive = false
 
     local function closeReveal()
         revealToken += 1
         revealGui.Enabled = false
         revealFinished = true
+        revealActive = false
         for _, child in cardHolder:GetChildren() do
             child:Destroy()
         end
@@ -373,6 +395,7 @@ function CrateShop.Start()
         revealToken += 1
         local token = revealToken
         revealFinished = false
+        revealActive = true
         skipRequested = false
         revealStartedAt = os.clock()
         for _, child in cardHolder:GetChildren() do
@@ -450,7 +473,7 @@ function CrateShop.Start()
             end
         end
         skipButton.Text = "Schließen"
-        revealFinished = true
+        revealFinished = true -- die Karten bleiben bis "Schließen" stehen: revealActive bleibt wahr
         skipRequested = false
     end
 

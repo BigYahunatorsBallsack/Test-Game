@@ -5,7 +5,14 @@
 -- (PromptProductPurchase). Die Gutschrift bucht allein der Server in ProcessReceipt. Der Client
 -- schickt keine Mengen, und sein Kauf-Signal ist kein Beweis für irgendetwas.
 -- Rückmeldung: Notify kind = "gemsBought" (erst nach dem Speichern gesendet) zeigt ein Banner
--- "+N Gems" und lässt den Zähler hochzählen. Der schöne Shop mit Angeboten kommt in Paket 4.5.
+-- "+N Gems" und lässt den Zähler hochzählen.
+--
+-- Shop (Paket 4.5): Das Fenster heißt "Shop" und hat Reiter: "Angebote" (nur sichtbar, solange der
+-- Server ein Angebot als aktiv meldet, Snapshot-Feld `offers`), "Gems", "Pässe" und "Kisten" (öffnet
+-- das Kisten-Fenster, nur wenn der Server Kisten erlaubt). Läuft ein Angebot, öffnet der Shop bei
+-- "Angebote". Kauf wie bei den Gem-Paketen: Der Client öffnet nur PromptProductPurchase, Inhalt,
+-- Preis und Zeitfenster stehen in Data/Offers und Data/Products, der Server bucht allein. Den
+-- Countdown zählt der Client nur lokal herunter (Restzeit kommt vom Server).
 --
 -- Pässe und Boosts (Paket 4.4): Unter den Gem-Paketen stehen die Gamepasses und der Münz-Boost aus
 -- Data/Products. "Kaufen" öffnet nur PromptGamePassPurchase bzw. PromptProductPurchase; ob ein Pass
@@ -25,6 +32,12 @@ local ROW_HEIGHT = 64
 local MESSAGE_SECONDS = 3
 local BUY_COOLDOWN_SECONDS = 1.5 -- gegen Doppeltippen, der Server prüft alles Weitere
 local PERK_ROW_HEIGHT = 92 -- Zeilen der Pässe (Wirkungstext braucht zwei Zeilen)
+local SUB_HEIGHT = 48 -- Streifen mit den Reitern
+local TAB_GAP = 6
+local TAB_ORDER = { "offers", "gems", "perks", "crates" }
+local TAB_LABELS: { [string]: string } = { offers = "Angebote", gems = "Gems", perks = "Pässe", crates = "Kisten" }
+local OFFER_ROW_HEIGHT = 128
+local OFFER_TICK_SECONDS = 0.5 -- so oft wird der Countdown der Angebote neu geschrieben
 local PERK_SECTION_ORDER = 100 -- LayoutOrder der Überschrift "Pässe und Boosts" (nach den Gem-Paketen)
 local SECTION_HEIGHT = 34
 local TOGGLE_COOLDOWN_SECONDS = 0.6 -- Auto-Dig-Schalter, der Server hat sein eigenes Limit
@@ -59,6 +72,13 @@ local TEXT_BOOST_BOUGHT = "Münz-Boost aktiv!"
 local TEXT_BOOST_REALTIME = "Läuft in Echtzeit, auch offline"
 local TOGGLE_ON_COLOR = Color3.fromRGB(150, 220, 120)
 local PASS_COLOR = Color3.fromRGB(255, 214, 110)
+local TAB_ACTIVE_COLOR = Color3.fromRGB(120, 200, 235)
+local OFFER_COLOR = Color3.fromRGB(255, 190, 90)
+local TEXT_OFFER_BOUGHT = "Angebot erhalten!"
+local TEXT_OFFER_OVER = "Vorbei"
+local TEXT_OFFER_DONE = "Gekauft"
+local TEXT_OFFER_PENDING = "Wird gutgeschrieben…"
+local OFFER_PENDING_SECONDS = 60 -- so lange gilt ein bezahlter Kauf als "wird gutgeschrieben", falls kein Snapshot kommt
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -66,11 +86,22 @@ local function loadShared(folder: string, name: string): any
 end
 local GemPacks = loadShared("Data", "GemPacks")
 local Products = loadShared("Data", "Products")
+local Offers = loadShared("Data", "Offers")
+local CrateItems = loadShared("Data", "CrateItems")
 local Economy = loadShared("Data", "Economy")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local CrateShop = require(script.Parent:WaitForChild("CrateShop") :: ModuleScript) :: any
 
 local GemShop = {}
+
+-- Vom Angebots-Hinweis (Controllers/OfferHint) benutzt: öffnet den Shop beim Reiter "Angebote".
+local openOffersTab: (() -> ())? = nil
+function GemShop.openOffers()
+    if openOffersTab ~= nil then
+        openOffersTab()
+    end
+end
 
 local player = Players.LocalPlayer
 
@@ -124,11 +155,23 @@ function GemShop.Init() end
 
 function GemShop.Start()
     local controls = Screen.controls()
+    -- Reiter: Welche Zeilen zu welchem Reiter gehören, steht in `tabRows`. Die Funktionen werden
+    -- unten gesetzt (das Fenster braucht onOpen vorher).
+    local tabRows: { [string]: { GuiObject } } = { offers = {}, gems = {}, perks = {} }
+    local activeTab = "gems"
+    local applyTabs: () -> () = function() end
+    local chooseTab: () -> () = function() end
+
     local window = Screen.createWindow({
         name = "GemWindow",
-        title = "Gems und Pässe",
+        title = "Shop",
         kind = "narrow",
+        subHeight = SUB_HEIGHT,
         footerHeight = FOOTER_HEIGHT,
+        onOpen = function()
+            chooseTab()
+            applyTabs()
+        end,
     })
     local openButton = Screen.addMenuButton("GemsButton", "Gems: 0", MENU_ORDER)
     openButton.TextColor3 = GEM_COLOR
@@ -150,6 +193,7 @@ function GemShop.Start()
     banner.TextStrokeTransparency = 1
     bannerGui.Parent = player:WaitForChild("PlayerGui")
 
+    local offerDot = false -- läuft ein Angebot? Dann hängt ein Punkt am Menüknopf (Paket 4.5)
     local shownGems = 0 -- was gerade angezeigt wird (zählt beim Gutschreiben hoch)
     local targetGems = 0
     local countToken = 0
@@ -169,7 +213,7 @@ function GemShop.Start()
     end
 
     local function renderGems(value: number)
-        openButton.Text = `Gems: {groupedNumber(value)}`
+        openButton.Text = `Gems: {groupedNumber(value)}{if offerDot then " •" else ""}`
         balanceLabel.Text = `Du hast {groupedNumber(value)} Gems`
     end
 
@@ -240,6 +284,7 @@ function GemShop.Start()
         row.BackgroundTransparency = 0.2
         row.Parent = window.body
         Instance.new("UICorner").Parent = row
+        table.insert(tabRows.gems, row)
 
         newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.5, -12, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, pack.name)
         local bonusText = if pack.bonusPercentConcept > 0 then `+{pack.bonusPercentConcept} % Bonus` else "Einstieg"
@@ -289,6 +334,7 @@ function GemShop.Start()
     -- Pässe und Boosts (Paket 4.4): Überschrift und eine Zeile je Produkt aus Data/Products.
     local section = newText(window.body, "PerkSection", UDim2.new(), UDim2.new(1, 0, 0, SECTION_HEIGHT), Enum.Font.GothamBold, PASS_COLOR, TEXT_SECTION)
     section.LayoutOrder = PERK_SECTION_ORDER
+    table.insert(tabRows.perks, section)
 
     local remotes = ReplicatedStorage:WaitForChild("Remotes")
     local passes: { [string]: boolean } = {}
@@ -359,6 +405,7 @@ function GemShop.Start()
         row.BackgroundTransparency = 0.2
         row.Parent = window.body
         Instance.new("UICorner").Parent = row
+        table.insert(tabRows.perks, row)
 
         newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.55, -12, 0, 24), Enum.Font.GothamBold, TEXT_COLOR, product.name)
         local effect = newText(row, "Effect", UDim2.new(0, 12, 0, 32), UDim2.new(0.55, -12, 0, 36), Enum.Font.Gotham, MUTED_COLOR, product.effect)
@@ -461,11 +508,295 @@ function GemShop.Start()
         refreshButtons()
     end)
 
+    -- Angebote und Reiter (Paket 4.5) ------------------------------------------------------------
+    local offersState: { [string]: { state: string, endsAt: number } } = {}
+    local cratesAllowed = false
+    local forceOffers = false
+    local offerRows: { { offer: any, product: any, row: Frame, status: TextLabel, button: TextButton } } = {}
+    -- Kaufdialog offen oder Kauf bezahlt, aber der Server hat noch nicht bestätigt: kein zweiter Kauf
+    -- über die Oberfläche (der Server bucht jeden bezahlten Beleg, auch einen zweiten).
+    local offerDialogOpen: { [string]: boolean } = {}
+    local offerPendingSince: { [string]: number } = {}
+    local function offerPending(offerId: string): boolean
+        local since = offerPendingSince[offerId]
+        if since ~= nil and os.clock() - since >= OFFER_PENDING_SECONDS then
+            offerPendingSince[offerId] = nil
+            since = nil
+        end
+        return offerDialogOpen[offerId] == true or since ~= nil
+    end
+
+    local function offerLeft(offerId: string): number
+        local entry = offersState[offerId]
+        if entry == nil or entry.state ~= "active" then
+            return 0
+        end
+        return math.max(entry.endsAt - os.clock(), 0)
+    end
+    local function anyOfferActive(): boolean
+        for _, offer in Offers.list do
+            if offerLeft(offer.id) > 0 then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- Angebote nach Priorität (kleinere Zahl zuerst), je Angebot eine Zeile.
+    local sortedOffers: { any } = table.clone(Offers.list)
+    table.sort(sortedOffers, function(a: any, b: any): boolean
+        if a.priority ~= b.priority then
+            return a.priority < b.priority
+        end
+        return a.id < b.id
+    end)
+    for index, offer in sortedOffers do
+        local product = Products.byId[offer.productId]
+        if product == nil then
+            continue
+        end
+        local row = Instance.new("Frame")
+        row.Name = `Offer_{offer.id}`
+        row.LayoutOrder = index
+        row.Size = UDim2.new(1, 0, 0, OFFER_ROW_HEIGHT)
+        row.BackgroundColor3 = ROW_COLOR
+        row.BackgroundTransparency = 0.2
+        row.Visible = false
+        row.Parent = window.body
+        Instance.new("UICorner").Parent = row
+
+        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Enum.Font.GothamBold, OFFER_COLOR, product.name)
+        local names: { string } = {}
+        table.insert(names, `{groupedNumber(offer.gems)} Gems`)
+        for _, itemId in offer.items do
+            local item = CrateItems.byId[itemId]
+            table.insert(names, if item ~= nil then item.name else itemId)
+        end
+        local contents = newText(row, "Contents", UDim2.new(0, 12, 0, 34), UDim2.new(0.6, -12, 0, 62), Enum.Font.Gotham, TEXT_COLOR, table.concat(names, " · "))
+        contents.TextYAlignment = Enum.TextYAlignment.Top
+        local status = newText(row, "Status", UDim2.new(0, 12, 1, -26), UDim2.new(0.6, -12, 0, 22), Enum.Font.GothamBold, GOOD_COLOR, "")
+
+        local buy = Instance.new("TextButton")
+        buy.Name = "Buy"
+        buy.AnchorPoint = Vector2.new(1, 0.5)
+        buy.Position = UDim2.new(1, -8, 0.5, 0)
+        buy.Size = UDim2.new(0.34, 0, 0, controls.rowButtonH)
+        buy.Font = Enum.Font.GothamBold
+        buy.TextScaled = true
+        buy.Parent = row
+        Instance.new("UICorner").Parent = buy
+        local buyPadding = Instance.new("UIPadding")
+        buyPadding.PaddingTop = UDim.new(0, 8)
+        buyPadding.PaddingBottom = UDim.new(0, 8)
+        buyPadding.Parent = buy
+
+        table.insert(offerRows, { offer = offer, product = product, row = row, status = status, button = buy })
+        buy.Activated:Connect(function()
+            if offerLeft(offer.id) <= 0 then
+                return
+            end
+            if product.productId == 0 then
+                showMessage(TEXT_MISSING_PRODUCT)
+                return
+            end
+            if offerPending(offer.id) then
+                return
+            end
+            local now = os.clock()
+            if now - lastBuyAt < BUY_COOLDOWN_SECONDS then
+                return
+            end
+            lastBuyAt = now
+            offerDialogOpen[offer.id] = true
+            local ok = pcall(function()
+                MarketplaceService:PromptProductPurchase(player, product.productId)
+            end)
+            if not ok then
+                offerDialogOpen[offer.id] = nil
+                showMessage(TEXT_BUY_FAILED)
+            end
+        end)
+    end
+
+    -- Dialog zu: bezahlt = Kauf wartet auf die Bestätigung des Servers (Snapshot "bought").
+    MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId: number, productId: number, isPurchased: boolean)
+        if userId ~= player.UserId then
+            return
+        end
+        for _, entry in offerRows do
+            if entry.product.productId == productId then
+                offerDialogOpen[entry.offer.id] = nil
+                if isPurchased then
+                    offerPendingSince[entry.offer.id] = os.clock()
+                end
+            end
+        end
+    end)
+
+    -- Zeilen der Angebote: aktiv = kaufbar mit Countdown, gekauft = "Gekauft", sonst verborgen.
+    local function renderOffers()
+        for _, entry in offerRows do
+            local state = if offersState[entry.offer.id] ~= nil then offersState[entry.offer.id].state else "hidden"
+            local left = offerLeft(entry.offer.id)
+            if left > 0 and offerPending(entry.offer.id) then
+                entry.status.Text = TEXT_OFFER_PENDING
+                entry.button.Text = TEXT_OFFER_PENDING
+                entry.button.BackgroundColor3 = BUTTON_COLOR
+                entry.button.TextColor3 = MUTED_COLOR
+            elseif left > 0 then
+                entry.status.Text = `Noch {clockText(left)}`
+                entry.button.Text = if entry.product.productId == 0 then TEXT_SOON else `{groupedNumber(entry.product.priceRobux)} Robux`
+                entry.button.BackgroundColor3 = if entry.product.productId == 0 then BUTTON_COLOR else OFFER_COLOR
+                entry.button.TextColor3 = if entry.product.productId == 0 then MUTED_COLOR else PANEL_COLOR
+            elseif state == "bought" then
+                entry.status.Text = TEXT_OFFER_DONE
+                entry.button.Text = TEXT_OFFER_DONE
+                entry.button.BackgroundColor3 = BUTTON_COLOR
+                entry.button.TextColor3 = MUTED_COLOR
+            else
+                entry.status.Text = TEXT_OFFER_OVER
+            end
+        end
+    end
+
+    -- Reiterstreifen im Fensterkopf. Sichtbar sind nur Reiter, die etwas zeigen.
+    local tabButtons: { [string]: TextButton } = {}
+    for _, tabId in TAB_ORDER do
+        local b = Instance.new("TextButton")
+        b.Name = `Tab_{tabId}`
+        b.Font = Enum.Font.GothamBold
+        b.TextScaled = true
+        b.Text = TAB_LABELS[tabId]
+        b.Parent = window.sub
+        Instance.new("UICorner").Parent = b
+        local p = Instance.new("UIPadding")
+        p.PaddingTop = UDim.new(0, 6)
+        p.PaddingBottom = UDim.new(0, 6)
+        p.Parent = b
+        tabButtons[tabId] = b
+    end
+
+    local function tabAvailable(tabId: string): boolean
+        if tabId == "offers" then
+            return anyOfferActive()
+        elseif tabId == "crates" then
+            return cratesAllowed
+        end
+        return true
+    end
+
+    applyTabs = function()
+        if activeTab ~= "crates" and not tabAvailable(activeTab) then
+            activeTab = "gems"
+        end
+        local visibleTabs: { string } = {}
+        for _, tabId in TAB_ORDER do
+            local available = tabAvailable(tabId)
+            tabButtons[tabId].Visible = available
+            if available then
+                table.insert(visibleTabs, tabId)
+            end
+        end
+        for index, tabId in visibleTabs do
+            local b = tabButtons[tabId]
+            b.Size = UDim2.new(1 / #visibleTabs, -TAB_GAP, 1, -8)
+            b.Position = UDim2.new((index - 1) / #visibleTabs, TAB_GAP / 2, 0, 4)
+            local active = tabId == activeTab
+            b.BackgroundColor3 = if active then (if tabId == "offers" then OFFER_COLOR else TAB_ACTIVE_COLOR) else BUTTON_COLOR
+            b.TextColor3 = if active then PANEL_COLOR else TEXT_COLOR
+        end
+        for tabId, rows in tabRows do
+            for _, row in rows do
+                if tabId == "offers" then
+                    continue
+                end
+                row.Visible = tabId == activeTab
+            end
+        end
+        for _, entry in offerRows do
+            local state = if offersState[entry.offer.id] ~= nil then offersState[entry.offer.id].state else "hidden"
+            entry.row.Visible = activeTab == "offers" and (offerLeft(entry.offer.id) > 0 or state == "bought")
+        end
+        renderOffers()
+        local dot = anyOfferActive()
+        if dot ~= offerDot then
+            offerDot = dot
+            renderGems(shownGems)
+        end
+    end
+    applyTabs()
+
+    -- Beim Öffnen: läuft ein Angebot, steht der Shop bei "Angebote", sonst bei den Gems.
+    chooseTab = function()
+        if forceOffers or anyOfferActive() then
+            activeTab = "offers"
+        elseif activeTab == "offers" or activeTab == "crates" then
+            activeTab = "gems"
+        end
+        forceOffers = false
+    end
+
+    openOffersTab = function()
+        forceOffers = true
+        window.open()
+    end
+
+    for tabId, b in tabButtons do
+        b.Activated:Connect(function()
+            if tabId == "crates" then
+                CrateShop.open()
+                return
+            end
+            activeTab = tabId
+            applyTabs()
+        end)
+    end
+
+    -- Countdown der Angebote lokal herunterzählen; abgelaufene verschwinden von selbst.
+    task.spawn(function()
+        local lastActive = false
+        while true do
+            task.wait(OFFER_TICK_SECONDS)
+            local active = anyOfferActive()
+            if active ~= lastActive then
+                applyTabs() -- ein Angebot ist abgelaufen oder begonnen: Reiter und Punkt neu
+            elseif window.isOpen() then
+                renderOffers()
+            end
+            lastActive = active
+        end
+    end)
+
+    State.onChanged(function(snapshot: any)
+        local now = os.clock()
+        local nextState: { [string]: { state: string, endsAt: number } } = {}
+        if type(snapshot.offers) == "table" then
+            for offerId, entry in snapshot.offers do
+                if type(offerId) == "string" and type(entry) == "table" and type(entry.state) == "string" then
+                    local seconds = if type(entry.secondsLeft) == "number" and entry.secondsLeft == entry.secondsLeft then math.max(entry.secondsLeft, 0) else 0
+                    nextState[offerId] = { state = entry.state, endsAt = now + seconds }
+                end
+            end
+        end
+        offersState = nextState
+        for offerId, entry in nextState do
+            if entry.state ~= "active" then
+                offerPendingSince[offerId] = nil -- gebucht (oder abgelaufen): die Sperre ist nicht mehr nötig
+            end
+        end
+        cratesAllowed = snapshot.cratesAllowed == true
+        applyTabs()
+    end)
+
     State.onNotify(function(payload: any)
         if payload.kind == "gemsBought" and type(payload.gems) == "number" and payload.gems > 0 then
             showBanner(`+{groupedNumber(math.floor(payload.gems))} Gems`)
         elseif payload.kind == "boostBought" then
             showBanner(TEXT_BOOST_BOUGHT)
+        elseif payload.kind == "offerBought" then
+            local offer = if type(payload.offerId) == "string" then Offers.byId[payload.offerId] else nil
+            local product = if offer ~= nil then Products.byId[offer.productId] else nil
+            showBanner(if product ~= nil then `{product.name} erhalten!` else TEXT_OFFER_BOUGHT)
         end
     end)
 end
