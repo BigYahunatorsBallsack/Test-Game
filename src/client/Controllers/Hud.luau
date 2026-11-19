@@ -2,6 +2,8 @@
 -- Hud-Controller (Paket 1.2, schlichte Fassung bis zum UI-Paket)
 -- Zeigt Münzen, Tank (Balken und Zahl) und kurze Meldungen (Verkauft, Tank voll, zu weit).
 -- Alle Werte kommen vom Server (State). Zahlen erscheinen über BigNum.format (K, M, B, T ...).
+-- Maße und Plätze kommen aus Data/Screen je Größenklasse (Paket 3.6): am Handy ein kleineres Panel,
+-- damit Tutorial-Banner, Menüspalte und Steuerung Platz haben.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +32,9 @@ local BigNum = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lo
 local Zones = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Zones") :: ModuleScript) :: any
 local Tools = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Tools") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+
+local TOAST_HEIGHT = 36
 
 local Hud = {}
 
@@ -77,20 +82,16 @@ function Hud.Start()
     panel.Name = "Panel"
     panel.BackgroundColor3 = PANEL_COLOR
     panel.BackgroundTransparency = 0.25
-    panel.Position = UDim2.new(0, 16, 0, 16)
-    panel.Size = UDim2.new(0, 240, 0, 84)
     panel.Parent = gui
     Instance.new("UICorner").Parent = panel
 
-    local coinsLabel = label(panel, "Coins", UDim2.new(0, 12, 0, 6), UDim2.new(1, -24, 0, 30))
+    local coinsLabel = label(panel, "Coins", UDim2.new(), UDim2.new())
     coinsLabel.Text = "Münzen: 0"
 
     local bar = Instance.new("Frame")
     bar.Name = "TankBar"
     bar.BackgroundColor3 = Color3.new(0, 0, 0)
     bar.BackgroundTransparency = 0.5
-    bar.Position = UDim2.new(0, 12, 0, 44)
-    bar.Size = UDim2.new(1, -24, 0, 28)
     bar.ClipsDescendants = true
     bar.Parent = panel
     Instance.new("UICorner").Parent = bar
@@ -107,17 +108,38 @@ function Hud.Start()
     tankLabel.Text = "Tank 0 / 0"
 
     -- Werkzeugname und Rate unter dem Panel (Paket 2.4)
-    local toolLabel = label(gui, "Tool", UDim2.new(0, 28, 0, 104), UDim2.new(0, 320, 0, 22))
+    local toolLabel = label(gui, "Tool", UDim2.new(), UDim2.new())
     toolLabel.Text = ""
 
     -- Windkristalle (Paket 2.7), nur sichtbar ab dem ersten Kristall
-    local windLabel = label(gui, "Wind", UDim2.new(0, 28, 0, 126), UDim2.new(0, 320, 0, 22))
+    local windLabel = label(gui, "Wind", UDim2.new(), UDim2.new())
     windLabel.Text = ""
 
-    local toast = label(gui, "Toast", UDim2.new(0.5, -200, 0.75, 0), UDim2.new(0, 400, 0, 36))
+    local toast = label(gui, "Toast", UDim2.new(), UDim2.new())
+    toast.AnchorPoint = Vector2.new(0.5, 0)
     toast.TextXAlignment = Enum.TextXAlignment.Center
     toast.TextTransparency = 1
     toast.TextStrokeTransparency = 1
+
+    -- Maße und Plätze nach Größenklasse (Data/Screen), neu bei jeder Änderung der Bildschirmgröße.
+    local function applyLayout()
+        local data = Screen.classData()
+        local hud, lines = data.hud, data.lines
+        panel.Position = UDim2.fromOffset(hud.x, hud.y)
+        panel.Size = UDim2.fromOffset(hud.w, hud.h)
+        coinsLabel.Position = UDim2.fromOffset(hud.pad, hud.coinsY)
+        coinsLabel.Size = UDim2.new(1, -2 * hud.pad, 0, hud.coinsH)
+        bar.Position = UDim2.fromOffset(hud.pad, hud.barY)
+        bar.Size = UDim2.new(1, -2 * hud.pad, 0, hud.barH)
+        toolLabel.Position = UDim2.fromOffset(hud.x + hud.pad, lines.toolY)
+        toolLabel.Size = UDim2.fromOffset(lines.w, lines.h)
+        windLabel.Position = UDim2.fromOffset(hud.x + hud.pad, lines.windY)
+        windLabel.Size = UDim2.fromOffset(lines.w, lines.h)
+        toast.Position = UDim2.new(0.5, 0, data.toast.yScale, 0)
+        toast.Size = UDim2.fromOffset(data.toast.w, TOAST_HEIGHT)
+    end
+    applyLayout()
+    Screen.onLayoutChanged(applyLayout)
 
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 

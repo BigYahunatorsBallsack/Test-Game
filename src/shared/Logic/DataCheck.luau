@@ -73,6 +73,7 @@ export type DataSet = {
     ToolLooks: any,
     Weather: any,
     Collection: any,
+    Screen: any,
 }
 
 local DataCheck = {}
@@ -100,6 +101,7 @@ function DataCheck.defaults(): DataSet
         ToolLooks = require("../Data/ToolLooks"),
         Weather = require("../Data/Weather"),
         Collection = require("../Data/Collection"),
+        Screen = require("../Data/Screen"),
     }
 end
 
@@ -1035,7 +1037,7 @@ local function checkTreeLayout(errors: { string }, data: DataSet)
         end
     end
 
-    for _, field in { "columnSpacing", "rowSpacing", "nodeSize", "minTouchPixels", "tapMaxMovePixels" } do
+    for _, field in { "columnSpacing", "rowSpacing", "nodeSize", "minTouchPixels", "tapMaxMovePixels", "tapMaxMovePixelsTouch" } do
         positive(errors, `TreeLayout.{field}`, config[field])
     end
     if not isFinite(config.margin) or config.margin < 0 then
@@ -1050,6 +1052,10 @@ local function checkTreeLayout(errors: { string }, data: DataSet)
         end
     end
 
+    if isFinite(config.tapMaxMovePixels) and isFinite(config.tapMaxMovePixelsTouch) and config.tapMaxMovePixelsTouch < config.tapMaxMovePixels then
+        table.insert(errors, "TreeLayout.tapMaxMovePixelsTouch darf nicht unter tapMaxMovePixels liegen")
+    end
+
     local zoom = config.zoom
     if type(zoom) ~= "table" then
         table.insert(errors, "TreeLayout.zoom fehlt")
@@ -1062,6 +1068,10 @@ local function checkTreeLayout(errors: { string }, data: DataSet)
         end
         if isFinite(zoom.min) and isFinite(zoom.max) and isFinite(zoom.start) and (zoom.start < zoom.min or zoom.start > zoom.max) then
             table.insert(errors, "TreeLayout.zoom.start muss zwischen min und max liegen")
+        end
+        positive(errors, "TreeLayout.zoom.startCompact", zoom.startCompact)
+        if isFinite(zoom.min) and isFinite(zoom.max) and isFinite(zoom.startCompact) and (zoom.startCompact < zoom.min or zoom.startCompact > zoom.max) then
+            table.insert(errors, "TreeLayout.zoom.startCompact muss zwischen min und max liegen")
         end
         for _, field in { "buttonStep", "wheelStep" } do
             if not isFinite(zoom[field]) or zoom[field] <= 1 then
@@ -1801,6 +1811,159 @@ local function checkWeather(errors: { string }, data: DataSet)
     end
 end
 
+-- Data/Screen (Paket 3.6): Größenklassen, Tippflächen, Fenster und Grafikstufen.
+local function checkScreen(errors: { string }, data: DataSet)
+    local screen = data.Screen
+    if type(screen) ~= "table" then
+        table.insert(errors, "Screen fehlt")
+        return
+    end
+    positive(errors, "Screen.compactShortSide", screen.compactShortSide)
+    positive(errors, "Screen.minTouchPixels", screen.minTouchPixels)
+    if not isFinite(screen.windowMargin) or screen.windowMargin < 0 then
+        table.insert(errors, "Screen.windowMargin muss eine Zahl ab 0 sein")
+    end
+    local minTouch = if isFinite(screen.minTouchPixels) then screen.minTouchPixels else 44
+
+    local function touchSize(label: string, value: any)
+        if not isFinite(value) or value < minTouch then
+            table.insert(errors, `{label} muss mindestens {minTouch} px sein (Tippfläche am Handy)`)
+        end
+    end
+
+    local controls = screen.controls
+    if type(controls) ~= "table" then
+        table.insert(errors, "Screen.controls fehlt")
+    else
+        for _, field in { "closeButton", "rowButtonW", "rowButtonH", "tabH" } do
+            touchSize(`Screen.controls.{field}`, controls[field])
+        end
+        positive(errors, "Screen.controls.headerH", controls.headerH)
+        if not isFinite(controls.rowGap) or controls.rowGap < 0 then
+            table.insert(errors, "Screen.controls.rowGap muss eine Zahl ab 0 sein")
+        end
+    end
+
+    local windows = screen.windows
+    if type(windows) ~= "table" then
+        table.insert(errors, "Screen.windows fehlt")
+    else
+        for _, kind in { "narrow", "wide" } do
+            local w = windows[kind]
+            if type(w) ~= "table" then
+                table.insert(errors, `Screen.windows.{kind} fehlt`)
+                continue
+            end
+            for _, field in { "scaleX", "scaleY" } do
+                if not isFinite(w[field]) or w[field] <= 0 or w[field] > 1 then
+                    table.insert(errors, `Screen.windows.{kind}.{field} muss über 0 und höchstens 1 liegen`)
+                end
+            end
+            for _, field in { "minW", "minH", "maxW", "maxH" } do
+                positive(errors, `Screen.windows.{kind}.{field}`, w[field])
+            end
+            if isFinite(w.minW) and isFinite(w.maxW) and w.maxW < w.minW then
+                table.insert(errors, `Screen.windows.{kind}: maxW liegt unter minW`)
+            end
+            if isFinite(w.minH) and isFinite(w.maxH) and w.maxH < w.minH then
+                table.insert(errors, `Screen.windows.{kind}: maxH liegt unter minH`)
+            end
+        end
+    end
+
+    if type(screen.jumpZone) ~= "table" then
+        table.insert(errors, "Screen.jumpZone fehlt")
+    else
+        positive(errors, "Screen.jumpZone.w", screen.jumpZone.w)
+        positive(errors, "Screen.jumpZone.h", screen.jumpZone.h)
+    end
+
+    if type(screen.classes) ~= "table" then
+        table.insert(errors, "Screen.classes fehlt")
+    else
+        for _, class in { "normal", "compact" } do
+            local c = screen.classes[class]
+            local label = `Screen.classes.{class}`
+            if type(c) ~= "table" then
+                table.insert(errors, `{label} fehlt`)
+                continue
+            end
+            for _, group in { "hud", "lines", "treeButton", "menuButton", "menuRow", "banner", "toast", "dig", "smallCard", "bigCard", "stormBanner" } do
+                if type(c[group]) ~= "table" then
+                    table.insert(errors, `{label}.{group} fehlt`)
+                end
+            end
+            if type(c.treeButton) == "table" then
+                touchSize(`{label}.treeButton.w`, c.treeButton.w)
+                touchSize(`{label}.treeButton.h`, c.treeButton.h)
+            end
+            if type(c.menuButton) == "table" then
+                touchSize(`{label}.menuButton.w`, c.menuButton.w)
+                touchSize(`{label}.menuButton.h`, c.menuButton.h)
+            end
+            if type(c.dig) == "table" then
+                touchSize(`{label}.dig.size`, c.dig.size)
+            end
+            if type(c.banner) == "table" and isFinite(c.banner.minW) and isFinite(c.banner.maxW) and c.banner.maxW < c.banner.minW then
+                table.insert(errors, `{label}.banner: maxW liegt unter minW`)
+            end
+            if type(c.smallCard) == "table" and c.smallCard.side ~= "left" and c.smallCard.side ~= "right" then
+                table.insert(errors, `{label}.smallCard.side muss "left" oder "right" sein`)
+            end
+        end
+    end
+
+    local graphics = screen.graphics
+    if type(graphics) ~= "table" or type(graphics.levels) ~= "table" or type(graphics.order) ~= "table" then
+        table.insert(errors, "Screen.graphics fehlt oder ist unvollständig")
+        return
+    end
+    if not isInt(graphics.leanMaxQualityLevel) or graphics.leanMaxQualityLevel < 1 or graphics.leanMaxQualityLevel > 10 then
+        table.insert(errors, "Screen.graphics.leanMaxQualityLevel muss eine ganze Zahl von 1 bis 10 sein")
+    end
+    local numbers = { "particleFactor", "motionDistanceFactor" }
+    local flags = { "postEffects", "toolShadows", "foundLight", "sandFlow", "revealEffects", "weatherParticles" }
+    local previous: any = nil
+    for _, name in { "hoch", "schlank", "minimal" } do
+        local level = graphics.levels[name]
+        local label = `Screen.graphics.levels.{name}`
+        if table.find(graphics.order, name) == nil then
+            table.insert(errors, `Screen.graphics.order enthält "{name}" nicht`)
+        end
+        if type(level) ~= "table" then
+            table.insert(errors, `{label} fehlt`)
+            previous = nil
+            continue
+        end
+        for _, field in numbers do
+            if not isFinite(level[field]) or level[field] < 0 or level[field] > 1 then
+                table.insert(errors, `{label}.{field} muss eine Zahl von 0 bis 1 sein`)
+            end
+        end
+        if isFinite(level.motionDistanceFactor) and level.motionDistanceFactor <= 0 then
+            table.insert(errors, `{label}.motionDistanceFactor muss über 0 liegen`)
+        end
+        for _, field in flags do
+            if type(level[field]) ~= "boolean" then
+                table.insert(errors, `{label}.{field} muss true oder false sein`)
+            end
+        end
+        if previous ~= nil then
+            for _, field in numbers do
+                if isFinite(level[field]) and isFinite(previous[field]) and level[field] > previous[field] then
+                    table.insert(errors, `{label}.{field} darf nicht über dem der höheren Stufe liegen`)
+                end
+            end
+            for _, field in flags do
+                if level[field] == true and previous[field] == false then
+                    table.insert(errors, `{label}.{field} darf nichts einschalten, was die höhere Stufe abschaltet`)
+                end
+            end
+        end
+        previous = level
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -1810,6 +1973,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkCrates(errors, data)
     checkUpgradeTree(errors, data)
     checkTreeLayout(errors, data)
+    checkScreen(errors, data)
     checkUnlockAnimation(errors, data)
     checkToolLooks(errors, data)
     checkTools(errors, data)

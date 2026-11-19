@@ -97,9 +97,18 @@ end
 
 -- Tippen oder Ziehen: Eine Berührung, die sich höchstens um die Schwelle bewegt hat, ist ein
 -- Tippen. Erst bei mehr Bewegung gilt sie als Ziehen (und öffnet keine Karte).
-function TreeCamera.isTap(movedPixels: number, config: any?): boolean
+-- `touch`: Eine Berührung mit dem Finger darf sich etwas weiter bewegen (tapMaxMovePixelsTouch).
+function TreeCamera.isTap(movedPixels: number, config: any?, touch: boolean?): boolean
     local cfg: any = config or DefaultConfig
-    return movedPixels < cfg.tapMaxMovePixels
+    local limit = if touch == true and cfg.tapMaxMovePixelsTouch ~= nil then cfg.tapMaxMovePixelsTouch else cfg.tapMaxMovePixels
+    return movedPixels < limit
+end
+
+-- Start-Zoom: am kleinen Bildschirm der kleinere Wert aus `zoom.startCompact`.
+function TreeCamera.startZoom(compact: boolean, config: any?): number
+    local cfg: any = config or DefaultConfig
+    local zoom = if compact and cfg.zoom.startCompact ~= nil then cfg.zoom.startCompact else cfg.zoom.start
+    return TreeCamera.clampZoom(zoom, cfg)
 end
 
 -- Kantenlänge eines Knotens auf dem Bildschirm.

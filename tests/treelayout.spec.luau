@@ -280,6 +280,21 @@ T.describe("Daten der Baumansicht", function()
         end)).toContain("liegt auf demselben Platz")
     end)
 
+    T.it("Handy-Werte: startCompact außerhalb von min und max wird abgelehnt (Paket 3.6)", function()
+        T.expect(errorsFor(function(data: any)
+            data.TreeLayout.zoom.startCompact = 5
+        end)).toContain("startCompact muss zwischen min und max")
+        T.expect(errorsFor(function(data: any)
+            data.TreeLayout.zoom.startCompact = nil
+        end)).toContain("startCompact muss eine Zahl größer als 0")
+    end)
+
+    T.it("Handy-Werte: tapMaxMovePixelsTouch unter tapMaxMovePixels wird abgelehnt (Paket 3.6)", function()
+        T.expect(errorsFor(function(data: any)
+            data.TreeLayout.tapMaxMovePixelsTouch = 4
+        end)).toContain("tapMaxMovePixelsTouch darf nicht unter")
+    end)
+
     T.it("ein Platzhalter-Look ohne Farbe wird abgelehnt", function()
         T.expect(errorsFor(function(data: any)
             data.TreeLayout.looks.setTank.color = { 255, 0 }

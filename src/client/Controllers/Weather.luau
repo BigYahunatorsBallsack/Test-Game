@@ -4,7 +4,8 @@
 -- um die Kamera, Nebel und Dunst über Atmosphäre und Farbkorrektur. Das Wetter kommt als fester
 -- Zyklus aus der Serverzeit (Logic/Weather), alle Clients sehen deshalb dasselbe, ohne dass der
 -- Server etwas sendet. Beim Zonenwechsel blendet das alte Wetter aus, bevor das neue einblendet.
--- Auf schwachen Geräten (Rückfallvariante von Dig) entfallen die Partikel.
+-- Auf schwachen Geräten (Grafikstufe "minimal") entfallen die Partikel, auf "schlank" gibt es nur
+-- die Hälfte (Controllers/Graphics, Data/Screen).
 --
 -- Eine vorhandene Atmosphäre im Lighting (zum Beispiel aus dem Look in Paket 3.4) bleibt die
 -- Grundlage: Das Wetter überblendet ihre Werte und blendet sie danach zurück.
@@ -30,7 +31,7 @@ end
 local WeatherData = loadShared("Data", "Weather")
 local WeatherLogic = loadShared("Logic", "Weather")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
-local Dig = require(script.Parent:WaitForChild("Dig") :: ModuleScript) :: any
+local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local Weather = {}
 
@@ -149,10 +150,11 @@ local function step(dt: number)
 
     -- Partikel um die Kamera (nicht auf schwachen Geräten).
     local camera = workspace.CurrentCamera
-    local particles = look ~= nil and look.particleRate > 0 and amount > 0.01 and camera ~= nil and not Dig.isFallback()
+    local graphics = Graphics.settings()
+    local particles = look ~= nil and look.particleRate > 0 and amount > 0.01 and camera ~= nil and graphics.weatherParticles == true
     if particles and look ~= nil and camera ~= nil then
         part.Position = camera.CFrame.Position + Vector3.new(0, EMITTER_HEIGHT_STUDS, 0)
-        e.Rate = look.particleRate * amount
+        e.Rate = look.particleRate * amount * graphics.particleFactor
         e.Speed = NumberRange.new(look.particleSpeed * 0.9, look.particleSpeed)
         e.Acceleration = Vector3.new(look.particleWindStuds, 0, 0)
         e.Size = NumberSequence.new(look.particleSize)

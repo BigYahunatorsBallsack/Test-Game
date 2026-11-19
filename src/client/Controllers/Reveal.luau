@@ -7,6 +7,10 @@
 -- Sammeln und Laufen gehen weiter, ein Tipp auf die Karte überspringt sie. Mehrere Funde laufen
 -- nacheinander. Alle Werte kommen vom Server, der Client rechnet nichts.
 --
+-- Handy (Paket 3.6): Die Karten liegen auf der sicheren Fläche und folgen der Größenklasse aus
+-- Data/Screen (kleine Karte am Handy links unter dem HUD, damit sie die Menüspalte nicht verdeckt).
+-- Auf Grafikstufe "minimal" entfallen Lichtstoß, Blitz und das Objekt im Sand, auf "schlank" das Licht.
+--
 -- Sounds: leere IDs bis Paket 3.5 (leer = kein Ton, kein Fehler). Meshes: Platzhalter-Teile bis 3.2.
 
 local Debris = game:GetService("Debris")
@@ -19,17 +23,14 @@ local TweenService = game:GetService("TweenService")
 local QUEUE_MAX = 12 -- mehr wartende Reveals werden verworfen (die Münzen sind trotzdem gebucht)
 local SHORT_MODE_FROM_QUEUE = 3 -- ab so vielen wartenden Reveals laufen alle kurz
 
--- Kleine Karte (Gewöhnlich, Ungewöhnlich)
-local SMALL_CARD_SIZE = Vector2.new(264, 92)
-local SMALL_CARD_Y = 0.4 -- Anteil der Bildschirmhöhe
-local SMALL_MARGIN = 16
+-- Kleine Karte (Gewöhnlich, Ungewöhnlich): Größe und Platz stehen in Data/Screen (smallCard)
 local SMALL_SLIDE_SECONDS = 0.25
 local SMALL_SLIDE_EASING = Enum.EasingStyle.Quad
 local SMALL_HOLD_SECONDS: { [string]: number } = { common = 1.0, uncommon = 1.4 }
 local SMALL_HOLD_SHORT_SECONDS = 0.45
 
--- Große Karte (ab Selten): Aufladen, Lichtstoß, Karte
-local BIG_CARD_SIZE = Vector2.new(340, 220)
+-- Große Karte (ab Selten): Aufladen, Lichtstoß, Karte (Größe in Data/Screen: bigCard)
+local BIG_CARD_SIDE_MARGIN = 12 -- Abstand zum Bildrand bei schmalem Bildschirm
 local CARD_POP_SECONDS = 0.28
 local CARD_POP_EASING = Enum.EasingStyle.Back
 local CARD_POP_START_SCALE = 0.6
@@ -97,12 +98,14 @@ local Finds = loadShared("Data", "Finds")
 local Rarities = loadShared("Data", "Rarities")
 local CollectionData = loadShared("Data", "Collection")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
-local Dig = require(script.Parent:WaitForChild("Dig") :: ModuleScript) :: any
+local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
+local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local Reveal = {}
 
 local player = Players.LocalPlayer
-local gui: ScreenGui? = nil
+local gui: ScreenGui? = nil -- Karten (sichere Fläche)
+local fxGui: ScreenGui? = nil -- Lichtstoß und Blitz (ganzer Bildschirm)
 local queue: { any } = {}
 local running = false
 local skip = false
@@ -186,7 +189,8 @@ end
 
 -- Platzhalter-Objekt, das aus dem Sand steigt (nur auf dem eigenen Bildschirm).
 local function spawnSandObject(color: Color3)
-    if Dig.isFallback() then
+    local graphics = Graphics.settings()
+    if graphics.revealEffects ~= true then
         return -- schwaches Gerät: keine Effekte
     end
     local character = player.Character
@@ -205,11 +209,15 @@ local function spawnSandObject(color: Color3)
     part.Color = color
     part.Size = Vector3.new(SAND_OBJECT.size, SAND_OBJECT.size, SAND_OBJECT.size)
     part.CFrame = CFrame.new(ground - Vector3.new(0, SAND_OBJECT.sinkStuds, 0)) * CFrame.Angles(math.rad(45), math.rad(35), 0)
-    local light = Instance.new("PointLight")
-    light.Color = color
-    light.Range = SAND_OBJECT.lightRange
-    light.Brightness = SAND_OBJECT.lightBrightness
-    light.Parent = part
+    local light: PointLight? = nil
+    if graphics.foundLight == true then
+        local created = Instance.new("PointLight")
+        created.Color = color
+        created.Range = SAND_OBJECT.lightRange
+        created.Brightness = SAND_OBJECT.lightBrightness
+        created.Parent = part
+        light = created
+    end
     part.Parent = workspace
     Debris:AddItem(part, SAND_OBJECT.riseSeconds + SAND_OBJECT.lingerSeconds + SAND_OBJECT.fadeSeconds + 1)
 
@@ -221,20 +229,31 @@ local function spawnSandObject(color: Color3)
         end
         local fade = TweenInfo.new(SAND_OBJECT.fadeSeconds)
         TweenService:Create(part, fade, { Transparency = 1 }):Play()
-        TweenService:Create(light, fade, { Brightness = 0 }):Play()
+        if light ~= nil then
+            TweenService:Create(light, fade, { Brightness = 0 }):Play()
+        end
     end)
+end
+
+-- Größe, Anker und Plätze (gezeigt, versteckt) der kleinen Karte nach der Größenklasse.
+local function smallPlacement(): (Vector2, Vector2, UDim2, UDim2)
+    local c = Screen.classData().smallCard
+    local size = Vector2.new(c.w, c.h)
+    if c.side == "left" then
+        return size, Vector2.new(0, c.anchorY), UDim2.new(0, c.margin, c.yScale, c.yOffset), UDim2.new(0, -(c.w + c.margin), c.yScale, c.yOffset)
+    end
+    return size, Vector2.new(1, c.anchorY), UDim2.new(1, -c.margin, c.yScale, c.yOffset), UDim2.new(1, c.w + c.margin, c.yScale, c.yOffset)
 end
 
 local function showSmall(payload: any, find: any, rarity: any, short: boolean)
     local color = Color3.fromHex(rarity.colorHex)
-    local card = makeCard(SMALL_CARD_SIZE, color)
-    card.AnchorPoint = Vector2.new(1, 0.5)
-    local shown = UDim2.new(1, -SMALL_MARGIN, SMALL_CARD_Y, 0)
-    local hidden = UDim2.new(1, SMALL_CARD_SIZE.X + SMALL_MARGIN, SMALL_CARD_Y, 0)
+    local size, anchor, shown, hidden = smallPlacement()
+    local card = makeCard(size, color)
+    card.AnchorPoint = anchor
     card.Position = hidden
-    label(card, UDim2.new(0, 10, 0, 6), UDim2.new(1, -20, 0, 28), Enum.Font.GothamBold, color, find.name)
-    label(card, UDim2.new(0, 10, 0, 36), UDim2.new(1, -20, 0, 22), Enum.Font.GothamBold, TEXT_COLOR, `{rarity.name} · {statusText(payload)}`)
-    label(card, UDim2.new(0, 10, 0, 62), UDim2.new(1, -20, 0, 20), Enum.Font.Gotham, MUTED_COLOR, setProgressText(payload))
+    label(card, UDim2.new(0, 10, 0.07, 0), UDim2.new(1, -20, 0.3, 0), Enum.Font.GothamBold, color, find.name)
+    label(card, UDim2.new(0, 10, 0.4, 0), UDim2.new(1, -20, 0.24, 0), Enum.Font.GothamBold, TEXT_COLOR, `{rarity.name} · {statusText(payload)}`)
+    label(card, UDim2.new(0, 10, 0.68, 0), UDim2.new(1, -20, 0.22, 0), Enum.Font.Gotham, MUTED_COLOR, setProgressText(payload))
 
     local slide = TweenInfo.new(SMALL_SLIDE_SECONDS, SMALL_SLIDE_EASING)
     TweenService:Create(card, slide, { Position = shown }):Play()
@@ -255,7 +274,7 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
     elseif not payload.isNew then
         charge *= DUPLICATE_CHARGE_FACTOR
     end
-    local effects = not Dig.isFallback()
+    local effects = Graphics.settings().revealEffects == true
 
     -- Aufladen: ein Licht in der Seltenheitsfarbe wächst in der Mitte.
     local glow: Frame? = nil
@@ -267,7 +286,7 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
         g.BackgroundColor3 = color
         g.BackgroundTransparency = GLOW_START_TRANSPARENCY
         g.BorderSizePixel = 0
-        g.Parent = gui
+        g.Parent = fxGui
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = g
@@ -298,13 +317,15 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
         flash.BackgroundTransparency = 0.3
         flash.BorderSizePixel = 0
         flash.Active = false
-        flash.Parent = gui
+        flash.Parent = fxGui
         TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 }):Play()
         Debris:AddItem(flash, FLASH_SECONDS + 0.1)
     end
 
     -- Karte mit Namen, Seltenheit, Status und Set-Fortschritt.
-    local card = makeCard(BIG_CARD_SIZE, color)
+    local bigData = Screen.classData().bigCard
+    local viewportWidth = Screen.layout().viewport.width
+    local card = makeCard(Vector2.new(math.min(bigData.w, math.max(viewportWidth - 2 * BIG_CARD_SIDE_MARGIN, 200)), bigData.h), color)
     card.AnchorPoint = Vector2.new(0.5, 0.5)
     card.Position = UDim2.fromScale(0.5, 0.45)
     local scale = Instance.new("UIScale")
@@ -324,14 +345,13 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
 end
 
 local function showBanner(text: string, subText: string?)
-    local card = makeCard(SMALL_CARD_SIZE, BANNER_COLOR)
-    card.AnchorPoint = Vector2.new(1, 0.5)
-    local shown = UDim2.new(1, -SMALL_MARGIN, SMALL_CARD_Y, 0)
-    local hidden = UDim2.new(1, SMALL_CARD_SIZE.X + SMALL_MARGIN, SMALL_CARD_Y, 0)
+    local size, anchor, shown, hidden = smallPlacement()
+    local card = makeCard(size, BANNER_COLOR)
+    card.AnchorPoint = anchor
     card.Position = hidden
-    label(card, UDim2.new(0, 10, 0, 10), UDim2.new(1, -20, 0, 34), Enum.Font.GothamBold, BANNER_COLOR, text)
+    label(card, UDim2.new(0, 10, 0.1, 0), UDim2.new(1, -20, 0.37, 0), Enum.Font.GothamBold, BANNER_COLOR, text)
     if subText ~= nil then
-        label(card, UDim2.new(0, 10, 0, 50), UDim2.new(1, -20, 0, 30), Enum.Font.GothamBold, TEXT_COLOR, subText)
+        label(card, UDim2.new(0, 10, 0.54, 0), UDim2.new(1, -20, 0.33, 0), Enum.Font.GothamBold, TEXT_COLOR, subText)
     end
     playSound("setComplete")
     local slide = TweenInfo.new(SMALL_SLIDE_SECONDS, SMALL_SLIDE_EASING)
@@ -392,13 +412,20 @@ end
 function Reveal.Init() end
 
 function Reveal.Start()
-    local screen = Instance.new("ScreenGui")
-    screen.Name = "DuneBaronReveal"
-    screen.ResetOnSpawn = false
-    screen.DisplayOrder = 10
-    screen.IgnoreGuiInset = true
-    screen.Parent = player:WaitForChild("PlayerGui")
-    gui = screen
+    -- Lichtstoß und Blitz decken den ganzen Bildschirm, die Karten liegen auf der sicheren Fläche.
+    local fx = Instance.new("ScreenGui")
+    fx.Name = "DuneBaronRevealFx"
+    fx.ResetOnSpawn = false
+    fx.DisplayOrder = 10
+    fx.IgnoreGuiInset = true
+    fx.Parent = player:WaitForChild("PlayerGui")
+    fxGui = fx
+    local cards = Instance.new("ScreenGui")
+    cards.Name = "DuneBaronReveal"
+    cards.ResetOnSpawn = false
+    cards.DisplayOrder = 11
+    cards.Parent = player:WaitForChild("PlayerGui")
+    gui = cards
 
     State.onNotify(function(payload: any)
         if payload.kind ~= "find" or type(payload.findId) ~= "string" or Finds.byId[payload.findId] == nil then
