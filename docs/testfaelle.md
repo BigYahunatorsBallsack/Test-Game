@@ -45,7 +45,7 @@ Jedes Arbeitspaket bekommt hier im Plan-Modus seinen Abschnitt, bevor Code entst
 ## Pflicht für alle Pakete mit Käufen und Kisten (4.1, 4.2, 4.4, 4.5, 5.5)
 
 - [ ] [Lune] Dieselbe PurchaseId zweimal: Die Gutschrift erfolgt nur einmal, der zweite Aufruf liefert PurchaseGranted ohne neue Gutschrift.
-- [ ] [Lune] Abbruch vor dem Speichern (Speichern schlägt fehl oder Profil nicht geladen): Ergebnis ist NotProcessedYet, und es gibt keine Gutschrift.
+- [ ] [Lune] Profil nicht geladen: Ergebnis ist NotProcessedYet, und es gibt keine Gutschrift. Speichern schlägt fehl: NotProcessedYet, Gutschrift und PurchaseId bleiben gemeinsam im Profil, der nächste Versuch bucht nicht erneut.
 - [ ] [Lune] Der Pity-Zähler übersteht Speichern und Laden (Neustart) unverändert.
 - [ ] [Lune] Quoten-Simulation mit sehr vielen Öffnungen pro Kiste: Die Abweichung von der Quotentabelle bleibt klein. Anzeige und Auswurf lesen dieselbe Tabelle.
 - [ ] [Lune] Im 10er-Paket zählt jede der 11 Öffnungen für Pity.
@@ -336,6 +336,27 @@ Tests: tests/sandstorm.spec.luau. Plan: Claude-Dokument "Paket 2.7: Sandsturm (P
 - [ ] [Studio] Vor dem Canyon (Mini-Bagger) kein Sturm-Knopf, danach erscheint er; das Fenster zeigt "Noch zu früh: ab ... verdienten Münzen gibt es 20 Kristalle", ab 20 Kristallen die Vorschau mit "Du bekommst N Windkristalle" und der Knopf pulsiert.
 - [ ] [Studio] Der Sturm braucht zwei Tipps (Nachfrage), danach läuft die Sandwand und das Banner nennt Kristalle und Bonus.
 - [ ] [Studio] Nach dem Sturm: Hand, 0 Münzen, Spawn im Dünenmeer, Sammlungsbuch unverändert, Kristalle in der Anzeige, höherer Preis pro Sand.
+
+## 4.1 Gems und sichere Käufe
+
+Tests: tests/purchases.spec.luau, tests/gems.spec.luau. Plan: Claude-Dokument "Paket 4.1: Gems und sichere Käufe, Plan".
+
+- [ ] [Lune] Ein Kauf von `gems_550` schreibt genau 550 Gems gut und liefert erst nach dem Speichern `PurchaseGranted`.
+- [ ] [Lune] Dieselbe PurchaseId zweimal nacheinander: eine Gutschrift, beide Aufrufe liefern `PurchaseGranted`.
+- [ ] [Lune] Dieselbe PurchaseId zweimal gleichzeitig (der erste wartet noch aufs Speichern): eine Gutschrift.
+- [ ] [Lune] Profil nicht geladen oder Spieler nicht auf dem Server: `NotProcessedYet`, keine Gutschrift.
+- [ ] [Lune] Speichern schlägt fehl oder läuft in die Zeitgrenze: `NotProcessedYet`; Gems und PurchaseId stehen gemeinsam im Profil, der nächste Versuch bucht nicht erneut und liefert `PurchaseGranted`, sobald gespeichert ist.
+- [ ] [Lune] Absturz vor dem Speichern (Fake-Speicher verwirft den Stand): Der nächste Versuch auf dem neuen Server bucht genau einmal.
+- [ ] [Lune] Sitzung endet während des Wartens: `NotProcessedYet`, keine zweite Gutschrift beim nächsten Versuch.
+- [ ] [Lune] Unbekannte ProductId und `productId = 0`: `NotProcessedYet`, keine Gutschrift, ein Protokolleintrag.
+- [ ] [Lune] Die Beleg-Liste hält höchstens `receiptCacheSize` Einträge und wirft die ältesten zuerst raus; das Kaufprotokoll hält höchstens `purchaseLogSize`.
+- [ ] [Lune] `Gems.grant` lehnt 0, negative, gebrochene und NaN-Mengen ab und kappt bei `maxGems`; `Gems.spend` bucht nur bei genug Gems ab.
+- [ ] [Lune] Migration 3 auf 4 übernimmt alte PurchaseIds; kaputte `gems` (negativ, NaN, gebrochen) werden repariert.
+- [ ] [Lune] Der Sandsturm behält Gems, Belege, Kaufprotokoll und `spent`.
+- [ ] [Lune] DataCheck meldet doppelte ProductIds und `purchases`-Werte außerhalb der Grenzen.
+- [ ] [Studio] Gem-Zähler im HUD; der Knopf "Gems" öffnet die Liste mit fünf Paketen, Preisen und Bonus.
+- [ ] [Studio] Studio-Hilfe `DebugPurchase` mit derselben PurchaseId dreimal: Die Gems steigen genau einmal, das Banner erscheint einmal.
+- [ ] [Studio] Testkauf eines echten Developer Products in Studio: Gutschrift genau einmal, nach dem Rejoin noch da.
 
 ## 5.1 Daily Reward
 
