@@ -337,6 +337,17 @@ Tests: tests/sandstorm.spec.luau. Plan: Claude-Dokument "Paket 2.7: Sandsturm (P
 - [ ] [Studio] Der Sturm braucht zwei Tipps (Nachfrage), danach läuft die Sandwand und das Banner nennt Kristalle und Bonus.
 - [ ] [Studio] Nach dem Sturm: Hand, 0 Münzen, Spawn im Dünenmeer, Sammlungsbuch unverändert, Kristalle in der Anzeige, höherer Preis pro Sand.
 
+## 3.3 Fundtabelle mit Namen
+
+Plan (freigegeben von Waltuh am 19.11.2026): Nur `Data/Finds.luau` ändert sich. Die 150 Funde bekommen Namen und Beschreibungen im Stil bekannter Roblox-Simulatoren (kurz, Alltagskram bei Gewöhnlich, episch bei Legendär und Mythisch), Set 6 jeder Zone ist der Schatz der Zone. Sets bekommen ein Feld `name` (z. B. "Strandgut", "Schatz des letzten Barons"), das Reveal und Sammlungsbuch später lesen können. IDs, Seltenheiten, Sets und Zonen bleiben unverändert.
+
+- [x] [Lune] Alle 150 IDs, ihre Reihenfolge, Zone, Set und Seltenheit sind wie in 2.6.
+- [x] [Lune] Kein Name und keine Beschreibung enthält "Platzhalter" oder einen alten Namen wie "Dünenfund 1-1".
+- [x] [Lune] Namen sind eindeutig und höchstens 28 Zeichen lang. Beschreibungen sind nicht leer und höchstens 80 Zeichen lang.
+- [x] [Lune] Jedes der 30 Sets hat einen eindeutigen Namen.
+- [x] [Shell] `rojo build` baut ohne Fehler, `lune run tests/run` läuft komplett durch.
+- [ ] [Studio] Ein Fund zeigt beim Reveal und im Sammlungsbuch den neuen Namen und die Beschreibung.
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.
