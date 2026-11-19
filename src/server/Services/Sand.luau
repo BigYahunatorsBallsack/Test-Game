@@ -30,6 +30,7 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local Collecting = loadShared("Logic", "Collecting")
+local Equipment = loadShared("Logic", "Equipment")
 local TreeEffects = loadShared("Logic", "TreeEffects")
 local ToolLook = loadShared("Logic", "ToolLook")
 local Zones = loadShared("Logic", "Zones")
@@ -176,7 +177,15 @@ local function publishLook(player: Player)
     if profile == nil then
         return
     end
+    local attributes: { [string]: any } = {}
     for name, value in ToolLook.attributesFor(profile, stateOf(player).holding) do
+        attributes[name] = value
+    end
+    -- Ausrüstung der Kisten-Items (Paket 4.3): SkinId, CompanionId, ToolVariantId.
+    for name, value in Equipment.attributesFor(profile) do
+        attributes[name] = value
+    end
+    for name, value in attributes do
         if player:GetAttribute(name) ~= value then
             player:SetAttribute(name, value)
         end

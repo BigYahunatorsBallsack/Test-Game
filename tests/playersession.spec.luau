@@ -109,6 +109,9 @@ T.describe("PlayerSession", function()
             [3] = function(p: any) -- Paket 4.1: nur die Version zählt hier
                 return p
             end,
+            [4] = function(p: any) -- Paket 4.3: nur die Version zählt hier
+                return p
+            end,
         }
         local h = newHarness(world, "A", steps)
         local profile: any = h.manager.load(USER, present)

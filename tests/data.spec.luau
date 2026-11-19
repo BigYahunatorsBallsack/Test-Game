@@ -617,9 +617,15 @@ T.describe("Kisten und Kisten-Items (4.2)", function()
         )
         expectError(
             broken(function(d)
-                d.CrateItems.byId.skin_rare_1.effectBp = 50
+                d.CrateItems.byId.skin_rare_1.effectBp = d.Economy.items.maxEffectBp + 1
             end),
-            'CrateItems "skin_rare_1": effectBp muss in Paket 4.2 0 sein'
+            'CrateItems "skin_rare_1": effectBp muss eine ganze Zahl von 0 bis Economy.items.maxEffectBp'
+        )
+        expectError(
+            broken(function(d)
+                d.CrateItems.byId.skin_rare_1.effectBp = 12.5
+            end),
+            'CrateItems "skin_rare_1": effectBp muss eine ganze Zahl'
         )
         expectError(
             broken(function(d)
@@ -640,6 +646,67 @@ T.describe("Kisten und Kisten-Items (4.2)", function()
             "CrateItems: list fehlt"
         )
         T.expect(DataCheck.run()).toEqual({})
+    end)
+end)
+
+T.describe("Kisten-Items mit Wirkung und Aussehen (4.3)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("jedes Item hat einen Wert in den Grenzen und ein passendes Aussehen", function()
+        local data = freshDataSet()
+        T.expect(DataCheck.run(data)).toEqual({})
+        T.expect(#data.ItemLooks.list).toBe(#data.CrateItems.list)
+        for _, item in data.CrateItems.list do
+            T.expect(item.effectBp > 0).toBe(true)
+            T.expect(data.ItemLooks.byId[item.id].kind).toBe(item.kind)
+        end
+    end)
+
+    T.it("DataCheck meldet kaputte Sterne-Regeln", function()
+        expectError(broken(function(d) d.Economy.items = nil end), "Economy.items: Tabelle fehlt")
+        expectError(broken(function(d) d.Economy.items.maxStars = 1 end), "Economy.items.maxStars")
+        expectError(broken(function(d) d.Economy.items.starBonusBp = -1 end), "Economy.items.starBonusBp")
+        expectError(broken(function(d) d.Economy.items.maxTotalBonusBp = 0 end), "Economy.items.maxTotalBonusBp")
+        expectError(broken(function(d) d.Economy.items.maxTotalBonusBp = 9000 end), "überschreiten maxTotalBonusBp")
+        expectError(broken(function(d) d.Economy.items.maxEffectBp = 5000 end), "überschreiten maxTotalBonusBp")
+        expectError(broken(function(d) d.Economy.items.copiesToMerge = { 1, 2, 3 } end), "genau maxStars - 1 Einträge")
+        expectError(broken(function(d) d.Economy.items.copiesToMerge = { 1, 0, 3, 4 } end), "copiesToMerge[2]")
+    end)
+
+    T.it("DataCheck meldet ein fehlendes oder kaputtes Aussehen", function()
+        expectError(
+            broken(function(d)
+                table.remove(d.ItemLooks.list, 1)
+                d.ItemLooks.byId.skin_common_1 = nil
+            end),
+            'ItemLooks: Item "skin_common_1" hat kein Aussehen'
+        )
+        expectError(
+            broken(function(d) d.ItemLooks.byId.skin_rare_1.kind = "companion" end),
+            'ItemLooks "skin_rare_1": kind "companion" passt nicht zum Item ("skin")'
+        )
+        expectError(
+            broken(function(d) d.ItemLooks.byId.skin_rare_1.colorHex = "rot" end),
+            'ItemLooks "skin_rare_1": colorHex und accentHex'
+        )
+        expectError(
+            broken(function(d) d.ItemLooks.byId.companion_rare_1.size = 5 end),
+            'ItemLooks "companion_rare_1": size muss zwischen'
+        )
+        expectError(
+            broken(function(d) d.ItemLooks.byId.companion_rare_1.shape = "Dreieck" end),
+            'ItemLooks "companion_rare_1": shape'
+        )
+        expectError(
+            broken(function(d)
+                table.insert(d.ItemLooks.list, { id = "geist", kind = "skin", colorHex = "#FFFFFF", accentHex = "#000000", material = "Fabric" })
+            end),
+            'ItemLooks "geist": kein Item mit dieser ID in CrateItems'
+        )
     end)
 end)
 

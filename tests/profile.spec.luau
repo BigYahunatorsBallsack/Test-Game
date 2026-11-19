@@ -23,6 +23,9 @@ local exampleMigrations: { [number]: Migrations.Step } = {
     [3] = function(profile: any) -- Paket 4.1: nur die Version zählt hier
         return profile
     end,
+    [4] = function(profile: any) -- Paket 4.3: nur die Version zählt hier
+        return profile
+    end,
 }
 
 local function v1Profile(): any
@@ -41,8 +44,9 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(nil, nil, NOW)
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
-        -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege als Liste)
-        T.expect(Profile.CURRENT_VERSION).toBe(4)
+        -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege als Liste),
+        -- 5 seit Paket 4.3 (Ausrüstung und Sterne der Kisten-Items)
+        T.expect(Profile.CURRENT_VERSION).toBe(5)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -81,7 +85,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(original, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.version).toBe(4)
+        T.expect(migrated.version).toBe(5)
         T.expect(migrated.settings).toEqual({ music = true })
         T.expect(migrated.legacyGems).toBe(120)
         -- Vorhandene Werte bleiben erhalten.
@@ -203,7 +207,7 @@ T.describe("Profil Version 4 (Paket 4.1)", function()
         local migrated, status = Profile.migrate(old, nil, NOW)
         local profile: any = migrated
         T.expect(status).toBe("ok")
-        T.expect(profile.version).toBe(4)
+        T.expect(profile.version).toBe(5)
         T.expect(profile.receipts).toEqual({ "aa_kauf", "mm_kauf", "zz_kauf" })
         T.expect(profile.purchaseLog).toEqual({})
         T.expect(profile.spent).toEqual({ robux = 0, count = 0 })

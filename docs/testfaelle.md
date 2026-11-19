@@ -419,6 +419,25 @@ Tests: tests/crateroll.spec.luau, tests/crateopen.spec.luau. Plan: Claude-Dokume
 - [ ] [Studio] Sammeln und Laufen gehen während des Reveals weiter.
 - [ ] [Studio] Rejoin: Inventar und Pity-Zähler sind noch da.
 
+## 4.3 Kisten-Items: Ausrüstung und Verschmelzen
+
+Tests: tests/equipment.spec.luau, tests/data.spec.luau, tests/remotespec.spec.luau. Plan: Claude-Dokument "Paket 4.3: Kisten-Items, Ausrüstung und Verschmelzen, Plan".
+
+- [x] [Lune] Ausrüsten nur mit Besitz und passendem Slot; `""` nimmt ab; eine Ablehnung lässt das Profil unverändert.
+- [x] [Lune] Ohne Ausrüstung ist der Faktor genau 1; ein Item gibt seinen Grundwert; drei Items addieren sich; Sterne skalieren nach der Tabelle in `Economy.items`.
+- [x] [Lune] `Collecting.rateOf` multipliziert den Ausrüstungsbonus als eigenen Faktor nach dem Baum-Bonus.
+- [x] [Lune] Verschmelzen verbraucht genau die Kopien der Tabelle, der Zähler bleibt mindestens 1, bei ★5 und bei zu wenigen Kopien wird abgelehnt; kein Zufall.
+- [x] [Lune] Ein ausgerüstetes Item bleibt nach dem Verschmelzen ausgerüstet und wirkt stärker.
+- [x] [Lune] Migration 4 → 5 legt `equipped` und `itemStars` an; `sanitize` nimmt nicht besessene oder falsch eingeordnete Items ab, kappt Sterne auf 1 bis 5, unbekannte Items wirken nicht.
+- [x] [Lune] Speichern und Laden sowie der Sandsturm behalten Inventar, Ausrüstung und Sterne.
+- [x] [Lune] Remotes `EquipItem` und `MergeItem`: falsche Typen, unbekannte IDs und zu viele Argumente werden abgelehnt, die Limits stimmen.
+- [x] [Lune] DataCheck: jedes Item hat `effectBp` im erlaubten Bereich und einen Eintrag in `ItemLooks`; die Stern-Regeln sind gültig.
+- [ ] [Studio] Kiste öffnen, Item ausrüsten: Die Sammelrate steigt sichtbar, Umhang, Begleiter oder Werkzeugfarbe erscheinen.
+- [ ] [Studio] Ein zweiter Spieler (Studio-Test mit 2 Spielern) sieht die Ausrüstung des ersten.
+- [ ] [Studio] Mit Kopien verschmelzen: Sterne steigen, Kopien sinken, der Gesamtbonus im Fuß steigt.
+- [ ] [Studio] Rejoin und Sandsturm: Ausrüstung und Sterne bleiben.
+- [ ] [Studio] Handy: Das Ausrüstungs-Fenster ist mit dem Daumen bedienbar.
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.

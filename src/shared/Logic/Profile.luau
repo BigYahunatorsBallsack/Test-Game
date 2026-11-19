@@ -14,6 +14,8 @@ local BigNum = require("./BigNum")
 local Migrations = require("./Migrations")
 local Economy = require("../Data/Economy")
 local CratesData = require("../Data/Crates")
+local CrateItemsData = require("../Data/CrateItems")
+local Equipment = require("./Equipment")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -45,6 +47,8 @@ export type Profile = {
         companions: { [string]: number },
         toolVariants: { [string]: number },
     },
+    equipped: { skin: string, companion: string, toolVariant: string }, -- Item-ID je Slot, "" = leer (Paket 4.3)
+    itemStars: { [string]: number }, -- Item-ID -> Stern 2..maxStars, fehlt = ★1 (Paket 4.3)
     receipts: { string }, -- PurchaseIds der zuletzt gutgeschriebenen Käufe, neueste am Ende (Paket 4.1)
     purchaseLog: { PurchaseLogEntry }, -- die letzten Käufe, neueste am Ende (Paket 4.1)
     spent: { robux: number, count: number }, -- Robux und Zahl aller gutgeschriebenen Käufe (Paket 4.1)
@@ -107,6 +111,9 @@ function Profile.default(now: number?): Profile
             event = { sinceEpic = 0, sinceLegendary = 0 },
         },
         inventory = { skins = {}, companions = {}, toolVariants = {} },
+        -- Ausrüstung und Sterne der Kisten-Items (Paket 4.3), siehe Logic/Equipment.
+        equipped = { skin = "", companion = "", toolVariant = "" },
+        itemStars = {},
         receipts = {},
         purchaseLog = {},
         spent = { robux = 0, count = 0 },
@@ -554,6 +561,32 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
         for _, crateId in brokenEntries do
             warn(warnings, `pity.{tostring(crateId)}`, "keine Tabelle, entfernt")
             data.pity[crateId] = nil
+        end
+    end
+    -- Ausrüstung (Paket 4.3): Ein ausgerüstetes Item muss bekannt sein, zum Slot passen und im
+    -- Inventar liegen, sonst wird der Slot leer. Sterne sind ganze Zahlen von 2 bis maxStars
+    -- (★1 ist der Standard und wird nicht gespeichert). Unbekannte Item-IDs bleiben in `itemStars`.
+    if type(data.equipped) == "table" then
+        for _, slot in Equipment.SLOTS do
+            local itemId = data.equipped[slot]
+            if type(itemId) == "string" and itemId ~= "" then
+                local item = CrateItemsData.byId[itemId]
+                if item == nil or item.kind ~= slot or Equipment.copiesOf(profile, item) < 1 then
+                    warn(warnings, `equipped.{slot}`, `"{itemId}" nicht ausrüstbar, Slot geleert`)
+                    data.equipped[slot] = ""
+                end
+            end
+        end
+    end
+    if type(data.itemStars) == "table" then
+        local maxStars = Economy.items.maxStars
+        for itemId, stars in data.itemStars do
+            if type(stars) ~= "number" or stars < 2 then
+                warn(warnings, `itemStars.{tostring(itemId)}`, "ungültiger Stern, entfernt")
+                data.itemStars[itemId] = nil
+            elseif stars ~= math.floor(stars) or stars > maxStars then
+                data.itemStars[itemId] = math.min(math.floor(stars), maxStars)
+            end
         end
     end
     -- Gems (Paket 4.1): ganze Zahl ab 0, höchstens Economy.purchases.maxGems. NaN und unendlich

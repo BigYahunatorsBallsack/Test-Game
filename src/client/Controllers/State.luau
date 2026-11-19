@@ -24,6 +24,10 @@ export type Snapshot = {
     windBonusBp: number, -- ihr Bonus auf alle Münzen (Hundertstel-Prozent)
     storm: Storm, -- Vorschau des Sandsturms
     pity: { [string]: { sinceEpic: number, sinceLegendary: number } }, -- Kisten-Pity je Kiste (Paket 4.2)
+    inventory: { skins: { [string]: number }, companions: { [string]: number }, toolVariants: { [string]: number } }?, -- Kisten-Items (Paket 4.3)
+    equipped: { skin: string, companion: string, toolVariant: string }?, -- ausgerüstete Item-IDs, "" = leer (Paket 4.3)
+    itemStars: { [string]: number }?, -- Sterne ab ★2, fehlt = ★1 (Paket 4.3)
+    equipBonusBp: number?, -- Sammelraten-Bonus aller ausgerüsteten Items (Hundertstel-Prozent, Paket 4.3)
     cratesAllowed: boolean?, -- false/nil: Kisten in dieser Region gesperrt oder Policy unbekannt (Paket 4.2)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }

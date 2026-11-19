@@ -22,6 +22,15 @@ export type PurchasesConfig = {
     maxGems: number, -- Obergrenze des Gem-Stands (Schutz gegen kaputte Werte und Überlauf)
 }
 
+-- Kisten-Items (Paket 4.3), siehe Logic/Equipment.
+export type ItemsConfig = {
+    maxStars: number, -- höchster Stern (★1 = Grundwert, jedes Item startet bei ★1)
+    starBonusBp: number, -- je Stern über ★1: so viel vom Grundwert (effectBp) kommt dazu
+    copiesToMerge: { number }, -- Kopien, die der Schritt auf ★2, ★3, ... verbraucht (Index = Zielstern - 1)
+    maxEffectBp: number, -- Obergrenze für effectBp (★1) je Item, prüft DataCheck
+    maxTotalBonusBp: number, -- Deckel für die Summe aller Item-Boni (Equipment.bonusBp), prüft DataCheck
+}
+
 local Economy = {
     -- Grundpreis pro Sand in Münzen; der Preisfaktor der Sandsorte (SandTypes) multipliziert ihn.
     baseCoinsPerSand = 1,
@@ -74,6 +83,19 @@ local Economy = {
         saveTimeoutSeconds = 30,
         maxGems = 10_000_000,
     } :: PurchasesConfig,
+
+    -- Kisten-Items (Paket 4.3): Ausgerüstete Items erhöhen die Sammelrate (eigener Faktor neben dem
+    -- Baum). Item-Grundwert (`effectBp`) steht in Data/CrateItems. Verschmelzen: Der Schritt auf ★n
+    -- verbraucht `copiesToMerge[n - 1]` Kopien, ein Exemplar bleibt immer. ★5 = 1 + 4 x 15 % = 1,6-facher
+    -- Grundwert. Startwerte, geprüft vom balance-analyst (docs/balance/equipment_4_3.md).
+    items = {
+        maxStars = 5,
+        starBonusBp = 1500,
+        copiesToMerge = { 1, 2, 3, 4 },
+        maxEffectBp = 2500,
+        -- Drei Mythische ★5 ergeben 12.000 (+120 %). Der Deckel fängt Tippfehler in den Tabellen ab.
+        maxTotalBonusBp = 12000,
+    } :: ItemsConfig,
 
     -- Freunde-Bonus: 10 % mehr Münzen pro Freund im Server, höchstens 50 %.
     friendBonusPerFriendBp = 1000,

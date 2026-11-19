@@ -9,6 +9,8 @@ local RateLimiter = require("../Logic/RateLimiter")
 local Zones = require("../Data/Zones")
 local UpgradeTree = require("../Data/UpgradeTree")
 local Crates = require("../Data/Crates")
+local CrateItems = require("../Data/CrateItems")
+local Equipment = require("../Logic/Equipment")
 
 export type Limit = RateLimiter.Limit
 
@@ -68,6 +70,25 @@ local list: { RemoteDef } = {
         },
         limit = { calls = 1, per = 1 }, -- der Client wartet 1,3 s, damit Netzschwankungen das Limit nicht reißen
         description = "Spieler will eine Kiste (1) oder das 10er-Paket öffnen.",
+    },
+    {
+        name = "EquipItem",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = {
+            Validate.oneOf(Equipment.SLOTS), -- slot: skin, companion oder toolVariant
+            Validate.string(ID_MAX_LEN), -- itemId aus CrateItems, oder "" zum Abnehmen (Gründe prüft der Server)
+        },
+        limit = { calls = 2, per = 1 }, -- jede Änderung baut die Optik aller Clients neu
+        description = "Spieler rüstet ein Kisten-Item in einen Slot aus oder nimmt den Slot mit \"\" ab.",
+    },
+    {
+        name = "MergeItem",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = { Validate.idIn(CrateItems.byId, ID_MAX_LEN) }, -- itemId
+        limit = { calls = 2, per = 1 },
+        description = "Spieler hebt ein Kisten-Item mit Kopien um einen Stern.",
     },
     {
         name = "Prestige",

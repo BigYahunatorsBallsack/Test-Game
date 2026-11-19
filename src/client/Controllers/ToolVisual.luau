@@ -9,6 +9,8 @@
 -- Gerät (Grafikstufe "minimal", Controllers/Graphics) entfällt der Sandfluss ganz, auf "schlank"
 -- gibt es weniger Partikel, keine Schatten fremder Werkzeuge und eine kürzere Bewegungsentfernung. Welche Änderung eine Animation
 -- bekommt, entscheidet das reine Modul Logic/ToolLook.
+-- Werkzeug-Variante (Paket 4.3): Das Attribut `ToolVariantId` färbt die Teile der aktuellen Stufe um
+-- (Farbe aus Data/ItemLooks gemischt, Material der Variante), die Form bleibt die der Stufe.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +29,7 @@ local CAMERA_EASING = Enum.EasingStyle.Quad
 local SOUND_VOLUME = 0.5
 local SOUND_MAX_DISTANCE = 80
 local BASE_MIN_ZOOM = 0.5 -- Standard von Roblox
+local VARIANT_TINT = 0.65 -- Anteil der Variantenfarbe an der Teilefarbe (0 = Original, 1 = nur Variante)
 local FOLDER_NAME = "ToolModels"
 local FLOW_PART_NAME = "Flow"
 
@@ -36,12 +39,14 @@ local function loadShared(folder: string, name: string): any
 end
 local ToolLook = loadShared("Logic", "ToolLook")
 local ToolLooks = loadShared("Data", "ToolLooks")
+local ItemLooks = loadShared("Data", "ItemLooks")
 local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local ToolVisual = {}
 
 type Entry = {
     toolId: string,
+    variantId: string, -- Werkzeug-Variante beim Bau ("" = keine)
     look: any,
     model: Model,
     parts: { BasePart }, -- Teile in der Reihenfolge von look.parts
@@ -192,8 +197,12 @@ local function newFlow(look: any, model: Model): (BasePart?, CFrame, ParticleEmi
     return part, localCFrame, emitter, sound
 end
 
-local function buildEntry(player: Player, toolId: string, animated: boolean): Entry
+local function buildEntry(player: Player, toolId: string, animated: boolean, variantId: string): Entry
     local look = ToolLook.of(toolId)
+    local variant = ItemLooks.byId[variantId]
+    if variant ~= nil and variant.kind ~= "toolVariant" then
+        variant = nil
+    end
     local model = Instance.new("Model")
     model.Name = player.Name
 
@@ -209,6 +218,10 @@ local function buildEntry(player: Player, toolId: string, animated: boolean): En
         part.CastShadow = true
         part.Color = colorOf(spec.colorHex)
         part.Material = materialOf(spec.material)
+        if variant ~= nil then
+            part.Color = part.Color:Lerp(colorOf(variant.colorHex), VARIANT_TINT)
+            part.Material = materialOf(variant.material)
+        end
         if spec.shape == "Ball" then
             part.Shape = Enum.PartType.Ball
         elseif spec.shape == "Cylinder" then
@@ -228,6 +241,7 @@ local function buildEntry(player: Player, toolId: string, animated: boolean): En
     local startScale = if animated and #parts > 0 then ToolLooks.change.popStartScale else 1
     local entry: Entry = {
         toolId = toolId,
+        variantId = if variant ~= nil then variantId else "",
         look = look,
         model = model,
         parts = parts,
@@ -401,10 +415,13 @@ local function onFrame()
         end
         local entry = entries[player]
         local change = ToolLook.change(if entry ~= nil then entry.toolId else nil, toolId)
-        if entry == nil or change ~= "none" then
+        local variantAttribute = player:GetAttribute("ToolVariantId")
+        local variantLook = if type(variantAttribute) == "string" then ItemLooks.byId[variantAttribute] else nil
+        local variantId = if variantLook ~= nil and variantLook.kind == "toolVariant" then variantLook.id else ""
+        if entry == nil or change ~= "none" or entry.variantId ~= variantId then
             local animated = change == "upgrade"
             destroyEntry(player)
-            entry = buildEntry(player, toolId, animated)
+            entry = buildEntry(player, toolId, animated, variantId)
             entries[player] = entry
             if animated then
                 burst(entry.look, groundFrame(root, humanoid) * CFrame.new(entry.look.workPoint.x, 1, entry.look.workPoint.z))
