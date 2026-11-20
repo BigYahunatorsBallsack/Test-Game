@@ -29,6 +29,9 @@ local exampleMigrations: { [number]: Migrations.Step } = {
     [5] = function(profile: any) -- Paket 4.4: nur die Version zählt hier
         return profile
     end,
+    [6] = function(profile: any) -- Paket 4.5: nur die Version zählt hier
+        return profile
+    end,
 }
 
 local function v1Profile(): any
@@ -50,8 +53,9 @@ T.describe("Profile", function()
         T.expect(status).toBe("new")
         T.expect(profile.version).toBe(Profile.CURRENT_VERSION)
         -- 2 seit Paket 2.5 (gemischter Tank), 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege als Liste),
-        -- 5 seit Paket 4.3 (Ausrüstung und Sterne der Kisten-Items), 6 seit Paket 4.4 (Gamepasses, Einstellungen)
-        T.expect(Profile.CURRENT_VERSION).toBe(6)
+        -- 5 seit Paket 4.3 (Ausrüstung und Sterne der Kisten-Items), 6 seit Paket 4.4 (Gamepasses, Einstellungen),
+        -- 7 seit Paket 4.5 (Angebote)
+        T.expect(Profile.CURRENT_VERSION).toBe(7)
         T.expect(profile).toEqual(Profile.default(NOW))
     end)
 
@@ -75,6 +79,7 @@ T.describe("Profile", function()
         T.expect(profile.boosts).toEqual({ coinsUntil = 0 })
         T.expect(profile.passes).toEqual({}) -- Paket 4.4
         T.expect(profile.settings).toEqual({ autoDig = true }) -- Paket 4.4
+        T.expect(profile.offers).toEqual({ starter = { since = 0, bought = false } }) -- Paket 4.5
         T.expect(profile.daily).toEqual({ streak = 0, lastDay = 0 })
         T.expect(profile.lastSeen).toBe(NOW)
         T.expect(profile.createdAt).toBe(NOW)
@@ -92,7 +97,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(original, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.version).toBe(6)
+        T.expect(migrated.version).toBe(7)
         -- Fehlende Felder werden tief aufgefüllt: settings.autoDig kommt seit Paket 4.4 aus dem Standardprofil.
         T.expect(migrated.settings).toEqual({ music = true, autoDig = true })
         T.expect(migrated.legacyGems).toBe(120)

@@ -16,7 +16,9 @@ local Economy = require("../Data/Economy")
 local CratesData = require("../Data/Crates")
 local CrateItemsData = require("../Data/CrateItems")
 local ProductsData = require("../Data/Products")
+local OffersData = require("../Data/Offers")
 local Equipment = require("./Equipment")
+local Offers = require("./Offers")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -56,6 +58,9 @@ export type Profile = {
     boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft (Paket 4.4, Logic/Perks)
     passes: { [string]: boolean }, -- gemerkter Gamepass-Besitz: Pass-ID aus Data/Products -> true (Paket 4.4)
     settings: { autoDig: boolean }, -- Einstellungen des Spielers (Paket 4.4)
+    -- Angebote (Paket 4.5, seit Version 7): Angebots-ID aus Data/Offers -> { since (Unix-Zeit des
+    -- Fensterstarts, 0 = nicht gestartet), bought }. Regeln in Logic/Offers.
+    offers: { [string]: Offers.Entry },
     daily: { streak: number, lastDay: number },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
@@ -89,6 +94,16 @@ local function fillDefaults(data: any, defaults: any)
             fillDefaults(current, defaultValue)
         end
     end
+end
+
+-- Ein Eintrag { since = 0, bought = false } je Angebot aus Data/Offers (Paket 4.5). Ein neues
+-- Angebot braucht so keine Migration: Profile.migrate füllt den fehlenden Eintrag auf.
+local function defaultOffers(): { [string]: Offers.Entry }
+    local result: { [string]: Offers.Entry } = {}
+    for _, offer in OffersData.list do
+        result[offer.id] = { since = 0, bought = false }
+    end
+    return result
 end
 
 -- Standardprofil. `now` ist die Unix-Zeit für createdAt und lastSeen (Standard: os.time()).
@@ -125,6 +140,8 @@ function Profile.default(now: number?): Profile
         passes = {},
         -- Einstellungen (Paket 4.4): Auto-Dig sammelt nur mit Pass und Einstellung an.
         settings = { autoDig = true },
+        -- Angebote (Paket 4.5): Fenster und Merker "gekauft" je Angebot, nur der Server schreibt.
+        offers = defaultOffers(),
         daily = { streak = 0, lastDay = 0 },
         tutorial = { step = 1 },
         lastSeen = time,
@@ -646,6 +663,20 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
         for _, passId in removed do
             warn(warnings, `passes.{tostring(passId)}`, "unbekannter Gamepass oder Wert nicht true, entfernt")
             data.passes[passId] = nil
+        end
+    end
+    -- Angebote (Paket 4.5): je Eintrag { since, bought }, `since` endliche Zahl ab 0 (sonst 0, also
+    -- nicht gestartet), `bought` Boolean (sonst false), weitere Felder und Nicht-Text-Schlüssel fallen
+    -- weg (Logic/Offers.cleanOffers). Unbekannte Angebots-IDs mit gültigem Eintrag bleiben erhalten und
+    -- wirken nicht (ein Merker "gekauft" eines neueren Servers geht so nie verloren). Eine Startzeit in
+    -- der Zukunft bleibt stehen; ob sie zählt, entscheidet Logic/Offers.stateOf mit der Server-Uhr.
+    if type(data.offers) == "table" then
+        local clean, problems = Offers.cleanOffers(data.offers)
+        for _, text in problems do
+            warn(warnings, "offers", text)
+        end
+        if #problems > 0 then
+            data.offers = clean
         end
     end
     -- Kaufprotokoll zuerst: Ist `receipts` ganz kaputt, kommen die PurchaseIds von dort zurück.

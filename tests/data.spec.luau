@@ -15,6 +15,7 @@ local GemPacks = require("../src/shared/Data/GemPacks")
 local Products = require("../src/shared/Data/Products")
 local Economy = require("../src/shared/Data/Economy")
 local UpgradeTree = require("../src/shared/Data/UpgradeTree")
+local OffersData = require("../src/shared/Data/Offers")
 
 -- Tiefe Kopie, die gemeinsame Referenzen (Event-Kiste = Goldkiste) erhält.
 local function deepCopy(value: any, memo: { [any]: any }?): any
@@ -768,6 +769,72 @@ T.describe("Gamepasses und Münz-Boost (4.4)", function()
                 end
             end
         end), 'Products: "coin_boost" (Münz-Boost) fehlt')
+    end)
+end)
+
+T.describe("Angebote (4.5)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("die echten Angebote bestehen die Prüfung (Starterpaket: starter_pack, feste Items, 24 h, 300 Gems)", function()
+        T.expect(#OffersData.list >= 1).toBe(true)
+        T.expect(OffersData.byId.starter.productId).toBe("starter_pack")
+        T.expect(Products.byId.starter_pack.kind).toBe("developerProduct")
+        T.expect(Products.byId.starter_pack.oneTime).toBe(true)
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("Angebote verweisen auf bekannte Developer Products mit Einmalkauf, je Angebot ein eigenes", function()
+        expectError(broken(function(d) d.Offers.byId.starter.productId = "gibt_es_nicht" end), 'productId "gibt_es_nicht" steht nicht in Products')
+        expectError(broken(function(d) d.Offers.byId.starter.productId = "double_coins" end), 'Produkt "double_coins" muss ein Developer Product mit oneTime = true sein')
+        expectError(broken(function(d) d.Offers.byId.starter.productId = "coin_boost" end), 'Produkt "coin_boost" muss ein Developer Product mit oneTime = true sein')
+        expectError(broken(function(d) d.Products.byId.starter_pack.oneTime = false end), "oneTime = true")
+        expectError(broken(function(d) d.Offers.byId.starter.productId = "gems_550" end), "steht nicht in Products")
+        expectError(broken(function(d)
+            local copy = table.clone(d.Offers.byId.starter)
+            copy.id = "zweites"
+            table.insert(d.Offers.list, copy)
+            d.Offers.byId.zweites = copy
+        end), 'gehört schon zum Angebot "starter"')
+    end)
+
+    T.it("Items sind feste, bekannte Items: keine Kiste, kein Zufall, je Art höchstens eines, lückenlose Liste", function()
+        expectError(broken(function(d) d.Offers.byId.starter.items = { "gold" } end), '"gold" ist eine Kiste (Zufall)')
+        expectError(broken(function(d) d.Offers.byId.starter.items = { "gibt_es_nicht" } end), 'Item "gibt_es_nicht" steht nicht in CrateItems')
+        expectError(broken(function(d) d.Offers.byId.starter.items = { "toolVariant_rare_1", "toolVariant_common_1" } end), "höchstens ein Item je Art")
+        expectError(broken(function(d) d.Offers.byId.starter.items = { "skin_rare_1", "skin_rare_1" } end), "höchstens ein Item je Art")
+        expectError(broken(function(d) d.Offers.byId.starter.items = { [1] = "skin_rare_1", [3] = "companion_rare_1" } end), "lückenlose Liste")
+        expectError(broken(function(d) d.Offers.byId.starter.items = "skin_rare_1" end), "items muss eine Liste sein")
+        expectError(broken(function(d) d.Offers.byId.starter.crateId = "gold" end), 'unbekanntes Feld "crateId"')
+        expectError(broken(function(d) d.Offers.byId.starter.randomItems = { "skin_rare_1" } end), 'unbekanntes Feld "randomItems"')
+        expectError(broken(function(d)
+            d.Offers.byId.starter.items = {}
+            d.Offers.byId.starter.gems = 0
+        end), "Angebot ohne Inhalt")
+    end)
+
+    T.it("Fenster, Gems, Seltenheit, Auslöser, priority und IDs sind gültig", function()
+        for _, bad in { 0, -1, 0 / 0, math.huge, "24" } do
+            expectError(broken(function(d) d.Offers.byId.starter.windowHours = bad end), "windowHours muss endlich und größer als 0 sein")
+        end
+        for _, bad in { -1, 1.5, 0 / 0, math.huge, "300", Economy.purchases.maxGems + 1 } do
+            expectError(broken(function(d) d.Offers.byId.starter.gems = bad end), "gems muss eine ganze Zahl von 0 bis Economy.purchases.maxGems sein")
+        end
+        expectError(broken(function(d) d.Offers.byId.starter.minRarityId = "selten" end), 'minRarityId "selten" steht nicht in Rarities')
+        expectError(broken(function(d) d.Offers.byId.starter.trigger = "login" end), 'unbekannter Auslöser "login"')
+        for _, bad in { 0 / 0, math.huge, "1" } do
+            expectError(broken(function(d) d.Offers.byId.starter.priority = bad end), "priority muss eine endliche Zahl sein")
+        end
+        expectError(broken(function(d)
+            table.insert(d.Offers.list, table.clone(d.Offers.byId.starter))
+        end), 'Offers: id "starter" ist doppelt')
+        expectError(broken(function(d) d.Offers = nil end), "Offers: list fehlt")
+        -- gültige Ränder
+        T.expect(broken(function(d) d.Offers.byId.starter.gems = 0 end)).toEqual({})
+        T.expect(broken(function(d) d.Offers.byId.starter.windowHours = 0.5 end)).toEqual({})
     end)
 end)
 

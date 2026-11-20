@@ -448,7 +448,7 @@ T.describe("Sicherheits-Review 2.6", function()
         local fixed = Profile.migrate(broken1, nil, NOW)
         Profile.sanitize(fixed, NOW)
         T.expect((fixed :: any).finds).toEqual({})
-        T.expect(Migrations.CURRENT_VERSION).toBe(6) -- 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege), 5 seit Paket 4.3 (Ausrüstung), 6 seit Paket 4.4 (Pässe)
+        T.expect(Migrations.CURRENT_VERSION).toBe(7) -- 3 seit Paket 2.7 (runEarned), 4 seit Paket 4.1 (Belege), 5 seit Paket 4.3 (Ausrüstung), 6 seit Paket 4.4 (Pässe), 7 seit Paket 4.5 (Angebote)
     end)
 
     T.it("der Zähler eines Fundstücks ist bei 2^31 gedeckelt", function()

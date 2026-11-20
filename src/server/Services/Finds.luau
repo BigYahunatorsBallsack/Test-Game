@@ -14,6 +14,14 @@
 -- Studio-Hilfe (nur in Studio, in der Befehlszeile der Ansicht "Server"): Am Spieler das Attribut "DebugFindSet" auf eine Set-ID setzen
 -- (z. B. "dunes_set_1") oder "DebugFindZone" auf eine Zonen-ID (z. B. "oasis"), dann trägt der
 -- Server alle Fundstücke dieses Sets oder der Zone in die Sammlung ein.
+--
+-- Für andere Services (Paket 4.5): `Finds.addFindListener(fn)` meldet jeden gebuchten Fund mit
+-- fn(player, profile, { findId, rarityId, isNew, studio }). Der Offers-Service startet so das
+-- Starterpaket-Fenster. Ein Listener darf nicht warten; ein Fehler darin wird gemeldet und ändert
+-- nichts am gebuchten Fund. Die Listener laufen nach der Fund-Meldung und vor Sand.refresh, der
+-- neue Zustand (auch ein gestartetes Angebot) geht also mit demselben StateSync hinaus. Die
+-- Studio-Hilfen DebugFindSet/DebugFindZone melden jedes neu eingetragene Fundstück genauso
+-- (studio = true). Kisten-Items laufen nie hier durch (Logic/CrateOpen), sie lösen nichts aus.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,6 +50,10 @@ local Net: any = nil
 
 local Finds = {}
 
+-- Listener für gebuchte Funde (Finds.addFindListener), in der Reihenfolge der Anmeldung.
+export type FindInfo = { findId: string, rarityId: string, isNew: boolean, studio: boolean }
+local findListeners: { (Player, any, FindInfo) -> () } = {}
+
 local random = Random.new()
 -- Sammelzeit dieser Sitzung je Spieler (für "Erster Fund sicher").
 local sessionSeconds: { [Player]: number } = {}
@@ -57,6 +69,23 @@ local function syncCollection(player: Player)
         return
     end
     Net.fire(player, "CollectionSync", Collection.summary(profile))
+end
+
+-- Meldet einen gebuchten Fund an alle Listener. Jeder läuft für sich in pcall, ein Fehler wird nur
+-- gemeldet (der Fund ist schon gebucht).
+local function notifyListeners(player: Player, profile: any, info: FindInfo)
+    for _, listener in findListeners do
+        -- Ein Listener darf nicht warten (sonst stünden die Funde aller Spieler still): eigene
+        -- Koroutine, bei Yield schließen, wie bei den Snapshot-Providern in Sand.
+        local co = coroutine.create(listener)
+        local ok, err = coroutine.resume(co, player, profile, info)
+        if coroutine.status(co) ~= "dead" then
+            coroutine.close(co)
+            warn(`[Finds] Ein Fund-Listener hat für {player.Name} gewartet und wird abgebrochen`)
+        elseif not ok then
+            warn(`[Finds] Fund-Listener für {player.Name} fehlgeschlagen: {tostring(err)}`)
+        end
+    end
 end
 
 -- Bucht einen Fund und meldet ihn dem Spieler.
@@ -80,8 +109,10 @@ local function award(player: Player, profile: any, roll: any, zoneId: string)
         zoneBookCompleted = recorded.zoneBookCompleted,
         bonusBp = recorded.bonusBpAfter,
     })
+    -- Nach der Fund-Meldung (der Client zeigt erst den Reveal, dann ein Angebot), vor dem Refresh.
+    notifyListeners(player, profile, { findId = recorded.findId, rarityId = recorded.rarityId, isNew = recorded.isNew, studio = false })
     syncCollection(player)
-    Sand.refresh(player) -- Münzen aus einem Duplikat und der neue Preis mit Bonus
+    Sand.refresh(player) -- Münzen aus einem Duplikat, der neue Preis mit Bonus, gestartete Angebote
 end
 
 -- Würfelt die gesammelte Zeit eines Spielers.
@@ -128,15 +159,19 @@ local function connectStudioHelper(player: Player)
         if type(value) ~= "string" or profile == nil then
             return
         end
-        local added = 0
+        local added: { any } = {}
         for _, find in FindsData.list do
             local matches = if attribute == DEBUG_SET_ATTRIBUTE then find.setId == value else find.zoneId == value
             if matches and Collection.countOf(profile, find.id) == 0 then
                 profile.finds[find.id] = 1
-                added += 1
+                table.insert(added, find)
             end
         end
-        print(`[Finds] Studio: {player.Name} {attribute} = {value}, {added} Fundstücke eingetragen`)
+        print(`[Finds] Studio: {player.Name} {attribute} = {value}, {#added} Fundstücke eingetragen`)
+        -- Wie echte Funde an die Listener melden (zum Beispiel startet ein Selten-Fund das Starterpaket).
+        for _, find in added do
+            notifyListeners(player, profile, { findId = find.id, rarityId = find.rarityId, isNew = true, studio = true })
+        end
         syncCollection(player)
         Sand.refresh(player)
     end
@@ -145,6 +180,12 @@ local function connectStudioHelper(player: Player)
             apply(attribute)
         end)
     end
+end
+
+-- Meldet jeden gebuchten Fund an `listener` (Paket 4.5). Im Init des anderen Services anmelden, dann
+-- gilt er vom ersten Takt an (alle Init laufen vor allen Start). Der Listener darf nicht warten.
+function Finds.addFindListener(listener: (Player, any, FindInfo) -> ())
+    table.insert(findListeners, listener)
 end
 
 function Finds.Init()

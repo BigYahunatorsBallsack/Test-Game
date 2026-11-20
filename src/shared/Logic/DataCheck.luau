@@ -5,6 +5,8 @@
 
 local TreeLayout = require("./TreeLayout")
 local Perks = require("./Perks")
+local Offers = require("./Offers")
+local Equipment = require("./Equipment")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -86,6 +88,7 @@ export type DataSet = {
     Weather: any,
     Collection: any,
     Screen: any,
+    Offers: any,
 }
 
 local DataCheck = {}
@@ -116,6 +119,7 @@ function DataCheck.defaults(): DataSet
         Weather = require("../Data/Weather"),
         Collection = require("../Data/Collection"),
         Screen = require("../Data/Screen"),
+        Offers = require("../Data/Offers"),
     }
 end
 
@@ -870,6 +874,111 @@ local function checkPerks(errors: { string }, data: DataSet)
     local coinBoost = economy.coinBoost
     if type(coinBoost) ~= "table" or not isFinite(coinBoost.multiplier) or coinBoost.multiplier <= 1 then
         table.insert(errors, "Economy.coinBoost.multiplier muss endlich und größer als 1 sein")
+    end
+end
+
+-- Felder einer Angebotszeile (Paket 4.5). Ein weiteres Feld (zum Beispiel eine Kiste oder eine
+-- Zufallsliste) ist ein Fehler: Angebote haben nur festen Inhalt, sonst wären sie bezahlte
+-- Zufallsitems (Policy ArePaidRandomItemsRestricted, Quotenpflicht).
+local OFFER_FIELDS = {
+    id = true,
+    productId = true,
+    trigger = true,
+    minRarityId = true,
+    windowHours = true,
+    gems = true,
+    items = true,
+    priority = true,
+}
+
+-- Angebote (Paket 4.5): eindeutige IDs; jedes Angebot verweist auf ein eigenes bekanntes Produkt
+-- (Developer Product, Einmalkauf); bekannter Auslöser und bekannte Seltenheit; Fenster endlich und
+-- größer als 0 Stunden; Gems ganze Zahl von 0 bis maxGems; Items sind feste IDs aus CrateItems (keine
+-- Kisten-ID, kein Zufall), lückenlose Liste, je Art höchstens eines; das Angebot ist nicht leer;
+-- priority ist eine endliche Zahl; keine weiteren Felder.
+local function checkOffers(errors: { string }, data: DataSet)
+    local offers = data.Offers
+    checkIds(errors, "Offers", offers)
+    if type(offers) ~= "table" or not isList(offers.list) then
+        return
+    end
+    local products = if type(data.Products) == "table" and type(data.Products.byId) == "table" then data.Products.byId else {}
+    local items = if type(data.CrateItems) == "table" and type(data.CrateItems.byId) == "table" then data.CrateItems.byId else {}
+    local crates = if type(data.Crates) == "table" and type(data.Crates.byId) == "table" then data.Crates.byId else {}
+    local rarities = if type(data.Rarities) == "table" and type(data.Rarities.byId) == "table" then data.Rarities.byId else {}
+    local economy = data.Economy
+    local maxGems = if type(economy) == "table" and type(economy.purchases) == "table" then economy.purchases.maxGems else nil
+    local productUsedBy: { [string]: string } = {}
+    for index, offer in offers.list do
+        local label = `Offers "{tostring(if type(offer) == "table" then offer.id else index)}"`
+        if type(offer) ~= "table" then
+            table.insert(errors, `{label}: Eintrag ist keine Tabelle`)
+            continue
+        end
+        for field in offer do
+            if not OFFER_FIELDS[field] then
+                table.insert(errors, `{label}: unbekanntes Feld "{tostring(field)}" (Angebote haben nur festen Inhalt, kein Zufall)`)
+            end
+        end
+        local product = if type(offer.productId) == "string" then products[offer.productId] else nil
+        if type(product) ~= "table" then
+            table.insert(errors, `{label}: productId "{tostring(offer.productId)}" steht nicht in Products`)
+        else
+            if product.kind ~= "developerProduct" or product.oneTime ~= true then
+                table.insert(errors, `{label}: Produkt "{offer.productId}" muss ein Developer Product mit oneTime = true sein`)
+            end
+            local other = productUsedBy[offer.productId]
+            if other ~= nil then
+                table.insert(errors, `{label}: Produkt "{offer.productId}" gehört schon zum Angebot "{other}"`)
+            else
+                productUsedBy[offer.productId] = tostring(offer.id)
+            end
+        end
+        if type(offer.trigger) ~= "string" or not Offers.TRIGGERS[offer.trigger] then
+            table.insert(errors, `{label}: unbekannter Auslöser "{tostring(offer.trigger)}"`)
+        end
+        if type(offer.minRarityId) ~= "string" or rarities[offer.minRarityId] == nil then
+            table.insert(errors, `{label}: minRarityId "{tostring(offer.minRarityId)}" steht nicht in Rarities`)
+        end
+        if not isFinite(offer.windowHours) or offer.windowHours <= 0 then
+            table.insert(errors, `{label}: windowHours muss endlich und größer als 0 sein`)
+        end
+        if not isInt(offer.gems) or offer.gems < 0 or (isInt(maxGems) and offer.gems > maxGems) then
+            table.insert(errors, `{label}: gems muss eine ganze Zahl von 0 bis Economy.purchases.maxGems sein`)
+        end
+        if not isFinite(offer.priority) then
+            table.insert(errors, `{label}: priority muss eine endliche Zahl sein`)
+        end
+        local itemList = offer.items
+        if type(itemList) ~= "table" then
+            table.insert(errors, `{label}: items muss eine Liste sein`)
+            continue
+        end
+        local count = 0
+        for _ in itemList do
+            count += 1
+        end
+        if count ~= #itemList then
+            table.insert(errors, `{label}: items muss eine lückenlose Liste sein`)
+        end
+        local kinds: { [string]: string } = {}
+        for _, itemId in itemList do
+            local item = if type(itemId) == "string" then items[itemId] else nil
+            if type(itemId) == "string" and crates[itemId] ~= nil then
+                table.insert(errors, `{label}: "{itemId}" ist eine Kiste (Zufall), erlaubt sind nur feste Items aus CrateItems`)
+            elseif type(item) ~= "table" then
+                table.insert(errors, `{label}: Item "{tostring(itemId)}" steht nicht in CrateItems`)
+            elseif type(item.kind) ~= "string" or Equipment.INVENTORY_FIELDS[item.kind] == nil then
+                table.insert(errors, `{label}: Item "{itemId}" hat keine bekannte Art`)
+            elseif kinds[item.kind] ~= nil then
+                table.insert(errors, `{label}: höchstens ein Item je Art ("{kinds[item.kind]}" und "{itemId}" sind beide {item.kind})`)
+            else
+                kinds[item.kind] = itemId
+            end
+        end
+        if count == 0 and offer.gems == 0 then
+            table.insert(errors, `{label}: Angebot ohne Inhalt (keine Gems, keine Items)`)
+        end
     end
 end
 
@@ -2288,6 +2397,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkGemPacks(errors, data)
     checkProducts(errors, data)
     checkPerks(errors, data)
+    checkOffers(errors, data)
     checkProductIds(errors, data)
     checkFinds(errors, data)
     checkCollection(errors, data)

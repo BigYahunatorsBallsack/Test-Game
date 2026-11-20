@@ -42,7 +42,8 @@ local list: { Product } = {
         productId = 0,
         oneTime = true,
         consumable = false,
-        -- Erscheint 24 Stunden nach dem ersten Selten-Fund.
+        -- Angebot "starter" in Data/Offers (Paket 4.5): erscheint direkt nach dem ersten Fund ab
+        -- "Selten" und ist ab dann 24 Stunden kaufbar. Inhalt (Gems, feste Items) steht dort.
         effect = "300 Gems, eine seltene Werkzeug-Variante, ein Begleiter",
     },
     {

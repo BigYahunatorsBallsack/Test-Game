@@ -409,6 +409,12 @@ local function process()
     end)
 end
 
+-- Läuft ein Fund-Reveal oder wartet einer in der Schlange? Angebots-Hinweise (Paket 4.5) kommen
+-- erst danach.
+function Reveal.isBusy(): boolean
+    return running or #queue > 0
+end
+
 function Reveal.Init() end
 
 function Reveal.Start()

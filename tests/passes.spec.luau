@@ -627,8 +627,8 @@ T.describe("Spielstand Version 6 (4.4)", function()
         local migrated, status = Profile.migrate(v5Profile(), nil, NOW)
         local profile: any = migrated
         T.expect(status).toBe("ok")
-        T.expect(profile.version).toBe(6)
-        T.expect(Migrations.CURRENT_VERSION).toBe(6)
+        T.expect(profile.version).toBe(Migrations.CURRENT_VERSION) -- 6 in Paket 4.4, seit Paket 4.5 weiter auf 7
+        T.expect(Migrations.CURRENT_VERSION >= 6).toBe(true)
         T.expect(profile.passes).toEqual({})
         T.expect(profile.settings).toEqual({ autoDig = true })
         T.expect(profile.boosts).toEqual({ coinsUntil = NOW + 77 })
