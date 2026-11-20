@@ -17,7 +17,7 @@ Vorlage für den Fragebogen von Roblox. Ausfüllen musst du ihn selbst im Creato
 | --- | --- | --- |
 | Art der Anwendung | Spiel | Sand-Inkremental-Spiel, kein Kommunikations- oder Treffpunkt-Angebot |
 | Digitale Käufe | Ja | Developer Products (Gem-Pakete, Starterpaket, Münz-Boost, später Saison-Pass), Gamepasses (2x Münzen, Auto-Dig, Großer Tank) |
-| Zufallsbelohnungen gegen Bezahlung (Kisten) | Ja | Eisen-, Gold- und Event-Kiste werden mit Gems geöffnet, Gems gibt es für Robux. Quoten stehen vor dem Kauf im Kisten-Fenster ("Details"), Pity ist mit Zahlen erklärt. In gesperrten Regionen keine Kisten, stattdessen Direktkauf |
+| Zufallsbelohnungen gegen Bezahlung (Kisten) | Ja | Eisen-, Gold- und Event-Kiste werden mit Gems geöffnet, Gems gibt es für Robux. Die Holzkiste kostet Münzen; Münzen lassen sich mit 2x-Pass und Münz-Boost (Robux) schneller verdienen, darum gilt auch sie als bezahltes Zufallsitem und ist in gesperrten Regionen zu. Quoten stehen vor dem Kauf im Kisten-Fenster ("Details"), Pity ist mit Zahlen erklärt. In gesperrten Regionen keine Kisten, stattdessen Direktkauf |
 | Glücksspiel | Nein | Kein Spiel um Robux, echtes Geld oder Items gegen Zufall außer den Kisten. Roblox sagt: Die Kategorie gilt nicht für Zufallsitems. Kein Tausch, kein Verkauf, keine Auszahlung |
 | Gewalt | Nein | Graben, Sammeln, Verkaufen. Keine Kämpfe, keine Waffen |
 | Blut und Verletzungen | Nein | |

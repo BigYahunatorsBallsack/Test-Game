@@ -494,10 +494,12 @@ Tests: tests/crateroll.spec.luau, tests/directshop.spec.luau, tests/policyguards
 - [x] [Lune] ProcessReceipt mit abweichendem `CurrencySpent`: gebucht, Warnung im Protokoll und Vermerk im Kaufprotokoll.
 - [ ] [Studio] Kisten-Fenster: "Details" zeigt alle Items mit Quote und Rundungshinweis; Pity-Zeile mit Gems.
 - [ ] [Studio] `DebugCratesRestricted = true`: Kisten-Knopf weg, Reiter "Direktkauf" da, Kauf mit Gems landet im Inventar und lässt sich ausrüsten; `false`: Reiter weg, Kisten wieder da.
-- [ ] [Studio] Gold-Pity kurz vor der Garantie (14 Öffnungen ohne Episch): Karte zeigt "Deine nächste Öffnung" mit 75 / 22,5 / 2,5 %, die 15. Öffnung bringt mindestens Episch.
+- [ ] [Studio] Gold-Pity kurz vor der Garantie (14 Öffnungen ohne Episch): Karte zeigt weiter die normale Tabelle und darüber "Deine nächste Öffnung ist garantiert Episch oder besser: Episch 75 %, Legendär 22,5 %, Mythisch 2,5 %"; die 15. Öffnung bringt mindestens Episch, danach ist der Satz sofort weg.
+- [ ] [Studio] Details-Fenster der Goldkiste: normale Tabelle mit allen Items, darunter "Garantierte Öffnung" für Episch und Legendär; "Zurück zu den Kisten" führt zurück.
+- [ ] [Studio] Direktkauf: erster Tipp zeigt "Wirklich? … Gems", erst der zweite kauft; zu wenig Gems gibt eine Meldung.
 - [ ] [Studio, nach dem Anlegen der Produkte] Shop zeigt die Preise aus dem Dashboard; ein absichtlich falscher Tabellenpreis erzeugt eine Warnung im Server-Output.
 - [ ] [Dashboard] Fragebogen nach `docs/fragebogen.md` ausgefüllt, Freigabe erteilt.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (H1, M1, M2 eingearbeitet, Rest siehe docs/architektur.md).
 
 ## 5.1 Daily Reward
 

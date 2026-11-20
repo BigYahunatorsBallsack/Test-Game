@@ -30,7 +30,7 @@ local MENU_ORDER = 4 -- nach Zonen, Sammlung und Sandsturm
 local FOOTER_HEIGHT = 64
 local MESSAGE_SECONDS = 3
 local OPEN_COOLDOWN_SECONDS = 1.3 -- gegen Doppeltippen, etwas länger als das Server-Limit (1 s), damit Netzschwankungen es nicht reißen
-local PITY_TEXT_HEIGHT = 60 -- drei Zeilen: zwei Garantien und der Satz zum Paket
+local PITY_TEXT_HEIGHT = 110 -- bis fünf Zeilen: anstehende Garantie mit Quoten, zwei Zähler, Satz zum Paket
 local DETAILS_BUTTON_HEIGHT = 36
 local DETAILS_ROW_HEIGHT = 22
 local DETAILS_HEADER_HEIGHT = 26
@@ -497,6 +497,7 @@ function CrateShop.Start()
     local busy = false
     local lastOpenAt = 0
     local openDetails: (crate: any) -> () = function(_crate: any) end
+    local refreshCards: () -> () = function() end
     local cards: { [string]: { frame: Frame, pity: TextLabel?, single: TextButton, bundle: TextButton, oddsTitle: TextLabel, oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } } } = {}
 
     -- Pity-Stand einer Kiste aus dem letzten Zustand des Servers (fehlt = 0/0).
@@ -507,10 +508,12 @@ function CrateShop.Start()
 
     -- Quoten der nächsten Öffnung in die Karte schreiben (dieselbe Funktion, über die der Server
     -- würfelt). Seltenheiten, die gerade nicht vorkommen können, stehen grau mit 0 %.
-    local function renderOdds(card: any, crate: any, counters: any)
-        local effective = CrateRoll.effectiveOdds(crate, counters)
-        card.oddsTitle.Text = OddsView.oddsTitle(effective.guarantee)
-        card.oddsTitle.TextColor3 = if effective.guarantee ~= nil then GOOD_COLOR else MUTED_COLOR
+    -- Die Tabelle ist immer die normale (jedes mögliche Ergebnis, auch im 10 + 1 Paket nach einer
+    -- Garantie). Steht eine Garantie an, nennt die Pity-Zeile ihre Quoten zusätzlich (OddsView.dueLine).
+    local function renderOdds(card: any, crate: any, _counters: any)
+        local effective = CrateRoll.effectiveOdds(crate, nil)
+        card.oddsTitle.Text = OddsView.oddsTitle(nil)
+        card.oddsTitle.TextColor3 = MUTED_COLOR
         for rarityId, row in card.oddsRows do
             local weight = effective.odds[rarityId] or 0
             local possible = weight > 0 and effective.total > 0
@@ -571,31 +574,45 @@ function CrateShop.Start()
         end
 
         local counters = countersOf(snapshotNow, crateId)
-        local effective = CrateRoll.effectiveOdds(crate, counters)
-        add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, if effective.guarantee ~= nil then GOOD_COLOR else TEXT_COLOR, OddsView.oddsTitle(effective.guarantee))
 
         -- Items nach Seltenheit gruppiert (höchste zuerst); itemOdds liefert sie schon so sortiert.
-        local items = CrateRoll.itemOdds(crateId, counters)
-        local groups: { { rarityId: string, entries: { any } } } = {}
-        for _, entry in items do
-            local last = groups[#groups]
-            if last == nil or last.rarityId ~= entry.rarityId then
-                last = { rarityId = entry.rarityId, entries = {} }
-                table.insert(groups, last)
+        local function addSection(title: string, titleColor: Color3, sectionCounters: any)
+            add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, titleColor, title)
+            local effective = CrateRoll.effectiveOdds(crate, sectionCounters)
+            local items = CrateRoll.itemOdds(crateId, sectionCounters)
+            local groups: { { rarityId: string, entries: { any } } } = {}
+            for _, entry in items do
+                local last = groups[#groups]
+                if last == nil or last.rarityId ~= entry.rarityId then
+                    last = { rarityId = entry.rarityId, entries = {} }
+                    table.insert(groups, last)
+                end
+                table.insert(last.entries, entry)
             end
-            table.insert(last.entries, entry)
+            for _, group in groups do
+                local rarity = Rarities.byId[group.rarityId]
+                local weight = effective.odds[group.rarityId] or 0
+                local share = if effective.total > 0 then weight / effective.total else 0
+                local first = group.entries[1]
+                local each = first.numerator / first.denominator
+                add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, if rarity then hexColor(rarity.colorHex) else TEXT_COLOR, `{if rarity then rarity.name else group.rarityId}: {OddsView.percentText(share)}, Quote je Item: {OddsView.percentText(each)}`)
+                for _, entry in group.entries do
+                    local kindName = KIND_NAMES[entry.kind] or tostring(entry.kind)
+                    add(DETAILS_ROW_HEIGHT, Enum.Font.Gotham, TEXT_COLOR, `   {entry.name} ({kindName}): {OddsView.percentText(entry.numerator / entry.denominator)}`)
+                end
+            end
         end
-        for _, group in groups do
-            local rarity = Rarities.byId[group.rarityId]
-            local weight = effective.odds[group.rarityId] or 0
-            local share = if effective.total > 0 then weight / effective.total else 0
-            local first = group.entries[1]
-            local each = first.numerator / first.denominator
-            local header = add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, if rarity then hexColor(rarity.colorHex) else TEXT_COLOR, `{if rarity then rarity.name else group.rarityId}: {OddsView.percentText(share)}, Quote je Item: {OddsView.percentText(each)}`)
-            header.TextXAlignment = Enum.TextXAlignment.Left
-            for _, entry in group.entries do
-                local kindName = KIND_NAMES[entry.kind] or tostring(entry.kind)
-                add(DETAILS_ROW_HEIGHT, Enum.Font.Gotham, TEXT_COLOR, `   {entry.name} ({kindName}): {OddsView.percentText(entry.numerator / entry.denominator)}`)
+
+        -- Normale Tabelle: jedes mögliche Ergebnis. Danach die Quoten einer garantierten Öffnung je Stufe.
+        addSection(OddsView.oddsTitle(nil), TEXT_COLOR, nil)
+        local dueLine = OddsView.dueLine(crate, counters)
+        if dueLine ~= nil then
+            add(DETAILS_NOTE_HEIGHT, Enum.Font.GothamBold, GOOD_COLOR, dueLine)
+        end
+        for _, tier in { "epic", "legendary" } do
+            local tierCounters = OddsView.dueCounters(crate, tier)
+            if tierCounters ~= nil then
+                addSection(`Garantierte Öffnung ({if tier == "epic" then "Episch" else "Legendär"} oder besser)`, GOOD_COLOR, tierCounters)
             end
         end
 
@@ -607,7 +624,7 @@ function CrateShop.Start()
                 add(DETAILS_ROW_HEIGHT, Enum.Font.Gotham, GOOD_COLOR, line)
             end
         end
-        add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, MUTED_COLOR, `Im Paket {Crates.bundle.buy} + {Crates.bundle.get - Crates.bundle.buy} öffnest du {Crates.bundle.get} Kisten einzeln nacheinander, jede mit diesen Quoten und der Pity.`)
+        add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, MUTED_COLOR, OddsView.bundleRule(Crates.bundle.buy, Crates.bundle.get))
         add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, MUTED_COLOR, OddsView.ROUNDING_NOTE)
     end
 
@@ -649,6 +666,16 @@ function CrateShop.Start()
             if reply.ok ~= true or type(reply.results) ~= "table" or #reply.results == 0 then
                 showMessage(REASONS[tostring(reply.reason)] or REASONS.unknown)
                 return
+            end
+            -- Neuer Pity-Stand sofort aus der Antwort (nicht erst mit dem nächsten StateSync), damit die
+            -- Karte nie eine Garantie zeigt, die schon verbraucht ist (Sicherheitsprüfung 4.6, M1).
+            if type(reply.pity) == "table" and snapshotNow ~= nil then
+                local nextSnapshot = table.clone(snapshotNow)
+                local pity = if type(nextSnapshot.pity) == "table" then table.clone(nextSnapshot.pity) else {}
+                pity[crate.id] = reply.pity
+                nextSnapshot.pity = pity
+                snapshotNow = nextSnapshot
+                refreshCards()
             end
             -- Fenster zu, damit der Reveal frei steht; der Spieler sieht danach das Spiel.
             window.close()
@@ -799,6 +826,10 @@ function CrateShop.Start()
             renderOdds(card, crate, counters)
             if card.pity ~= nil and crate.pity ~= nil then
                 local lines = OddsView.pityLines(crate, counters)
+                local dueLine = OddsView.dueLine(crate, counters)
+                if dueLine ~= nil then
+                    table.insert(lines, 1, dueLine)
+                end
                 local bundleText = OddsView.bundleText(crate, counters, Crates.bundle.get)
                 if bundleText ~= nil then
                     table.insert(lines, bundleText)
@@ -814,6 +845,7 @@ function CrateShop.Start()
         end
     end
 
+    refreshCards = refresh
     State.onChanged(function(snapshot: any)
         snapshotNow = snapshot
         refresh()

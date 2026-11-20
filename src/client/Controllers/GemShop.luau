@@ -46,6 +46,7 @@ local DIRECT_SECTION_ORDER = 300 -- LayoutOrder der Direktkauf-Zeilen (Paket 4.6
 local DIRECT_ROW_HEIGHT = 84
 local DIRECT_INTRO_HEIGHT = 56
 local DIRECT_BUY_COOLDOWN_SECONDS = 0.6 -- der Server erlaubt 2 Käufe pro Sekunde
+local DIRECT_CONFIRM_SECONDS = 3 -- so lange wartet "Wirklich kaufen?" auf den zweiten Tipp
 local OFFER_ROW_HEIGHT = 128
 local OFFER_TICK_SECONDS = 0.5 -- so oft wird der Countdown der Angebote neu geschrieben
 local PERK_SECTION_ORDER = 100 -- LayoutOrder der Überschrift "Pässe und Boosts" (nach den Gem-Paketen)
@@ -575,7 +576,9 @@ function GemShop.Start()
         return Color3.fromRGB(r, g, b)
     end
 
-    local directIntro = newText(window.body, "DirectIntro", UDim2.new(), UDim2.new(1, 0, 0, DIRECT_INTRO_HEIGHT), Enum.Font.Gotham, MUTED_COLOR, "Kisten gibt es in deiner Region nicht. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten.")
+    local DIRECT_INTRO_RESTRICTED = "Kisten gibt es in deiner Region nicht. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten."
+    local DIRECT_INTRO_UNKNOWN = "Kisten sind gerade nicht verfügbar. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten."
+    local directIntro = newText(window.body, "DirectIntro", UDim2.new(), UDim2.new(1, 0, 0, DIRECT_INTRO_HEIGHT), Enum.Font.Gotham, MUTED_COLOR, DIRECT_INTRO_RESTRICTED)
     directIntro.LayoutOrder = DIRECT_SECTION_ORDER
     directIntro.Visible = false
     table.insert(tabRows.direct, directIntro)
@@ -586,8 +589,16 @@ function GemShop.Start()
     local lastDirectAt = 0
     local buyDirect = remotes:WaitForChild("BuyDirectItem") :: RemoteFunction
 
+    -- Zwei Tipps je Kauf: der erste fragt nach (Preise bis über 200.000 Gems), der zweite kauft.
+    local confirmItemId: string? = nil
+    local confirmUntil = 0
+
     local function renderDirect()
         local snapshot = directSnapshot
+        directIntro.Text = if snapshot ~= nil and snapshot.cratePolicy == "unknown" then DIRECT_INTRO_UNKNOWN else DIRECT_INTRO_RESTRICTED
+        if confirmItemId ~= nil and os.clock() > confirmUntil then
+            confirmItemId = nil
+        end
         local gems = if snapshot ~= nil and type(snapshot.gems) == "number" then snapshot.gems else 0
         for _, row in directRows do
             local item = CrateItems.byId[row.entry.itemId]
@@ -605,6 +616,7 @@ function GemShop.Start()
             local ownText = if copies > 0 then ` · Besitz: {copies} (★{stars})` else ""
             row.info.Text = `{DIRECT_KIND_NAMES[row.entry.kind] or row.entry.kind} · +{bonusBp / 100} % Sammelrate{ownText}`
             local affordable = gems >= row.entry.price
+            row.button.Text = if confirmItemId == row.entry.itemId then `Wirklich? {groupedNumber(row.entry.price)} Gems` else `{groupedNumber(row.entry.price)} Gems`
             row.button.BackgroundColor3 = if affordable and not directBusy then GEM_COLOR else BUTTON_COLOR
             row.button.TextColor3 = if affordable and not directBusy then PANEL_COLOR else MUTED_COLOR
         end
@@ -658,6 +670,14 @@ function GemShop.Start()
                 showMessage(DIRECT_REASONS.busy)
                 return
             end
+            if confirmItemId ~= entry.itemId or os.clock() > confirmUntil then
+                confirmItemId = entry.itemId
+                confirmUntil = os.clock() + DIRECT_CONFIRM_SECONDS
+                renderDirect()
+                task.delay(DIRECT_CONFIRM_SECONDS + 0.05, renderDirect)
+                return
+            end
+            confirmItemId = nil
             local now = os.clock()
             if now - lastDirectAt < DIRECT_BUY_COOLDOWN_SECONDS then
                 return

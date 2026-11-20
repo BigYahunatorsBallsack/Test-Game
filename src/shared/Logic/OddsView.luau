@@ -8,8 +8,14 @@
 -- zeigt das Fenster die dann geltenden Quoten (CrateRoll.effectiveOdds).
 --
 -- Dieses Modul rechnet keine Quoten selbst. Die Zahlen kommen aus Logic/CrateRoll (dieselben
--- Funktionen, über die der Server würfelt). Hier stehen nur Formatierung, Zähler bis zur Garantie,
+-- Funktionen, über die der Server würfelt). Die Tabelle "Quoten je Öffnung" ist immer die normale
+-- Tabelle (sie enthält jedes mögliche Ergebnis, auch im 10 + 1 Paket, wo nach einer Garantie wieder
+-- normal gewürfelt wird). Die Quoten einer garantierten Öffnung stehen zusätzlich mit Zahlen da
+-- (`guaranteeLines`, `dueLine`; Sicherheitsprüfung 4.6, H1). Hier stehen nur Formatierung, Zähler bis zur Garantie,
 -- Kosten bis zur Garantie und die Stelle der Garantie im 10 + 1 Paket.
+
+local CrateRoll = require("./CrateRoll")
+local RaritiesData = require("../Data/Rarities")
 
 local OddsView = {}
 
@@ -135,8 +141,66 @@ function OddsView.pityRules(crate: any): { string }
         end
     end
     table.insert(lines, "Legendär oder besser setzt beide Zähler zurück, Episch nur den Episch-Zähler.")
-    table.insert(lines, "Steht eine Garantie an, wird nur unter den garantierten Seltenheiten gewürfelt, im Verhältnis der Tabelle.")
+    for _, line in OddsView.guaranteeLines(crate) do
+        table.insert(lines, line)
+    end
     return lines
+end
+
+-- Zählerstand, bei dem die Garantie `tier` bei der nächsten Öffnung ansteht (für die Anzeige ihrer
+-- Quoten). nil bei Kisten ohne diese Stufe.
+function OddsView.dueCounters(crate: any, tier: string): { sinceEpic: number, sinceLegendary: number }?
+    if type(crate) ~= "table" or type(crate.pity) ~= "table" or type(crate.pity[tier]) ~= "number" then
+        return nil
+    end
+    if tier == "legendary" then
+        return { sinceEpic = 0, sinceLegendary = crate.pity.legendary - 1 }
+    elseif tier == "epic" then
+        return { sinceEpic = crate.pity.epic - 1, sinceLegendary = 0 }
+    end
+    return nil
+end
+
+-- Quoten als Zeile, niedrigste Seltenheit zuerst, nur mögliche: "Episch 75 %, Legendär 22,5 %, Mythisch 2,5 %".
+function OddsView.shareLine(effective: any, data: any?): string
+    local rarities = if data ~= nil and data.Rarities ~= nil then data.Rarities else RaritiesData
+    local parts = {}
+    for _, rarity in rarities.list do
+        local weight = effective.odds[rarity.id] or 0
+        if weight > 0 and effective.total > 0 then
+            table.insert(parts, `{rarity.name} {OddsView.percentText(weight / effective.total)}`)
+        end
+    end
+    return table.concat(parts, ", ")
+end
+
+-- Quoten einer garantierten Öffnung je Stufe, Episch zuerst:
+-- "Garantierte Öffnung (Episch oder besser): Episch 75 %, Legendär 22,5 %, Mythisch 2,5 %."
+function OddsView.guaranteeLines(crate: any): { string }
+    local lines = {}
+    for _, tier in { "epic", "legendary" } do
+        local counters = OddsView.dueCounters(crate, tier)
+        if counters ~= nil then
+            local effective = CrateRoll.effectiveOdds(crate, counters)
+            table.insert(lines, `Garantierte Öffnung ({TIER_NAMES[tier]} oder besser): {OddsView.shareLine(effective)}.`)
+        end
+    end
+    return lines
+end
+
+-- Steht die Garantie bei der nächsten Öffnung an: ein Satz mit ihren Quoten, sonst nil.
+function OddsView.dueLine(crate: any, counters: any): string?
+    local info = OddsView.pityInfo(crate, counters)
+    if info == nil or info.due == nil then
+        return nil
+    end
+    local effective = CrateRoll.effectiveOdds(crate, counters)
+    return `Deine nächste Öffnung ist garantiert {TIER_NAMES[info.due]} oder besser: {OddsView.shareLine(effective)}. Danach gelten wieder die Quoten oben.`
+end
+
+-- Satz zum 10 + 1 Paket (Details-Fenster).
+function OddsView.bundleRule(buy: number, get: number): string
+    return `Im Paket {buy} + {get - buy} öffnest du {get} Kisten nacheinander. Jede würfelt mit den Quoten je Öffnung; greift dabei eine Garantie, würfelt genau diese Öffnung mit den Quoten der garantierten Öffnung.`
 end
 
 export type BundleNote = { tier: string, at: number }
