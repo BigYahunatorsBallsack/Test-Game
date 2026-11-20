@@ -1,0 +1,166 @@
+--!strict
+-- Paket 4.6: Texte und Zähler der Quoten-Anzeige (Logic/OddsView).
+
+local T = require("./lib/expect")
+local OddsView = require("../src/shared/Logic/OddsView")
+local CrateRoll = require("../src/shared/Logic/CrateRoll")
+local Crates = require("../src/shared/Data/Crates")
+
+local gold = Crates.byId.gold
+local iron = Crates.byId.iron
+local wood = Crates.byId.wood
+
+T.describe("percentText", function()
+    T.it("zeigt große Werte mit höchstens zwei Nachkommastellen und Komma", function()
+        T.expect(OddsView.percentText(0.75)).toBe("75 %")
+        T.expect(OddsView.percentText(0.225)).toBe("22,5 %")
+        T.expect(OddsView.percentText(0.025)).toBe("2,5 %")
+        T.expect(OddsView.percentText(1)).toBe("100 %")
+        T.expect(OddsView.percentText(0.4 / 3)).toBe("13,33 %")
+    end)
+    T.it("zeigt kleine Werte mit drei gültigen Stellen, nie 0 %", function()
+        T.expect(OddsView.percentText(0.005 / 3)).toBe("0,17 %")
+        T.expect(OddsView.percentText(0.000417)).toBe("0,0417 %")
+        T.expect(OddsView.percentText(0.0000012345)).toBe("0,000123 %")
+    end)
+    T.it("macht aus 0 und kaputten Werten 0 %", function()
+        T.expect(OddsView.percentText(0)).toBe("0 %")
+        T.expect(OddsView.percentText(-1)).toBe("0 %")
+        T.expect(OddsView.percentText(0 / 0)).toBe("0 %")
+        T.expect(OddsView.percentText("x")).toBe("0 %")
+        T.expect(OddsView.percentText(math.huge)).toBe("0 %")
+    end)
+end)
+
+T.describe("pityInfo", function()
+    T.it("gibt nil für Kisten ohne Pity", function()
+        T.expect(OddsView.pityInfo(iron, nil)).toBeNil()
+        T.expect(OddsView.pityInfo(wood, { sinceEpic = 3, sinceLegendary = 3 })).toBeNil()
+    end)
+    T.it("zählt bis zur Garantie und rechnet die Kosten in Gems", function()
+        local info = OddsView.pityInfo(gold, { sinceEpic = 8, sinceLegendary = 20 }) :: any
+        T.expect(info.epicLeft).toBe(gold.pity.epic - 8)
+        T.expect(info.legendaryLeft).toBe(gold.pity.legendary - 20)
+        T.expect(info.epicCost).toBe((gold.pity.epic - 8) * gold.price)
+        T.expect(info.legendaryCost).toBe((gold.pity.legendary - 20) * gold.price)
+        T.expect(info.due).toBeNil()
+    end)
+    T.it("fehlende oder kaputte Zähler zählen als 0", function()
+        local info = OddsView.pityInfo(gold, { sinceEpic = "x", sinceLegendary = -4 }) :: any
+        T.expect(info.epicLeft).toBe(gold.pity.epic)
+        T.expect(info.legendaryLeft).toBe(gold.pity.legendary)
+    end)
+    T.it("meldet die anstehende Garantie genau wie CrateRoll.guarantee", function()
+        for sinceEpic = 0, gold.pity.epic + 2 do
+            for sinceLegendary = 0, gold.pity.legendary + 2, 7 do
+                local counters = { sinceEpic = sinceEpic, sinceLegendary = sinceLegendary }
+                local info = OddsView.pityInfo(gold, counters) :: any
+                T.expect(info.due).toBe(CrateRoll.guarantee(gold, counters))
+            end
+        end
+        local counters = { sinceEpic = 0, sinceLegendary = gold.pity.legendary - 1 }
+        T.expect((OddsView.pityInfo(gold, counters) :: any).due).toBe(CrateRoll.guarantee(gold, counters))
+    end)
+end)
+
+T.describe("pityLines und pityRules", function()
+    T.it("schreibt Öffnungen und Gems", function()
+        local lines = OddsView.pityLines(gold, { sinceEpic = 8, sinceLegendary = 0 })
+        T.expect(lines[1]).toBe(`Episch oder besser garantiert in {gold.pity.epic - 8} Öffnungen ({OddsView.grouped((gold.pity.epic - 8) * gold.price)} Gems).`)
+        T.expect(#lines).toBe(2)
+    end)
+    T.it("sagt 'der nächsten Öffnung', wenn sie ansteht", function()
+        local lines = OddsView.pityLines(gold, { sinceEpic = gold.pity.epic - 1, sinceLegendary = 0 })
+        T.expect(lines[1]).toBe(`Episch oder besser garantiert in der nächsten Öffnung ({OddsView.grouped(gold.price)} Gems).`)
+    end)
+    T.it("erklärt die Grenzen mit den Zahlen aus den Daten", function()
+        local rules = OddsView.pityRules(gold)
+        T.expect(rules[1]).toBe(`Nach {gold.pity.epic - 1} Öffnungen ohne Episch oder besser ist die {gold.pity.epic}. Öffnung sicher Episch oder besser.`)
+        T.expect(rules[2]).toBe(`Nach {gold.pity.legendary - 1} Öffnungen ohne Legendär oder besser ist die {gold.pity.legendary}. Öffnung sicher Legendär oder besser.`)
+        T.expect(#OddsView.pityRules(iron)).toBe(0)
+    end)
+    T.it("gruppiert Tausender", function()
+        T.expect(OddsView.grouped(2800)).toBe("2.800")
+        T.expect(OddsView.grouped(225000)).toBe("225.000")
+        T.expect(OddsView.grouped(999)).toBe("999")
+        T.expect(OddsView.grouped(1234567)).toBe("1.234.567")
+    end)
+end)
+
+T.describe("bundleNotes", function()
+    local openings = Crates.bundle.get
+    T.it("nennt die Öffnung, bei der eine Garantie im Paket spätestens greift", function()
+        local notes = OddsView.bundleNotes(gold, { sinceEpic = gold.pity.epic - 3, sinceLegendary = 0 }, openings)
+        T.expect(#notes).toBe(1)
+        T.expect(notes[1].tier).toBe("epic")
+        T.expect(notes[1].at).toBe(3)
+    end)
+    T.it("nennt beide Stufen, Legendär zuerst", function()
+        local notes = OddsView.bundleNotes(gold, { sinceEpic = gold.pity.epic - 5, sinceLegendary = gold.pity.legendary - 9 }, openings)
+        T.expect(#notes).toBe(2)
+        T.expect(notes[1].tier).toBe("legendary")
+        T.expect(notes[1].at).toBe(9)
+        T.expect(notes[2].at).toBe(5)
+    end)
+    T.it("ist leer ohne Pity oder wenn nichts ins Paket fällt", function()
+        T.expect(#OddsView.bundleNotes(iron, nil, openings)).toBe(0)
+        T.expect(#OddsView.bundleNotes(gold, { sinceEpic = 0, sinceLegendary = 0 }, openings)).toBe(if gold.pity.epic <= openings then 1 else 0)
+        T.expect(OddsView.bundleText(iron, nil, openings)).toBeNil()
+    end)
+    T.it("schreibt den Satz", function()
+        T.expect(OddsView.bundleText(gold, { sinceEpic = gold.pity.epic - 3, sinceLegendary = 0 }, openings)).toBe("Im Paket ist spätestens die 3. Öffnung Episch oder besser.")
+    end)
+end)
+
+T.describe("oddsTitle", function()
+    T.it("wechselt bei anstehender Garantie", function()
+        T.expect(OddsView.oddsTitle(nil)).toBe("Quoten je Öffnung")
+        T.expect(OddsView.oddsTitle("epic")).toBe("Deine nächste Öffnung (garantiert Episch oder besser)")
+        T.expect(OddsView.oddsTitle("legendary")).toBe("Deine nächste Öffnung (garantiert Legendär oder besser)")
+    end)
+end)
+
+T.describe("Garantie-Quoten (Sicherheitsprüfung 4.6, H1)", function()
+    T.it("die normale Tabelle enthält jedes Item, das bei irgendeinem Pity-Stand fallen kann", function()
+        for _, crate in Crates.list do
+            local shown: { [string]: boolean } = {}
+            for _, entry in CrateRoll.itemOdds(crate.id, nil) do
+                shown[entry.itemId] = true
+            end
+            local states = { { sinceEpic = 0, sinceLegendary = 0 } }
+            if crate.pity ~= nil then
+                for e = 0, crate.pity.epic do
+                    for l = 0, crate.pity.legendary, 3 do
+                        table.insert(states, { sinceEpic = e, sinceLegendary = l })
+                    end
+                end
+                table.insert(states, { sinceEpic = 0, sinceLegendary = crate.pity.legendary - 1 })
+            end
+            for _, counters in states do
+                for _, entry in CrateRoll.itemOdds(crate.id, counters) do
+                    T.expect(shown[entry.itemId]).toBe(true)
+                end
+            end
+        end
+    end)
+    T.it("nennt die Quoten der garantierten Öffnung mit Zahlen", function()
+        local lines = OddsView.guaranteeLines(gold)
+        T.expect(lines[1]).toBe("Garantierte Öffnung (Episch oder besser): Episch 75 %, Legendär 22,5 %, Mythisch 2,5 %.")
+        T.expect(lines[2]).toBe("Garantierte Öffnung (Legendär oder besser): Legendär 90 %, Mythisch 10 %.")
+        T.expect(#OddsView.guaranteeLines(iron)).toBe(0)
+        local rules = OddsView.pityRules(gold)
+        T.expect(rules[#rules]).toBe(lines[2])
+    end)
+    T.it("dueCounters lassen genau diese Garantie anstehen", function()
+        T.expect(CrateRoll.guarantee(gold, OddsView.dueCounters(gold, "epic"))).toBe("epic")
+        T.expect(CrateRoll.guarantee(gold, OddsView.dueCounters(gold, "legendary"))).toBe("legendary")
+        T.expect(OddsView.dueCounters(iron, "epic")).toBeNil()
+    end)
+    T.it("dueLine nur bei anstehender Garantie", function()
+        T.expect(OddsView.dueLine(gold, { sinceEpic = 0, sinceLegendary = 0 })).toBeNil()
+        T.expect(OddsView.dueLine(gold, { sinceEpic = gold.pity.epic - 1, sinceLegendary = 0 })).toBe("Deine nächste Öffnung ist garantiert Episch oder besser: Episch 75 %, Legendär 22,5 %, Mythisch 2,5 %. Danach gelten wieder die Quoten oben.")
+        T.expect(OddsView.dueLine(iron, nil)).toBeNil()
+    end)
+end)
+
+T.finish()

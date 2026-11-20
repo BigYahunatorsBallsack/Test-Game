@@ -156,12 +156,12 @@ Bezahlte Zufallsitems sind erlaubt, wenn die Quoten offengelegt und regionale Sp
 
 **Policy-Checkliste:**
 
-- [ ] Quoten pro Kiste vor dem Kauf im Spiel anzeigen: [Roblox: Virtual Items](https://create.roblox.com/docs/production/monetization/virtual-items)
-- [ ] `ArePaidRandomItemsRestricted` abfragen. Ist sie wahr, ohne Kisten spielen und einen Direktkauf-Shop anbieten: [Roblox: Paid Random Items](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items)
-- [ ] Keine Boosts, die Kistenquoten verändern
-- [ ] Fragebogen zu Reife und Compliance ausfüllen
-- [ ] Kein Tauschen oder Verkaufen von Kisten-Items und keine Auszahlung
-- [ ] Keine Drittanbieter-Shops, die Items gegen echtes Geld ausliefern
+- [x] Quoten pro Kiste vor dem Kauf im Spiel anzeigen (Paket 4.2 und 4.6: je Item, Pity mit Zahlen, Fenster "Details"): [Roblox: Virtual Items](https://create.roblox.com/docs/production/monetization/virtual-items)
+- [x] `ArePaidRandomItemsRestricted` abfragen (Paket 4.2 und 4.6, Reiter "Direktkauf"). Ist sie wahr, ohne Kisten spielen und einen Direktkauf-Shop anbieten: [Roblox: Paid Random Items](https://create.roblox.com/docs/en-us/production/monetization/paid-random-items)
+- [x] Keine Boosts, die Kistenquoten verändern (Lune-Test in Paket 4.6)
+- [ ] Fragebogen zu Reife und Compliance ausfüllen (heißt bei Roblox "Content ratings"; Vorlage: docs/fragebogen.md, ausfüllen im Creator Dashboard)
+- [x] Kein Tauschen oder Verkaufen von Kisten-Items und keine Auszahlung (Lune-Test in Paket 4.6)
+- [x] Keine Drittanbieter-Shops, die Items gegen echtes Geld ausliefern (Regel in docs/fragebogen.md)
 
 **Technik (Kurzfassung):**
 

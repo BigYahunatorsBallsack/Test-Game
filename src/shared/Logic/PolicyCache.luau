@@ -15,6 +15,9 @@
 --    schreibt nichts mehr.
 --  * `onResolved(userId, restricted)` meldet das Endergebnis eines Ladevorgangs, der noch gilt
 --    (auch nil nach lauter Fehlschlägen), damit der Service die Anzeige neu senden kann.
+--  * `state(userId)` (Paket 4.6) nennt den Zustand für Anzeige und Direktkauf: "none" (nie geladen
+--    oder vergessen), "pending" (Abruf läuft), "allowed" / "restricted" (Antwort false / true),
+--    "unknown" (alle Versuche gescheitert). Gesperrt für Kisten ist alles außer "allowed".
 
 export type Deps = {
     fetch: (subject: any) -> any, -- holt die Policy-Tabelle; darf warten und werfen
@@ -25,10 +28,13 @@ export type Deps = {
     onResolved: ((userId: number, restricted: boolean?) -> ())?,
 }
 
+export type State = "none" | "pending" | "allowed" | "restricted" | "unknown"
+
 export type Cache = {
     load: (userId: number, subject: any) -> boolean?,
     restricted: (userId: number) -> boolean?,
     isAllowed: (userId: number) -> boolean,
+    state: (userId: number) -> State,
     forget: (userId: number) -> (),
 }
 
@@ -39,6 +45,7 @@ local PolicyCache = {}
 
 function PolicyCache.new(deps: Deps): Cache
     local values: { [number]: boolean } = {}
+    local states: { [number]: State } = {}
     local tokens: { [number]: number } = {}
     local nextToken = 0
 
@@ -58,6 +65,7 @@ function PolicyCache.new(deps: Deps): Cache
         local token = nextToken
         tokens[userId] = token
         values[userId] = nil
+        states[userId] = "pending"
         for attempt = 1, deps.attempts do
             local ok, info = pcall(deps.fetch, subject)
             if not isCurrent(userId, token) then
@@ -65,6 +73,7 @@ function PolicyCache.new(deps: Deps): Cache
             end
             if ok and type(info) == "table" and type(info[FIELD]) == "boolean" then
                 values[userId] = info[FIELD]
+                states[userId] = if info[FIELD] then "restricted" else "allowed"
                 if deps.onResolved then
                     deps.onResolved(userId, info[FIELD])
                 end
@@ -79,6 +88,7 @@ function PolicyCache.new(deps: Deps): Cache
             end
         end
         log(`Policy für {userId}: unbekannt, Kisten bleiben gesperrt`)
+        states[userId] = "unknown"
         if deps.onResolved then
             deps.onResolved(userId, nil)
         end
@@ -93,15 +103,22 @@ function PolicyCache.new(deps: Deps): Cache
         return values[userId] == false
     end
 
+    -- Zustand für Anzeige und Direktkauf (siehe Kopf der Datei).
+    local function state(userId: number): State
+        return states[userId] or "none"
+    end
+
     local function forget(userId: number)
         values[userId] = nil
         tokens[userId] = nil
+        states[userId] = nil
     end
 
     return {
         load = load,
         restricted = restricted,
         isAllowed = isAllowed,
+        state = state,
         forget = forget,
     }
 end

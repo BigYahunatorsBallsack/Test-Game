@@ -29,6 +29,7 @@ export type PurchaseLogEntry = {
     gems: number, -- tatsächlich gutgeschriebene Gems
     robux: number, -- Preis laut Datentabelle
     time: number, -- Unix-Zeit der Gutschrift
+    currencySpent: number?, -- nur wenn der Beleg einen anderen Betrag nennt als die Daten (Paket 4.6)
 }
 
 export type Profile = {
@@ -362,12 +363,15 @@ local function cleanLogEntry(entry: any): PurchaseLogEntry?
     if not isFiniteAtLeastZero(entry.gems) or not isFiniteAtLeastZero(entry.robux) or not isFiniteAtLeastZero(entry.time) then
         return nil
     end
+    -- `currencySpent` ist freiwillig (Paket 4.6): ein kaputter Wert fällt weg, der Eintrag bleibt.
+    local currencySpent = if isFiniteAtLeastZero(entry.currencySpent) then math.floor(entry.currencySpent) else nil
     return {
         purchaseId = entry.purchaseId,
         productId = entry.productId,
         gems = math.floor(entry.gems),
         robux = math.floor(entry.robux),
         time = entry.time,
+        currencySpent = currencySpent,
     }
 end
 
@@ -379,12 +383,13 @@ local function sameLogEntry(a: any, b: any): boolean
     for _ in a do
         count += 1
     end
-    return count == 5
+    return count == (if b.currencySpent ~= nil then 6 else 5)
         and a.purchaseId == b.purchaseId
         and a.productId == b.productId
         and a.gems == b.gems
         and a.robux == b.robux
         and a.time == b.time
+        and a.currencySpent == b.currencySpent
 end
 
 local function sameValue(a: any, b: any): boolean

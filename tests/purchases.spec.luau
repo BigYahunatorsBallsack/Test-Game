@@ -1470,4 +1470,202 @@ T.describe("Studio-Hilfe (processPack)", function()
     end)
 end)
 
+local function deepClone(value: any): any
+    if type(value) ~= "table" then
+        return value
+    end
+    local copy = {}
+    for key, inner in value do
+        copy[key] = deepClone(inner)
+    end
+    return copy
+end
+
+T.describe("Bezahlter Betrag (CurrencySpent, 4.6)", function()
+    local function receiptWithSpent(packId: string, purchaseId: string, spent: any): any
+        local r: any = receipt(packId, purchaseId)
+        r.CurrencySpent = spent
+        return r
+    end
+
+    local function process(server: Server, r: any): string?
+        return finish(start(function(): string
+            return server.purchases.process(r)
+        end))
+    end
+
+    T.it("passender Betrag: gebucht, keine Warnung, kein Vermerk im Kaufprotokoll", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        T.expect(process(a, receiptWithSpent("gems_550", "betrag-1", 249))).toBe("granted")
+        T.expect(profile.gems).toBe(550)
+        T.expect(profile.purchaseLog[1]).toEqual({ purchaseId = "betrag-1", productId = "gems_550", gems = 550, robux = 249, time = START })
+        T.expect(countLogs(a, "CurrencySpent")).toBe(0)
+    end)
+
+    T.it("abweichender Betrag: trotzdem gebucht, Warnung im Protokoll und Vermerk im Kaufprotokoll", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        T.expect(process(a, receiptWithSpent("gems_550", "betrag-2", 199))).toBe("granted")
+        T.expect(profile.gems).toBe(550) -- die Gutschrift kommt allein aus den Daten
+        T.expect(profile.purchaseLog[1]).toEqual({
+            purchaseId = "betrag-2",
+            productId = "gems_550",
+            gems = 550,
+            robux = 249,
+            time = START,
+            currencySpent = 199,
+        })
+        T.expect(profile.spent).toEqual({ robux = 249, count = 1 })
+        T.expect(countLogs(a, "CurrencySpent 199 Robux, in den Daten 249 Robux, trotzdem gutgeschrieben")).toBe(1)
+        -- Gespeichert wird der Vermerk mit (sanitize lässt ihn stehen).
+        T.expect(world.saved[KEY].purchaseLog[1].currencySpent).toBe(199)
+    end)
+
+    T.it("derselbe Beleg mit abweichendem Betrag zweimal: eine Gutschrift, eine Warnung, ein Eintrag", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        T.expect(process(a, receiptWithSpent("gems_100", "betrag-3", 0))).toBe("granted")
+        T.expect(process(a, receiptWithSpent("gems_100", "betrag-3", 0))).toBe("granted")
+        T.expect(profile.gems).toBe(100)
+        T.expect(#profile.purchaseLog).toBe(1)
+        T.expect(profile.purchaseLog[1].currencySpent).toBe(0)
+        T.expect(countLogs(a, "trotzdem gutgeschrieben")).toBe(1)
+    end)
+
+    T.it("abweichender Betrag und Speicherfehler: NotProcessedYet, der nächste Versuch bucht nicht neu", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        world.failSaves = true
+        T.expect(process(a, receiptWithSpent("gems_550", "betrag-4", 1))).toBe("notProcessed")
+        world.failSaves = false
+        T.expect(process(a, receiptWithSpent("gems_550", "betrag-4", 1))).toBe("granted")
+        T.expect(profile.gems).toBe(550)
+        T.expect(#profile.purchaseLog).toBe(1)
+        T.expect(savedHas(world, "betrag-4")).toBe(true)
+    end)
+
+    T.it("kaputter oder fehlender Betrag: gebucht, bei kaputtem eine Warnung, kein Vermerk", function()
+        for index, bad in { 0 / 0, -5, 1.5, "249", math.huge } :: { any } do
+            local world = FakeStore.newWorld()
+            local a = newServer(world, "A")
+            local profile = load(a)
+            T.expect(process(a, receiptWithSpent("gems_100", `kaputt-{index}`, bad))).toBe("granted")
+            T.expect(profile.purchaseLog[1].currencySpent).toBeNil()
+            T.expect(countLogs(a, "CurrencySpent ungültig")).toBe(1)
+        end
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        T.expect(buy(a, "gems_100", "ohne-betrag")).toBe("granted") -- Beleg ohne CurrencySpent
+        T.expect(profile.purchaseLog[1].currencySpent).toBeNil()
+        T.expect(countLogs(a, "CurrencySpent")).toBe(0)
+    end)
+
+    T.it("spentMatches: genau der Preis, bei Spannen alles von priceRobux bis priceRobuxMax", function()
+        T.expect(Purchases.spentMatches({ robux = 249 }, 249)).toBe(true)
+        T.expect(Purchases.spentMatches({ robux = 249 }, 248)).toBe(false)
+        T.expect(Purchases.spentMatches({ robux = 99, robuxMax = 799 }, 400)).toBe(true)
+        T.expect(Purchases.spentMatches({ robux = 99, robuxMax = 799 }, 800)).toBe(false)
+        T.expect(Purchases.spentMatches({ robux = 99, robuxMax = 799 }, 98)).toBe(false)
+    end)
+
+    T.it("sanitize behält currencySpent im Kaufprotokoll und entfernt nur einen kaputten Wert", function()
+        local profile = Profile.default(START)
+        profile.purchaseLog = {
+            { purchaseId = "a", productId = "gems_100", gems = 100, robux = 49, time = START, currencySpent = 59 },
+            { purchaseId = "b", productId = "gems_100", gems = 100, robux = 49, time = START, currencySpent = 0 / 0 },
+            { purchaseId = "c", productId = "gems_100", gems = 100, robux = 49, time = START },
+        }
+        Profile.sanitize(profile, START)
+        T.expect(profile.purchaseLog[1].currencySpent).toBe(59)
+        T.expect(profile.purchaseLog[2]).toEqual({ purchaseId = "b", productId = "gems_100", gems = 100, robux = 49, time = START })
+        T.expect(profile.purchaseLog[3]).toEqual({ purchaseId = "c", productId = "gems_100", gems = 100, robux = 49, time = START })
+        local again = deepClone(profile.purchaseLog)
+        Profile.sanitize(profile, START)
+        T.expect(profile.purchaseLog).toEqual(again) -- ein zweites sanitize ändert nichts
+    end)
+end)
+
+T.describe("Preise im Creator Dashboard (4.6)", function()
+    T.it("dashboardTargets: nur Produkte mit ProductId über 0, Gamepasses als GamePass", function()
+        T.expect(Purchases.dashboardTargets(REAL_DATA)).toEqual({}) -- heute alles Platzhalter
+        local targets = Purchases.dashboardTargets(DATA)
+        T.expect(#targets).toBe(#GemPacks.list + #Products.list)
+        for _, target in targets do
+            local pack = GemPacks.byId[target.id]
+            local product = Products.byId[target.id]
+            if pack ~= nil then
+                T.expect(target.robux).toBe(pack.robux)
+                T.expect(target.infoType).toBe("Product")
+            else
+                T.expect(target.robux).toBe(product.priceRobux)
+                T.expect(target.robuxMax).toBe(product.priceRobuxMax)
+                T.expect(target.infoType).toBe(if product.kind == "gamepass" then "GamePass" else "Product")
+            end
+            T.expect(target.productId).toBe(productIdOf(target.id))
+        end
+    end)
+
+    local function checker(answers: { any }): any
+        local h: any = { calls = {}, waits = {} }
+        h.deps = {
+            fetch = function(productId: number, infoType: string): any
+                table.insert(h.calls, { productId, infoType })
+                local answer = answers[#h.calls]
+                if answer == "throw" then
+                    error("HTTP 503")
+                end
+                return answer
+            end,
+            wait = function(seconds: number)
+                table.insert(h.waits, seconds)
+            end,
+            attempts = 3,
+            retrySeconds = 2,
+        }
+        return h
+    end
+
+    local PACK = { id = "gems_550", productId = 123, robux = 249, infoType = "Product" }
+
+    T.it("gleicher Preis: keine Meldung; abweichender Preis und nicht zum Verkauf: Text aus PriceView", function()
+        local same = checker({ { PriceInRobux = 249, IsForSale = true } })
+        T.expect(Purchases.checkDashboard(PACK, same.deps)).toBeNil()
+        T.expect(same.calls).toEqual({ { 123, "Product" } })
+        local other = checker({ { PriceInRobux = 259, IsForSale = true } })
+        T.expect(Purchases.checkDashboard(PACK, other.deps)).toBe("Preis im Dashboard 259 Robux, in den Daten 249 Robux")
+        local closed = checker({ { PriceInRobux = 249, IsForSale = false } })
+        T.expect(Purchases.checkDashboard(PACK, closed.deps)).toBe("nicht zum Verkauf")
+        -- Gamepass ohne Preis, aber nicht zum Verkauf
+        local pass = checker({ { IsForSale = false } })
+        T.expect(Purchases.checkDashboard({ id = "big_tank", productId = 5, robux = 199, infoType = "GamePass" }, pass.deps)).toBe("nicht zum Verkauf")
+        T.expect(pass.calls).toEqual({ { 5, "GamePass" } })
+    end)
+
+    T.it("Preisspanne: ein Dashboard-Preis innerhalb der Spanne passt", function()
+        local range = { id = "skins_direct", productId = 7, robux = 99, robuxMax = 799, infoType = "Product" }
+        T.expect(Purchases.checkDashboard(range, checker({ { PriceInRobux = 399, IsForSale = true } }).deps)).toBeNil()
+        T.expect(Purchases.checkDashboard(range, checker({ { PriceInRobux = 999, IsForSale = true } }).deps)).toBe("Preis im Dashboard 999 Robux, in den Daten 99 Robux")
+    end)
+
+    T.it("Fehler und ungültige Antworten: bis zu 3 Versuche im Abstand von 2 s, danach ein Fehlertext", function()
+        local retry = checker({ "throw", "kaputt", { PriceInRobux = 249, IsForSale = true } })
+        local mismatch, problem = Purchases.checkDashboard(PACK, retry.deps)
+        T.expect(mismatch).toBeNil()
+        T.expect(problem).toBeNil()
+        T.expect(#retry.calls).toBe(3)
+        T.expect(retry.waits).toEqual({ 2, 2 })
+        local failing = checker({ "throw", "throw", {} })
+        local m2, p2 = Purchases.checkDashboard(PACK, failing.deps)
+        T.expect(m2).toBeNil()
+        T.expect(p2).toContain("nach 3 Versuchen")
+        T.expect(failing.waits).toEqual({ 2, 2 })
+    end)
+end)
+
 T.finish()
