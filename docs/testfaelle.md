@@ -503,13 +503,13 @@ Tests: tests/crateroll.spec.luau, tests/directshop.spec.luau, tests/policyguards
 
 ## 4.7 Quoten-Simulation
 
-Plan: Claude-Dokument "Paket 4.7: Quoten-Simulation, Plan". Fertig, wenn: Die Abweichung von der Tabelle ist klein.
+Skript: `lune run scripts/cratesim [Öffnungen] [Startwert] [Bericht]`, Bericht docs/balance/crates_sim_4_7.md (Referenzlauf 10 Mio. je Kiste und Lauf), Test tests/cratesim.spec.luau. Plan: Claude-Dokument "Paket 4.7: Quoten-Simulation, Plan". Fertig, wenn: Die Abweichung von der Tabelle ist klein.
 
-- [ ] [Shell] Das Skript läuft mit 1.000.000 Öffnungen je Kiste durch und schreibt den Bericht.
-- [ ] [Shell] Jede Seltenheit und jedes Item jeder Kiste liegt innerhalb der Schwellen, getrennt für Einzelöffnungen und 10 + 1 Pakete.
-- [ ] [Shell] Die Pity-Grenzen werden nie überschritten, auch über Paketgrenzen hinweg.
-- [ ] [Shell] Gleicher Startwert ergibt den gleichen Bericht.
-- [ ] [Lune] Kleiner Lauf über `CrateOpen.open` im normalen Testlauf, unter 3 Sekunden.
+- [x] [Shell] Das Skript läuft mit 1.000.000 Öffnungen je Kiste durch und schreibt den Bericht.
+- [x] [Shell] Jede Seltenheit und jedes Item jeder Kiste liegt innerhalb der Schwellen, getrennt für Einzelöffnungen und 10 + 1 Pakete.
+- [x] [Shell] Die Pity-Grenzen werden nie überschritten, auch über Paketgrenzen hinweg.
+- [x] [Shell] Gleicher Startwert ergibt den gleichen Bericht.
+- [x] [Lune] Kleiner Lauf über `CrateOpen.open` im normalen Testlauf, unter 3 Sekunden.
 
 ## 5.1 Daily Reward
 
