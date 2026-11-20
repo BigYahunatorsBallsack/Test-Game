@@ -501,6 +501,16 @@ Tests: tests/crateroll.spec.luau, tests/directshop.spec.luau, tests/policyguards
 - [ ] [Dashboard] Fragebogen nach `docs/fragebogen.md` ausgefüllt, Freigabe erteilt.
 - [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (H1, M1, M2 eingearbeitet, Rest siehe docs/architektur.md).
 
+## 4.7 Quoten-Simulation
+
+Plan: Claude-Dokument "Paket 4.7: Quoten-Simulation, Plan". Fertig, wenn: Die Abweichung von der Tabelle ist klein.
+
+- [ ] [Shell] Das Skript läuft mit 1.000.000 Öffnungen je Kiste durch und schreibt den Bericht.
+- [ ] [Shell] Jede Seltenheit und jedes Item jeder Kiste liegt innerhalb der Schwellen, getrennt für Einzelöffnungen und 10 + 1 Pakete.
+- [ ] [Shell] Die Pity-Grenzen werden nie überschritten, auch über Paketgrenzen hinweg.
+- [ ] [Shell] Gleicher Startwert ergibt den gleichen Bericht.
+- [ ] [Lune] Kleiner Lauf über `CrateOpen.open` im normalen Testlauf, unter 3 Sekunden.
+
 ## 5.1 Daily Reward
 
 - [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.
