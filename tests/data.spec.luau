@@ -838,4 +838,53 @@ T.describe("Angebote (4.5)", function()
     end)
 end)
 
+T.describe("Direktkauf und Ersatzgegenstand (4.6)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("die echten Werte bestehen die Prüfung", function()
+        T.expect(Economy.directShop).toEqual({ roundSignificantDigits = 2, monotoneFloor = true, crates = { "iron", "gold" } })
+        T.expect(Economy.daily.day7FallbackItemId).toBe("toolVariant_uncommon_1")
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("Ersatzgegenstand Tag 7: festes Item aus CrateItems, kein Event-Item", function()
+        expectError(broken(function(d) d.Economy.daily.day7FallbackItemId = "daily_fallback_item" end), 'day7FallbackItemId "daily_fallback_item" steht nicht in CrateItems')
+        expectError(broken(function(d) d.Economy.daily.day7FallbackItemId = "gold" end), "steht nicht in CrateItems") -- eine Kiste ist kein festes Item
+        expectError(broken(function(d) d.Economy.daily.day7FallbackItemId = nil end), "steht nicht in CrateItems")
+        expectError(broken(function(d) d.Economy.daily.day7FallbackItemId = 5 end), "steht nicht in CrateItems")
+        expectError(broken(function(d) d.Economy.daily.day7FallbackItemId = "skin_mythic_2" end), 'day7FallbackItemId "skin_mythic_2" ist ein Event-Item')
+        T.expect(broken(function(d) d.Economy.daily.day7FallbackItemId = "skin_common_1" end)).toEqual({})
+    end)
+
+    T.it("Kisten der Preisrechnung: bekannt, Gems, keine Event-Kiste, keine doppelt, nicht leer", function()
+        expectError(broken(function(d) d.Economy.directShop.crates = { "iron", "diamant" } end), 'unbekannte Kiste "diamant"')
+        expectError(broken(function(d) d.Economy.directShop.crates = { "wood", "gold" } end), 'Kiste "wood" muss in Gems kosten')
+        expectError(broken(function(d) d.Economy.directShop.crates = { "gold", "event" } end), 'Kiste "event" ist eine Event-Kiste')
+        expectError(broken(function(d) d.Economy.directShop.crates = { "gold", "gold" } end), 'Kiste "gold" steht doppelt')
+        expectError(broken(function(d) d.Economy.directShop.crates = {} end), "muss mindestens eine Kiste nennen")
+        expectError(broken(function(d) d.Economy.directShop.crates = "gold" end), "muss mindestens eine Kiste nennen")
+        expectError(broken(function(d) d.Economy.directShop = nil end), "Economy.directShop: Tabelle fehlt")
+        T.expect(broken(function(d) d.Economy.directShop.crates = { "gold" } end)).toEqual({})
+    end)
+
+    T.it("Stellen ganze Zahl von 1 bis 4, monotoneFloor Boolean", function()
+        for _, bad in { 0, 5, 2.5, 0 / 0, "2" } :: { any } do
+            expectError(broken(function(d) d.Economy.directShop.roundSignificantDigits = bad end), "roundSignificantDigits muss eine ganze Zahl von 1 bis 4 sein")
+        end
+        for _, bad in { "ja", 1, nil } :: { any } do
+            expectError(broken(function(d) d.Economy.directShop.monotoneFloor = bad end), "monotoneFloor muss true oder false sein")
+        end
+        T.expect(broken(function(d) d.Economy.directShop.roundSignificantDigits = 4 end)).toEqual({})
+        T.expect(broken(function(d) d.Economy.directShop.monotoneFloor = false end)).toEqual({})
+    end)
+
+    T.it("ein Preis über maxGems wird gemeldet", function()
+        expectError(broken(function(d) d.Crates.byId.gold.price = 40_000 end), 'Direktkauf "skin_mythic_1": Preis')
+    end)
+end)
+
 T.finish()

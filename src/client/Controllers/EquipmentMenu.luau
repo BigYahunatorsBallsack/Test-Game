@@ -46,6 +46,8 @@ local EMPTY_TEXTS: { [string]: string } = {
     toolVariant = "Noch keine Werkzeug-Variante.",
 }
 local EMPTY_CRATES_HINT = " Kisten gibt es im Kisten-Fenster."
+-- Wo Kisten gesperrt sind (Policy bekannt gesperrt oder unbekannt), gibt es den Direktkauf im Shop (Paket 4.6).
+local EMPTY_DIRECT_HINT = " Items gibt es im Shop unter Direktkauf."
 
 local REASONS: { [string]: string } = {
     notOwned = "Das Item hast du nicht.",
@@ -247,7 +249,7 @@ function EquipmentMenu.Start()
         local inventory = if type(snapshot.inventory) == "table" then snapshot.inventory[EquipmentLogic.INVENTORY_FIELDS[activeSlot]] else {}
         -- Nur neu bauen, wenn sich etwas Sichtbares geändert hat (der StateSync kommt oft, und ein neu
         -- gebauter Knopf würde ein laufendes Tippen verschlucken).
-        local parts: { string } = { activeSlot, tostring(equipped[activeSlot]), tostring(snapshot.cratesAllowed == true) }
+        local parts: { string } = { activeSlot, tostring(equipped[activeSlot]), tostring(snapshot.cratesAllowed == true), tostring(snapshot.cratePolicy) }
         for _, item in items do
             table.insert(parts, `{item.id}:{inventory[item.id]}:{stars[item.id] or 1}`)
         end
@@ -263,7 +265,8 @@ function EquipmentMenu.Start()
             end
         end
         if #items == 0 then
-            local emptyText = EMPTY_TEXTS[activeSlot] .. (if snapshot.cratesAllowed == true then EMPTY_CRATES_HINT else "")
+            local directHint = snapshot.cratePolicy == "restricted" or snapshot.cratePolicy == "unknown"
+            local emptyText = EMPTY_TEXTS[activeSlot] .. (if snapshot.cratesAllowed == true then EMPTY_CRATES_HINT elseif directHint then EMPTY_DIRECT_HINT else "")
             local empty = newText(window.body, "Empty", UDim2.new(), UDim2.new(1, 0, 0, 56), Enum.Font.Gotham, MUTED_COLOR, emptyText)
             empty.LayoutOrder = 1
             return

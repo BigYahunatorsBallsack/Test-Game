@@ -1,7 +1,14 @@
 --!strict
 -- Shop-Service (Paket 4.1)
--- Zuständig: Käufe (ProcessReceipt, idempotent), Gem-Pakete; später Gamepasses und weitere
--- Produkte (4.4) und Policy-Funktionen (ArePaidRandomItemsRestricted, 4.6).
+-- Zuständig: Käufe (ProcessReceipt, idempotent), Gem-Pakete, Handler weiterer Produkte (4.4) und der
+-- Preisvergleich mit dem Creator Dashboard (4.6). Der Direktkauf mit Gems (4.6) liegt im
+-- Crates-Service, weil dort die Policy liegt.
+--
+-- Preise (Paket 4.6): Beim Start fragt je Produkt mit ProductId über 0 ein eigener Thread den Preis
+-- bei Roblox ab (GetProductInfoAsync, sonst GetProductInfo; bis zu PRICE_CHECK_ATTEMPTS Versuche im
+-- Abstand PRICE_CHECK_RETRY_SECONDS) und warnt bei Abweichung oder "nicht zum Verkauf". ProcessReceipt
+-- gibt zusätzlich CurrencySpent an Purchases weiter (nur Vergleich, Warnung und Vermerk im
+-- Kaufprotokoll, die Gutschrift kommt weiter allein aus den Daten).
 --
 -- Die Regeln der Kaufabwicklung stehen im reinen Modul Logic/Purchases (Lune-Tests). Hier wird nur
 -- angeschlossen: MarketplaceService.ProcessReceipt (genau einmal gesetzt), PlayerData als Speicher
@@ -38,6 +45,9 @@ local RunService = game:GetService("RunService")
 local DEBUG_PURCHASE_ATTRIBUTE = "DebugPurchase"
 local DEBUG_PURCHASE_PATTERN = "^([%w_]+):?([%w_%-]*)$"
 local DEBUG_PURCHASE_MAX_LENGTH = 64
+-- Preisabfrage beim Start: so viele Versuche, so lange Pause dazwischen (Sekunden).
+local PRICE_CHECK_ATTEMPTS = 3
+local PRICE_CHECK_RETRY_SECONDS = 2
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Purchases = require(shared:WaitForChild("Logic"):WaitForChild("Purchases") :: ModuleScript) :: any
@@ -79,13 +89,15 @@ local function refresh(userId: number)
     end
 end
 
--- ProcessReceipt: nur die drei Felder des Belegs gehen weiter. Jeder Fehler ergibt NotProcessedYet.
+-- ProcessReceipt: nur diese Felder des Belegs gehen weiter (CurrencySpent nur zum Vergleich). Jeder
+-- Fehler ergibt NotProcessedYet.
 local function onProcessReceipt(receiptInfo: any): Enum.ProductPurchaseDecision
     local ok, decision = pcall(function(): string
         return purchases.process({
             PlayerId = receiptInfo.PlayerId,
             ProductId = receiptInfo.ProductId,
             PurchaseId = receiptInfo.PurchaseId,
+            CurrencySpent = receiptInfo.CurrencySpent,
         })
     end)
     if not ok then
@@ -123,6 +135,39 @@ local function connectStudioHelper(player: Player)
             refresh(player.UserId)
         end
     end)
+end
+
+-- GetProductInfoAsync, wenn es die Methode gibt (aktuelle API), sonst das ältere GetProductInfo. Der
+-- Zugriff auf ein fehlendes Mitglied wirft, darum in pcall.
+local function productInfoMethod(): any
+    local found, method = pcall(function(): any
+        return (MarketplaceService :: any).GetProductInfoAsync
+    end)
+    if found and type(method) == "function" then
+        return method
+    end
+    return (MarketplaceService :: any).GetProductInfo
+end
+
+-- Preis eines Produkts bei Roblox mit den Daten vergleichen (eigener Thread, wartet).
+local function checkDashboardPrice(target: any)
+    local method = productInfoMethod()
+    local mismatch, problem = Purchases.checkDashboard(target, {
+        fetch = function(productId: number, infoType: string): any
+            local enum = if infoType == "GamePass" then Enum.InfoType.GamePass else Enum.InfoType.Product
+            return method(MarketplaceService, productId, enum)
+        end,
+        wait = function(seconds: number)
+            task.wait(seconds)
+        end,
+        attempts = PRICE_CHECK_ATTEMPTS,
+        retrySeconds = PRICE_CHECK_RETRY_SECONDS,
+    })
+    if mismatch ~= nil then
+        log(`{target.id}: {mismatch}`)
+    elseif problem ~= nil then
+        log(`{target.id}: {problem}`)
+    end
 end
 
 -- Hängt ein weiteres Developer Product ein (Paket 4.4). `productId` ist die ID aus Data/Products.
@@ -174,6 +219,11 @@ function Shop.Start()
     Players.PlayerRemoving:Connect(function(player: Player)
         purchases.forget(player.UserId)
     end)
+
+    -- Preise im Creator Dashboard mit den Daten vergleichen, je Produkt ein eigener Thread.
+    for _, target in Purchases.dashboardTargets() do
+        task.spawn(checkDashboardPrice, target)
+    end
     if RunService:IsStudio() then
         Players.PlayerAdded:Connect(connectStudioHelper)
         for _, player in Players:GetPlayers() do

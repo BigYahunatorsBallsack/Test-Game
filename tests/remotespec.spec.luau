@@ -5,6 +5,7 @@ local T = require("./lib/expect")
 local RemoteSpec = require("../src/shared/Net/RemoteSpec")
 local Validate = require("../src/shared/Logic/Validate")
 local RateLimiter = require("../src/shared/Logic/RateLimiter")
+local CrateItems = require("../src/shared/Data/CrateItems")
 
 local function validate(name: string, ...: any): boolean
     local def = RemoteSpec.byName[name]
@@ -22,7 +23,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(9) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4)
+        T.expect(clientRemotes).toBe(10) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -38,6 +39,7 @@ T.describe("RemoteSpec", function()
             EquipItem = { 2, 1 },
             MergeItem = { 2, 1 },
             SetAutoDig = { 2, 1 },
+            BuyDirectItem = { 2, 1 },
             Prestige = { 1, 5 },
         }
         for name, values in expected do
@@ -200,6 +202,48 @@ T.describe("Remote SetAutoDig (4.4)", function()
         T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
         T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(true)
         T.expect(limiter:allow("42", "SetAutoDig", limit)).toBe(false)
+    end)
+end)
+
+T.describe("Remote BuyDirectItem (4.6)", function()
+    T.it("RemoteFunction vom Client zum Server, ein Argument: bekannte Item-ID aus CrateItems", function()
+        local def = RemoteSpec.byName.BuyDirectItem
+        T.expect(def.kind).toBe("Function")
+        T.expect(def.direction).toBe("ClientToServer")
+        T.expect(select(1, RemoteSpec.canRegister("BuyDirectItem"))).toBe(true)
+        local rule: any = (def.schema :: any)[1]
+        T.expect(rule.kind).toBe("idIn")
+        T.expect(rawequal(rule.ids, CrateItems.byId)).toBe(true)
+        T.expect(rule.maxLen).toBe(64)
+        T.expect(validate("BuyDirectItem", "skin_rare_1")).toBe(true)
+        T.expect(validate("BuyDirectItem", "skin_mythic_2")).toBe(true) -- Event-Item: Schema ok, der Server lehnt ab (notOffered)
+    end)
+
+    T.it("falsche Typen, unbekannte IDs, zu lange Texte und falsche Argumentzahl werden abgelehnt", function()
+        T.expect(validate("BuyDirectItem", "")).toBe(false)
+        T.expect(validate("BuyDirectItem", "gibt_es_nicht")).toBe(false)
+        T.expect(validate("BuyDirectItem", string.rep("a", 65))).toBe(false)
+        T.expect(validate("BuyDirectItem", 7)).toBe(false)
+        T.expect(validate("BuyDirectItem", 0 / 0)).toBe(false)
+        T.expect(validate("BuyDirectItem", true)).toBe(false)
+        T.expect(validate("BuyDirectItem", { "skin_rare_1" })).toBe(false)
+        T.expect(validate("BuyDirectItem")).toBe(false)
+        T.expect(validate("BuyDirectItem", nil)).toBe(false)
+        T.expect(validate("BuyDirectItem", "skin_rare_1", 2000)).toBe(false) -- kein Preis vom Client
+        T.expect(validate("BuyDirectItem", "skin_rare_1", "skin_rare_1")).toBe(false)
+    end)
+
+    T.it("Limit 2 pro Sekunde mit simulierter Uhr", function()
+        local clock = { t = 50 }
+        local limiter = RateLimiter.new(function(): number
+            return clock.t
+        end)
+        local limit = RemoteSpec.byName.BuyDirectItem.limit :: RateLimiter.Limit
+        T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(true)
+        T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(true)
+        T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(false)
+        clock.t += 1
+        T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(true)
     end)
 end)
 

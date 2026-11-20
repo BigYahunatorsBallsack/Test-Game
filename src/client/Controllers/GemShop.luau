@@ -19,6 +19,12 @@
 -- wirkt, entscheidet allein der Server (Snapshot-Feld `passes`). Wer Auto-Dig besitzt, schaltet es
 -- in dessen Zeile an und aus (Remote SetAutoDig, nur ein Boolean). Die Restzeit des Boosts kommt
 -- vom Server (`coinBoostSeconds`) und zählt hier nur lokal herunter.
+--
+-- Policy (Paket 4.6): Preise zeigt der Shop aus dem Creator Dashboard (Controllers/ProductPrices, Ersatz
+-- ist die Tabelle, Logic/PriceView), nicht verkaufte Produkte heißen "Nicht verfügbar". Sind Kisten für
+-- den Spieler gesperrt (Snapshot `cratePolicy` "restricted" oder "unknown"), steht statt "Kisten" der
+-- Reiter "Direktkauf": jedes Kisten-Item außer Event-Items zum festen Gem-Preis aus Logic/DirectShop.
+-- "Kaufen" schickt nur `BuyDirectItem(itemId)`, Preis und Buchung bestimmt der Server.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -34,8 +40,12 @@ local BUY_COOLDOWN_SECONDS = 1.5 -- gegen Doppeltippen, der Server prüft alles 
 local PERK_ROW_HEIGHT = 92 -- Zeilen der Pässe (Wirkungstext braucht zwei Zeilen)
 local SUB_HEIGHT = 48 -- Streifen mit den Reitern
 local TAB_GAP = 6
-local TAB_ORDER = { "offers", "gems", "perks", "crates" }
-local TAB_LABELS: { [string]: string } = { offers = "Angebote", gems = "Gems", perks = "Pässe", crates = "Kisten" }
+local TAB_ORDER = { "offers", "gems", "perks", "crates", "direct" }
+local TAB_LABELS: { [string]: string } = { offers = "Angebote", gems = "Gems", perks = "Pässe", crates = "Kisten", direct = "Direktkauf" }
+local DIRECT_SECTION_ORDER = 300 -- LayoutOrder der Direktkauf-Zeilen (Paket 4.6)
+local DIRECT_ROW_HEIGHT = 84
+local DIRECT_INTRO_HEIGHT = 56
+local DIRECT_BUY_COOLDOWN_SECONDS = 0.6 -- der Server erlaubt 2 Käufe pro Sekunde
 local OFFER_ROW_HEIGHT = 128
 local OFFER_TICK_SECONDS = 0.5 -- so oft wird der Countdown der Angebote neu geschrieben
 local PERK_SECTION_ORDER = 100 -- LayoutOrder der Überschrift "Pässe und Boosts" (nach den Gem-Paketen)
@@ -66,6 +76,7 @@ local TEXT_FULL = "Zu viele Gems: Gib erst welche aus."
 local TEXT_SECTION = "Pässe und Boosts"
 local TEXT_OWNED = "Gekauft"
 local TEXT_SOON = "Bald"
+local TEXT_NOT_FOR_SALE = "Gerade nicht im Verkauf."
 local TEXT_AUTO_ON = "Auto: an"
 local TEXT_AUTO_OFF = "Auto: aus"
 local TEXT_BOOST_BOUGHT = "Münz-Boost aktiv!"
@@ -89,9 +100,14 @@ local Products = loadShared("Data", "Products")
 local Offers = loadShared("Data", "Offers")
 local CrateItems = loadShared("Data", "CrateItems")
 local Economy = loadShared("Data", "Economy")
+local Rarities = loadShared("Data", "Rarities")
+local PriceView = loadShared("Logic", "PriceView")
+local DirectShop = loadShared("Logic", "DirectShop")
+local EquipmentLogic = loadShared("Logic", "Equipment")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 local CrateShop = require(script.Parent:WaitForChild("CrateShop") :: ModuleScript) :: any
+local ProductPrices = require(script.Parent:WaitForChild("ProductPrices") :: ModuleScript) :: any
 
 local GemShop = {}
 
@@ -135,6 +151,20 @@ local function groupedNumber(value: number): string
     return result
 end
 
+-- Preis aus dem Creator Dashboard (Controllers/ProductPrices), sonst aus der Tabelle (Paket 4.6).
+local function priceInfo(isPass: boolean, productId: number): any
+    if productId <= 0 then
+        return nil
+    end
+    return ProductPrices.info(isPass, productId)
+end
+local function productButtonText(product: any): string
+    return PriceView.buttonText(product.productId, priceInfo(product.kind == "gamepass", product.productId), product.priceRobux)
+end
+local function productBuyable(product: any): boolean
+    return PriceView.buyable(product.productId, priceInfo(product.kind == "gamepass", product.productId))
+end
+
 local function newText(parent: Instance, name: string, position: UDim2, size: UDim2, font: Enum.Font, color: Color3, text: string): TextLabel
     local l = Instance.new("TextLabel")
     l.Name = name
@@ -157,7 +187,7 @@ function GemShop.Start()
     local controls = Screen.controls()
     -- Reiter: Welche Zeilen zu welchem Reiter gehören, steht in `tabRows`. Die Funktionen werden
     -- unten gesetzt (das Fenster braucht onOpen vorher).
-    local tabRows: { [string]: { GuiObject } } = { offers = {}, gems = {}, perks = {} }
+    local tabRows: { [string]: { GuiObject } } = { offers = {}, gems = {}, perks = {}, direct = {} }
     local activeTab = "gems"
     local applyTabs: () -> () = function() end
     local chooseTab: () -> () = function() end
@@ -261,7 +291,7 @@ function GemShop.Start()
     end
 
     -- Paketliste aus Data/GemPacks, einmal gebaut. Preise und Mengen stehen nur dort.
-    local buyButtons: { [string]: { button: TextButton, pack: any } } = {}
+    local buyButtons: { [string]: { button: TextButton, bonus: TextLabel, pack: any } } = {}
     -- Über der Obergrenze würde das Paket gekappt: nicht kaufen lassen (der Server kappt trotzdem).
     local function wouldOverflow(pack: any): boolean
         return targetGems + pack.gems > Economy.purchases.maxGems
@@ -270,8 +300,15 @@ function GemShop.Start()
         for _, entry in buyButtons do
             local pack = entry.pack
             if pack.productId ~= 0 then
-                entry.button.Text = if wouldOverflow(pack) then "Voll" else `{groupedNumber(pack.robux)} Robux`
+                entry.button.Text = if wouldOverflow(pack) then "Voll" else PriceView.buttonText(pack.productId, priceInfo(false, pack.productId), pack.robux)
             end
+            -- Bonus aus den echten Preisen (gleiches Einstiegspaket wie im Konzept).
+            local base = GemPacks.list[1]
+            local bonus = PriceView.gemBonusPercent(pack.gems, PriceView.robux(priceInfo(false, pack.productId), pack.robux), base.gems, PriceView.robux(priceInfo(false, base.productId), base.robux))
+            if bonus == nil then
+                bonus = pack.bonusPercentConcept
+            end
+            entry.bonus.Text = if pack == base then "Einstieg" elseif (bonus :: number) > 0 then `+{bonus} % Bonus` else "Kein Bonus"
         end
     end
 
@@ -288,7 +325,7 @@ function GemShop.Start()
 
         newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.5, -12, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, pack.name)
         local bonusText = if pack.bonusPercentConcept > 0 then `+{pack.bonusPercentConcept} % Bonus` else "Einstieg"
-        newText(row, "Bonus", UDim2.new(0, 12, 0, 36), UDim2.new(0.5, -12, 0, 20), Enum.Font.Gotham, GOOD_COLOR, bonusText)
+        local bonusLabel = newText(row, "Bonus", UDim2.new(0, 12, 0, 36), UDim2.new(0.5, -12, 0, 20), Enum.Font.Gotham, GOOD_COLOR, bonusText)
 
         local buy = Instance.new("TextButton")
         buy.Name = "Buy"
@@ -299,7 +336,7 @@ function GemShop.Start()
         buy.Font = Enum.Font.GothamBold
         buy.TextColor3 = if pack.productId == 0 then MUTED_COLOR else PANEL_COLOR
         buy.TextScaled = true
-        buy.Text = if pack.productId == 0 then "Bald" else `{groupedNumber(pack.robux)} Robux`
+        buy.Text = PriceView.buttonText(pack.productId, priceInfo(false, pack.productId), pack.robux)
         buy.Parent = row
         Instance.new("UICorner").Parent = buy
         local buyPadding = Instance.new("UIPadding")
@@ -307,10 +344,14 @@ function GemShop.Start()
         buyPadding.PaddingBottom = UDim.new(0, 8)
         buyPadding.Parent = buy
 
-        buyButtons[pack.id] = { button = buy, pack = pack }
+        buyButtons[pack.id] = { button = buy, bonus = bonusLabel, pack = pack }
         buy.Activated:Connect(function()
             if pack.productId == 0 then
                 showMessage(TEXT_MISSING_PRODUCT)
+                return
+            end
+            if not PriceView.buyable(pack.productId, priceInfo(false, pack.productId)) then
+                showMessage(TEXT_NOT_FOR_SALE)
                 return
             end
             if wouldOverflow(pack) then
@@ -380,13 +421,13 @@ function GemShop.Start()
                     end
                     status.Text = TEXT_OWNED
                 else
-                    button.Text = if product.productId == 0 then TEXT_SOON else `{groupedNumber(product.priceRobux)} Robux`
-                    styleButton(button, product.productId ~= 0, PASS_COLOR)
+                    button.Text = productButtonText(product)
+                    styleButton(button, productBuyable(product), PASS_COLOR)
                     status.Text = ""
                 end
             else
-                button.Text = if product.productId == 0 then TEXT_SOON else `{groupedNumber(product.priceRobux)} Robux`
-                styleButton(button, product.productId ~= 0, PASS_COLOR)
+                button.Text = productButtonText(product)
+                styleButton(button, productBuyable(product), PASS_COLOR)
                 -- Die Boost-Zeit läuft in echter Zeit, auch offline: das steht vor dem Kauf da (balance 4.4).
                 status.Text = if boostLeft > 0 then `Läuft noch {clockText(boostLeft)}, auch offline` else TEXT_BOOST_REALTIME
             end
@@ -442,6 +483,10 @@ function GemShop.Start()
             end
             if product.productId == 0 then
                 showMessage(TEXT_MISSING_PRODUCT)
+                return
+            end
+            if not productBuyable(product) then
+                showMessage(TEXT_NOT_FOR_SALE)
                 return
             end
             local now = os.clock()
@@ -508,9 +553,145 @@ function GemShop.Start()
         refreshButtons()
     end)
 
+    -- Direktkauf (Paket 4.6) ---------------------------------------------------------------------
+    -- Nur wo Kisten gesperrt sind (Policy `ArePaidRandomItemsRestricted` oder unbekannt): jedes Kisten-
+    -- Item außer Event-Items zum festen Preis in Gems, ohne Zufall. Preise aus Logic/DirectShop
+    -- (dieselbe Funktion wie auf dem Server). Der Client schickt nur die Item-ID (BuyDirectItem).
+    local DIRECT_REASONS: { [string]: string } = {
+        notEnoughGems = "Zu wenig Gems. Im Reiter Gems gibt es Pakete.",
+        cratesAllowed = "Hier gibt es Kisten, der Direktkauf ist geschlossen.",
+        notOffered = "Dieses Item gibt es nicht im Direktkauf.",
+        unknownItem = "Dieses Item gibt es nicht.",
+        noProfile = "Dein Spielstand lädt noch.",
+        busy = "Einen Moment, der letzte Kauf läuft noch.",
+        error = "Verbindung unterbrochen. Prüfe deinen Kontostand.",
+        unknown = "Das geht gerade nicht.",
+    }
+    local DIRECT_KIND_NAMES: { [string]: string } = { skin = "Skin", companion = "Begleiter", toolVariant = "Werkzeug-Variante" }
+    local function hex(hexText: string): Color3
+        local r = tonumber(string.sub(hexText, 2, 3), 16) or 255
+        local g = tonumber(string.sub(hexText, 4, 5), 16) or 255
+        local b = tonumber(string.sub(hexText, 6, 7), 16) or 255
+        return Color3.fromRGB(r, g, b)
+    end
+
+    local directIntro = newText(window.body, "DirectIntro", UDim2.new(), UDim2.new(1, 0, 0, DIRECT_INTRO_HEIGHT), Enum.Font.Gotham, MUTED_COLOR, "Kisten gibt es in deiner Region nicht. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten.")
+    directIntro.LayoutOrder = DIRECT_SECTION_ORDER
+    directIntro.Visible = false
+    table.insert(tabRows.direct, directIntro)
+
+    local directRows: { { entry: any, info: TextLabel, button: TextButton } } = {}
+    local directSnapshot: any = nil
+    local directBusy = false
+    local lastDirectAt = 0
+    local buyDirect = remotes:WaitForChild("BuyDirectItem") :: RemoteFunction
+
+    local function renderDirect()
+        local snapshot = directSnapshot
+        local gems = if snapshot ~= nil and type(snapshot.gems) == "number" then snapshot.gems else 0
+        for _, row in directRows do
+            local item = CrateItems.byId[row.entry.itemId]
+            local copies = 0
+            local stars = 1
+            if snapshot ~= nil and type(snapshot.inventory) == "table" and item ~= nil then
+                local bucket = snapshot.inventory[EquipmentLogic.INVENTORY_FIELDS[item.kind]]
+                local count = if type(bucket) == "table" then bucket[item.id] else nil
+                copies = if type(count) == "number" then count else 0
+                if type(snapshot.itemStars) == "table" then
+                    stars = EquipmentLogic.starsOf({ itemStars = snapshot.itemStars }, item.id)
+                end
+            end
+            local bonusBp = if item ~= nil then EquipmentLogic.itemBonusBp(item, 1) else 0
+            local ownText = if copies > 0 then ` · Besitz: {copies} (★{stars})` else ""
+            row.info.Text = `{DIRECT_KIND_NAMES[row.entry.kind] or row.entry.kind} · +{bonusBp / 100} % Sammelrate{ownText}`
+            local affordable = gems >= row.entry.price
+            row.button.BackgroundColor3 = if affordable and not directBusy then GEM_COLOR else BUTTON_COLOR
+            row.button.TextColor3 = if affordable and not directBusy then PANEL_COLOR else MUTED_COLOR
+        end
+    end
+
+    local catalog = DirectShop.catalog()
+    table.sort(catalog, function(a: any, b: any): boolean
+        local rankA = if Rarities.byId[a.rarityId] then Rarities.byId[a.rarityId].rank else 0
+        local rankB = if Rarities.byId[b.rarityId] then Rarities.byId[b.rarityId].rank else 0
+        if rankA ~= rankB then
+            return rankA < rankB
+        end
+        return a.price < b.price
+    end)
+    for index, entry in catalog do
+        local rarity = Rarities.byId[entry.rarityId]
+        local row = Instance.new("Frame")
+        row.Name = `Direct_{entry.itemId}`
+        row.LayoutOrder = DIRECT_SECTION_ORDER + index
+        row.Size = UDim2.new(1, 0, 0, DIRECT_ROW_HEIGHT)
+        row.BackgroundColor3 = ROW_COLOR
+        row.BackgroundTransparency = 0.2
+        row.Visible = false
+        row.Parent = window.body
+        Instance.new("UICorner").Parent = row
+        table.insert(tabRows.direct, row)
+
+        local title = if rarity ~= nil then `{entry.name} ({rarity.name})` else entry.name
+        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Enum.Font.GothamBold, if rarity ~= nil then hex(rarity.colorHex) else TEXT_COLOR, title)
+        local info = newText(row, "Info", UDim2.new(0, 12, 0, 36), UDim2.new(0.6, -12, 0, 40), Enum.Font.Gotham, MUTED_COLOR, "")
+        info.TextYAlignment = Enum.TextYAlignment.Top
+
+        local buy = Instance.new("TextButton")
+        buy.Name = "Buy"
+        buy.AnchorPoint = Vector2.new(1, 0.5)
+        buy.Position = UDim2.new(1, -8, 0.5, 0)
+        buy.Size = UDim2.new(0.36, 0, 0, controls.rowButtonH)
+        buy.Font = Enum.Font.GothamBold
+        buy.TextScaled = true
+        buy.Text = `{groupedNumber(entry.price)} Gems`
+        buy.Parent = row
+        Instance.new("UICorner").Parent = buy
+        local buyPadding = Instance.new("UIPadding")
+        buyPadding.PaddingTop = UDim.new(0, 8)
+        buyPadding.PaddingBottom = UDim.new(0, 8)
+        buyPadding.Parent = buy
+
+        table.insert(directRows, { entry = entry, info = info, button = buy })
+        buy.Activated:Connect(function()
+            if directBusy then
+                showMessage(DIRECT_REASONS.busy)
+                return
+            end
+            local now = os.clock()
+            if now - lastDirectAt < DIRECT_BUY_COOLDOWN_SECONDS then
+                return
+            end
+            lastDirectAt = now
+            directBusy = true
+            renderDirect()
+            task.spawn(function()
+                local ok, reply = pcall(function(): any
+                    return buyDirect:InvokeServer(entry.itemId)
+                end)
+                directBusy = false
+                if not ok or type(reply) ~= "table" then
+                    showMessage(DIRECT_REASONS.error)
+                elseif reply.ok ~= true then
+                    showMessage(DIRECT_REASONS[tostring(reply.reason)] or DIRECT_REASONS.unknown)
+                else
+                    showBanner(`{entry.name} gekauft!`)
+                    showMessage("Ausrüsten im Fenster Ausrüstung.")
+                end
+                renderDirect()
+            end)
+        end)
+    end
+
+    State.onChanged(function(snapshot: any)
+        directSnapshot = snapshot
+        renderDirect()
+    end)
+
     -- Angebote und Reiter (Paket 4.5) ------------------------------------------------------------
     local offersState: { [string]: { state: string, endsAt: number } } = {}
     local cratesAllowed = false
+    local directOpen = false -- Kisten hier gesperrt: Direktkauf statt Kisten (Paket 4.6)
     local forceOffers = false
     local offerRows: { { offer: any, product: any, row: Frame, status: TextLabel, button: TextButton } } = {}
     -- Kaufdialog offen oder Kauf bezahlt, aber der Server hat noch nicht bestätigt: kein zweiter Kauf
@@ -599,6 +780,10 @@ function GemShop.Start()
                 showMessage(TEXT_MISSING_PRODUCT)
                 return
             end
+            if not productBuyable(product) then
+                showMessage(TEXT_NOT_FOR_SALE)
+                return
+            end
             if offerPending(offer.id) then
                 return
             end
@@ -645,9 +830,10 @@ function GemShop.Start()
                 entry.button.TextColor3 = MUTED_COLOR
             elseif left > 0 then
                 entry.status.Text = `Noch {clockText(left)}`
-                entry.button.Text = if entry.product.productId == 0 then TEXT_SOON else `{groupedNumber(entry.product.priceRobux)} Robux`
-                entry.button.BackgroundColor3 = if entry.product.productId == 0 then BUTTON_COLOR else OFFER_COLOR
-                entry.button.TextColor3 = if entry.product.productId == 0 then MUTED_COLOR else PANEL_COLOR
+                local buyable = productBuyable(entry.product)
+                entry.button.Text = productButtonText(entry.product)
+                entry.button.BackgroundColor3 = if buyable then OFFER_COLOR else BUTTON_COLOR
+                entry.button.TextColor3 = if buyable then PANEL_COLOR else MUTED_COLOR
             elseif state == "bought" then
                 entry.status.Text = TEXT_OFFER_DONE
                 entry.button.Text = TEXT_OFFER_DONE
@@ -681,6 +867,8 @@ function GemShop.Start()
             return anyOfferActive()
         elseif tabId == "crates" then
             return cratesAllowed
+        elseif tabId == "direct" then
+            return directOpen
         end
         return true
     end
@@ -730,7 +918,7 @@ function GemShop.Start()
     chooseTab = function()
         if forceOffers or anyOfferActive() then
             activeTab = "offers"
-        elseif activeTab == "offers" or activeTab == "crates" then
+        elseif activeTab == "offers" or activeTab == "crates" or (activeTab == "direct" and not directOpen) then
             activeTab = "gems"
         end
         forceOffers = false
@@ -785,7 +973,15 @@ function GemShop.Start()
             end
         end
         cratesAllowed = snapshot.cratesAllowed == true
+        directOpen = DirectShop.isOpen(snapshot.cratePolicy) and not cratesAllowed
         applyTabs()
+    end)
+
+    -- Neue Preise von Roblox: Knöpfe neu schreiben (Paket 4.6).
+    ProductPrices.onChanged(function()
+        refreshButtons()
+        renderPerkRows()
+        renderOffers()
     end)
 
     State.onNotify(function(payload: any)

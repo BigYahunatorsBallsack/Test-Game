@@ -7,6 +7,7 @@ local TreeLayout = require("./TreeLayout")
 local Perks = require("./Perks")
 local Offers = require("./Offers")
 local Equipment = require("./Equipment")
+local DirectShop = require("./DirectShop")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -1216,6 +1217,101 @@ local function checkEconomy(errors: { string }, data: DataSet)
     end
 end
 
+-- Ist das Item nur in Event-Kisten? (Alle seine Kisten sind eventOnly.)
+local function isEventOnlyItem(item: any, crates: any): boolean
+    if type(item.crates) ~= "table" or #item.crates == 0 or type(crates) ~= "table" or type(crates.byId) ~= "table" then
+        return false
+    end
+    for _, crateId in item.crates do
+        local crate = crates.byId[crateId]
+        if crate == nil or crate.eventOnly ~= true then
+            return false
+        end
+    end
+    return true
+end
+
+-- Direktkauf (Paket 4.6): Kisten für den Preis sind bekannte Gem-Kisten ohne eventOnly (nie Münz-
+-- oder Event-Kisten), keine doppelt; gültige Stellen ganze Zahl von 1 bis 4; monotoneFloor Boolean.
+-- Jeder Preis lässt sich rechnen und liegt nicht über maxGems (sonst wäre das Item nie kaufbar).
+-- Tag 7 der Daily Reward (Paket 5.1): Der Ersatzgegenstand ist ein festes Item aus CrateItems, kein
+-- Event-Item.
+local function checkDirectShop(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    local crates = data.Crates
+    local items = data.CrateItems
+    local daily = economy.daily
+    if type(daily) == "table" then
+        local itemId = daily.day7FallbackItemId
+        local item = if type(itemId) == "string" and type(items) == "table" and type(items.byId) == "table" then items.byId[itemId] else nil
+        if item == nil then
+            table.insert(errors, `Economy.daily.day7FallbackItemId "{tostring(itemId)}" steht nicht in CrateItems`)
+        elseif isEventOnlyItem(item, crates) then
+            table.insert(errors, `Economy.daily.day7FallbackItemId "{itemId}" ist ein Event-Item`)
+        end
+    end
+
+    local cfg = economy.directShop
+    if type(cfg) ~= "table" then
+        table.insert(errors, "Economy.directShop: Tabelle fehlt")
+        return
+    end
+    local valid = true
+    local digits = cfg.roundSignificantDigits
+    if not isInt(digits) or digits < 1 or digits > 4 then
+        table.insert(errors, "Economy.directShop.roundSignificantDigits muss eine ganze Zahl von 1 bis 4 sein")
+        valid = false
+    end
+    if type(cfg.monotoneFloor) ~= "boolean" then
+        table.insert(errors, "Economy.directShop.monotoneFloor muss true oder false sein")
+        valid = false
+    end
+    local list = cfg.crates
+    if type(list) ~= "table" or #list == 0 then
+        table.insert(errors, "Economy.directShop.crates muss mindestens eine Kiste nennen")
+        return
+    end
+    local seen: { [string]: boolean } = {}
+    for index, crateId in list do
+        local label = `Economy.directShop.crates[{tostring(index)}]`
+        local crate = if type(crateId) == "string" and type(crates) == "table" and type(crates.byId) == "table" then crates.byId[crateId] else nil
+        if crate == nil then
+            table.insert(errors, `{label}: unbekannte Kiste "{tostring(crateId)}"`)
+            valid = false
+        elseif seen[crateId] then
+            table.insert(errors, `{label}: Kiste "{crateId}" steht doppelt`)
+            valid = false
+        else
+            seen[crateId] = true
+            if crate.currency ~= "gems" then
+                table.insert(errors, `{label}: Kiste "{crateId}" muss in Gems kosten (currency = "gems")`)
+                valid = false
+            end
+            if crate.eventOnly == true then
+                table.insert(errors, `{label}: Kiste "{crateId}" ist eine Event-Kiste`)
+                valid = false
+            end
+        end
+    end
+    if not valid or #errors > 0 then
+        return -- Preise nur mit sonst gültigen Daten rechnen
+    end
+    local maxGems = if type(economy.purchases) == "table" then economy.purchases.maxGems else nil
+    local ok, catalog = pcall(DirectShop.catalog, data)
+    if not ok then
+        table.insert(errors, `Economy.directShop: Preise lassen sich nicht rechnen ({tostring(catalog)})`)
+        return
+    end
+    for _, entry in catalog do
+        if not isInt(entry.price) or entry.price <= 0 or (isInt(maxGems) and entry.price > maxGems) then
+            table.insert(errors, `Direktkauf "{entry.itemId}": Preis {tostring(entry.price)} ist keine ganze Zahl von 1 bis Economy.purchases.maxGems`)
+        end
+    end
+end
+
 local function checkWorld(errors: { string }, data: DataSet)
     local world = data.World
     local stand = if type(world) == "table" then world.sellStand else nil
@@ -2404,6 +2500,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkEconomy(errors, data)
     checkSandstorm(errors, data)
     checkPurchases(errors, data)
+    checkDirectShop(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

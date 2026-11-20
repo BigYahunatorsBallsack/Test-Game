@@ -91,6 +91,14 @@ local list: { RemoteDef } = {
         description = "Spieler hebt ein Kisten-Item mit Kopien um einen Stern.",
     },
     {
+        name = "BuyDirectItem",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = { Validate.idIn(CrateItems.byId, ID_MAX_LEN) }, -- itemId; Preis und Policy bestimmt der Server
+        limit = { calls = 2, per = 1 },
+        description = "Spieler kauft ein Kisten-Item fest gegen Gems (Direktkauf, nur bei gesperrten Zufallsitems, Paket 4.6).",
+    },
+    {
         name = "SetAutoDig",
         kind = "Event",
         direction = "ClientToServer",

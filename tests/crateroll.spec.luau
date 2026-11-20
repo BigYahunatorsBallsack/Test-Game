@@ -496,4 +496,354 @@ T.describe("Pity-Simulation Goldkiste", function()
     end)
 end)
 
+-- ===================================================================================================
+-- Paket 4.6: Quoten der nächsten Öffnung (effectiveOdds), Quote je Item (itemOdds), Langzeitraten.
+-- ===================================================================================================
+
+-- Werte des balance-analyst (docs/balance/directshop_4_6.md, exakte Brüche, auf 10 Stellen gerundet).
+local BALANCE_GOLD_RATES = {
+    common = 0,
+    uncommon = 0.3955884537,
+    rare = 0.3955884537,
+    epic = 0.1549552381,
+    legendary = 0.0484810690,
+    mythic = 0.0053867854,
+}
+local BALANCE_10_DIGITS = 5e-11
+
+-- Alle Zählerstände einer Kiste mit Pity (0 bis Grenze - 1 je Zähler), sonst nur nil.
+local function counterStates(crate: any): { any }
+    if crate.pity == nil then
+        return { false }
+    end
+    local states = {}
+    for l = 0, crate.pity.legendary - 1 do
+        for e = 0, crate.pity.epic - 1 do
+            table.insert(states, { sinceEpic = e, sinceLegendary = l })
+        end
+    end
+    return states
+end
+
+local function stateOf(value: any): any
+    return if value == false then nil else value
+end
+
+-- Der Wurf, wie er vor Paket 4.6 war (Kopie aus CrateRoll, unverändert): Seltenheit über
+-- pickRarity mit Mindest-Rang, dann Item gleich verteilt. Dient als Vergleich für den neuen Weg
+-- über effectiveOdds.
+local function oldPickRarity(odds: { [string]: number }, r: number, minRank: number?): string
+    local floorRank = minRank or 1
+    local eligible: { { id: string, share: number } } = {}
+    local total = 0
+    for _, rarity in Rarities.list do
+        local share = odds[rarity.id]
+        if rarity.rank >= floorRank and type(share) == "number" and share > 0 then
+            table.insert(eligible, { id = rarity.id, share = share })
+            total += share
+        end
+    end
+    if total <= 0 then
+        error(`CrateRoll: keine Seltenheit ab Rang {floorRank} mit Quote über 0`)
+    end
+    local ticket = math.min(math.floor(r * total) + 1, total)
+    local upper = 0
+    for _, entry in eligible do
+        upper += entry.share
+        if ticket <= upper then
+            return entry.id
+        end
+    end
+    return eligible[#eligible].id
+end
+
+local function oldRoll(crate: any, counters: any, random: () -> number): any
+    local tier = CrateRoll.guarantee(crate, counters)
+    local minRank = if tier then rank(tier) else 1
+    local r = random()
+    if type(r) ~= "number" or r ~= r or r < 0 or r >= 1 then
+        error("Zufallswert")
+    end
+    local rarityId = oldPickRarity(crate.odds, r, minRank)
+    local pool = CrateRoll.pool(crate.id, rarityId)
+    local index = math.min(math.floor(random() * #pool) + 1, #pool)
+    return {
+        itemId = pool[index].id,
+        rarityId = rarityId,
+        pityTriggered = tier,
+        pity = CrateRoll.advance(crate, counters, rarityId),
+    }
+end
+
+T.describe("effectiveOdds (4.6): Quoten der nächsten Öffnung", function()
+    T.it("für jede Kiste und jeden Pity-Stand ergibt die Summe 100 %, mit Garantie nur Seltenheiten ab der Stufe", function()
+        local checked = 0
+        for _, crate in Crates.list do
+            for _, raw in counterStates(crate) do
+                local counters = stateOf(raw)
+                local effective = CrateRoll.effectiveOdds(crate, counters)
+                local tier = CrateRoll.guarantee(crate, counters)
+                T.expect(effective.guarantee).toBe(tier)
+                local sum = 0
+                for _, rarity in Rarities.list do
+                    local weight = effective.odds[rarity.id] or 0
+                    sum += weight
+                    if tier ~= nil and rarity.rank < rank(tier) then
+                        T.expect(weight).toBe(0)
+                    elseif weight > 0 then
+                        T.expect(weight).toBe(crate.odds[rarity.id]) -- Gewicht aus der Tabelle
+                    end
+                end
+                T.expect(sum).toBe(effective.total)
+                local percent = 0
+                for _, rarity in Rarities.list do
+                    percent += (effective.odds[rarity.id] or 0) / effective.total * 100
+                end
+                T.expect(percent).toBeCloseTo(100, 1e-9)
+                if tier == nil then
+                    T.expect(rawequal(effective.odds, crate.odds)).toBe(true) -- dieselbe Referenz
+                    T.expect(effective.total).toBe(10000)
+                else
+                    T.expect(rawequal(effective.odds, crate.odds)).toBe(false) -- neue Tabelle
+                end
+                checked += 1
+            end
+        end
+        T.expect(checked).toBe(1 + 1 + 15 * 60 * 2)
+    end)
+
+    T.it("Gold kurz vor der Episch-Garantie: 75 / 22,5 / 2,5 %; vor Legendär: 90 / 10 %", function()
+        local epic = CrateRoll.effectiveOdds(gold, { sinceEpic = 14, sinceLegendary = 14 })
+        T.expect(epic.guarantee).toBe("epic")
+        T.expect(epic.total).toBe(2000)
+        T.expect(epic.odds).toEqual({ common = 0, uncommon = 0, rare = 0, epic = 1500, legendary = 450, mythic = 50 })
+        local legendary = CrateRoll.effectiveOdds(gold, { sinceEpic = 14, sinceLegendary = 59 })
+        T.expect(legendary.guarantee).toBe("legendary")
+        T.expect(legendary.total).toBe(500)
+        T.expect(legendary.odds.legendary / legendary.total).toBe(0.9)
+        T.expect(legendary.odds.mythic / legendary.total).toBe(0.1)
+        local none = CrateRoll.effectiveOdds(gold, { sinceEpic = 13, sinceLegendary = 58 })
+        T.expect(none.guarantee).toBeNil()
+    end)
+
+    T.it("die Quotentabelle der Daten wird nie verändert", function()
+        local before = table.clone(gold.odds)
+        for _, raw in counterStates(gold) do
+            local effective = CrateRoll.effectiveOdds(gold, stateOf(raw))
+            if effective.guarantee ~= nil then
+                effective.odds.mythic = 9999 -- eine Änderung am Ergebnis wirkt nicht zurück
+            end
+        end
+        T.expect(gold.odds).toEqual(before)
+        T.expect(rawequal(event.odds, gold.odds)).toBe(true)
+    end)
+
+    T.it("roll würfelt über effectiveOdds: für feste Zufallsfolgen dasselbe Ergebnis wie vor 4.6", function()
+        local compared = 0
+        for _, crate in Crates.list do
+            local states = counterStates(crate)
+            for seed = 1, 40 do
+                math.randomseed(SEED * 100 + seed)
+                local values: { number } = {}
+                for i = 1, 2 * #states do
+                    values[i] = math.random()
+                end
+                -- Ränder der Lose dazu: 0 und knapp unter 1.
+                table.insert(values, 0)
+                table.insert(values, 0.9999999999)
+                for index, raw in states do
+                    local counters = stateOf(raw)
+                    for _, pair in { { values[2 * index - 1], values[2 * index] }, { values[#values - 1], values[#values] }, { values[#values], values[#values - 1] } } do
+                        local newRoll = CrateRoll.roll(crate, counters, sequence({ pair[1], pair[2] }))
+                        local old = oldRoll(crate, counters, sequence({ pair[1], pair[2] }))
+                        if newRoll.item.id ~= old.itemId or newRoll.rarityId ~= old.rarityId or newRoll.pityTriggered ~= old.pityTriggered then
+                            error(`{crate.id} bei {pair[1]}/{pair[2]}: neu {newRoll.item.id}, alt {old.itemId}`)
+                        end
+                        T.expect(newRoll.pity).toEqual(old.pity)
+                        compared += 1
+                    end
+                end
+            end
+        end
+        print(`      {compared} Würfe mit festen Zufallswerten verglichen`)
+    end)
+
+    T.it("Simulation: bei anstehender Garantie trifft der Wurf die angezeigten Quoten", function()
+        math.randomseed(SEED + 2)
+        local openings = 60_000
+        for _, counters in { { sinceEpic = 14, sinceLegendary = 20 }, { sinceEpic = 3, sinceLegendary = 59 }, { sinceEpic = 0, sinceLegendary = 0 } } do
+            local effective = CrateRoll.effectiveOdds(gold, counters)
+            local counts: { [string]: number } = {}
+            for _ = 1, openings do
+                local roll = CrateRoll.roll(gold, counters, math.random)
+                counts[roll.rarityId] = (counts[roll.rarityId] or 0) + 1
+            end
+            for _, rarity in Rarities.list do
+                local p = (effective.odds[rarity.id] or 0) / effective.total
+                local count = counts[rarity.id] or 0
+                if p == 0 then
+                    T.expect(count).toBe(0)
+                else
+                    local ok, sigmas = withinSigma(count, openings, p)
+                    if not ok then
+                        error(`{rarity.id}: {count} statt {openings * p} ({sigmas} Sigma)`)
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+T.describe("itemOdds (4.6): Quote je Item", function()
+    T.it("jedes Item jeder Kiste kommt vor, Quote = Seltenheits-Quote / Poolgröße, exakte Summe 100 %", function()
+        for _, crate in Crates.list do
+            for _, raw in counterStates(crate) do
+                local counters = stateOf(raw)
+                local effective = CrateRoll.effectiveOdds(crate, counters)
+                local entries = CrateRoll.itemOdds(crate.id, counters)
+                local seen: { [string]: boolean } = {}
+                local perRarity: { [string]: number } = {}
+                local floatSum = 0
+                for _, entry in entries do
+                    T.expect(seen[entry.itemId]).toBeNil()
+                    seen[entry.itemId] = true
+                    local item = CrateItems.byId[entry.itemId]
+                    T.expect(entry.rarityId).toBe(item.rarity)
+                    T.expect(entry.name).toBe(item.name)
+                    T.expect(entry.kind).toBe(item.kind)
+                    local poolSize = #CrateRoll.pool(crate.id, entry.rarityId)
+                    -- Exakt als Bruch aus ganzen Zahlen: Gewicht / (total x Poolgröße).
+                    T.expect(entry.numerator).toBe(effective.odds[entry.rarityId])
+                    T.expect(entry.denominator).toBe(effective.total * poolSize)
+                    T.expect(entry.numerator % 1).toBe(0)
+                    T.expect(entry.denominator % 1).toBe(0)
+                    T.expect(entry.percent).toBeCloseTo(entry.numerator / entry.denominator * 100, 1e-12)
+                    perRarity[entry.rarityId] = (perRarity[entry.rarityId] or 0) + 1
+                    floatSum += entry.numerator / entry.denominator
+                end
+                -- Rationale Summe: je Seltenheit Poolgröße x Gewicht / (total x Poolgröße) = Gewicht / total,
+                -- und die Gewichte ergeben zusammen total. Also genau 1.
+                local weightSum = 0
+                for rarityId, count in perRarity do
+                    T.expect(count).toBe(#CrateRoll.pool(crate.id, rarityId))
+                    weightSum += effective.odds[rarityId]
+                end
+                T.expect(weightSum).toBe(effective.total)
+                T.expect(floatSum).toBeCloseTo(1, 1e-12)
+                if counters == nil or effective.guarantee == nil then
+                    -- Ohne Garantie: jedes Item mit dieser Kiste in `crates` kommt vor.
+                    for _, item in CrateItems.list do
+                        if table.find(item.crates, crate.id) ~= nil then
+                            T.expect(seen[item.id]).toBe(true)
+                        end
+                    end
+                else
+                    for itemId in seen do
+                        T.expect(rank(CrateItems.byId[itemId].rarity) >= rank(effective.guarantee :: string)).toBe(true)
+                    end
+                end
+            end
+        end
+    end)
+
+    T.it("sortiert nach Rang absteigend, innerhalb der Seltenheit in der Reihenfolge von CrateItems", function()
+        local entries = CrateRoll.itemOdds("gold")
+        local order: { [string]: number } = {}
+        for index, item in CrateItems.list do
+            order[item.id] = index
+        end
+        for index = 2, #entries do
+            local a, b = entries[index - 1], entries[index]
+            local ra, rb = rank(a.rarityId), rank(b.rarityId)
+            T.expect(ra >= rb).toBe(true)
+            if ra == rb then
+                T.expect(order[a.itemId] < order[b.itemId]).toBe(true)
+            end
+        end
+        T.expect(entries[1].rarityId).toBe("mythic")
+        T.expect(entries[#entries].rarityId).toBe("uncommon")
+        -- Goldkiste ohne Garantie: Mythisch 0,5 % / 3 Items je Item.
+        T.expect(entries[1].numerator).toBe(50)
+        T.expect(entries[1].denominator).toBe(30000)
+        T.expect(CrateRoll.itemOdds("gibt_es_nicht")).toEqual({})
+    end)
+end)
+
+T.describe("longRunRates (4.6): Langzeitrate je Seltenheit mit Pity", function()
+    T.it("Goldkiste: stimmt mit der Markov-Rechnung dieses Tests und den Werten des balance-analyst überein", function()
+        local rates = CrateRoll.longRunRates(gold)
+        local rateLeg, rateEpic, rateMythic = exactPityRates(gold)
+        T.expect(rates.legendary + rates.mythic).toBeCloseTo(rateLeg, 1e-12)
+        T.expect(rates.epic + rates.legendary + rates.mythic).toBeCloseTo(rateEpic, 1e-12)
+        T.expect(rates.mythic).toBeCloseTo(rateMythic, 1e-12)
+        T.expect(rates.legendary + rates.mythic).toBeCloseTo(renewalLegendaryRate(gold), 1e-12)
+        -- docs/balance/crates_4_2.md (6 Stellen)
+        T.expect(rates.legendary + rates.mythic).toBeCloseTo(BALANCE_LEGENDARY_PLUS, BALANCE_ROUNDING)
+        T.expect(rates.epic + rates.legendary + rates.mythic).toBeCloseTo(BALANCE_EPIC_PLUS, BALANCE_ROUNDING)
+        T.expect(rates.mythic).toBeCloseTo(BALANCE_MYTHIC, BALANCE_ROUNDING)
+        -- docs/balance/directshop_4_6.md (10 Stellen)
+        for rarityId, expected in BALANCE_GOLD_RATES do
+            T.expect(rates[rarityId]).toBeCloseTo(expected, BALANCE_10_DIGITS)
+        end
+        local sum = 0
+        for _, value in rates do
+            sum += value
+        end
+        T.expect(sum).toBeCloseTo(1, 1e-12)
+        -- Event-Kiste: gleiche Quoten und Grenzen, gleiche Raten.
+        local eventRates = CrateRoll.longRunRates(event)
+        for rarityId, value in rates do
+            T.expect(eventRates[rarityId]).toBeCloseTo(value, 1e-15)
+        end
+    end)
+
+    T.it("Kisten ohne Pity: Quote / 10000; jede Seltenheit kommt vor; neue Tabelle je Aufruf", function()
+        for _, crate in { wood, Crates.byId.iron } do
+            local rates = CrateRoll.longRunRates(crate)
+            for _, rarity in Rarities.list do
+                T.expect(rates[rarity.id]).toBe((crate.odds[rarity.id] or 0) / 10000)
+            end
+        end
+        local a = CrateRoll.longRunRates(gold)
+        a.mythic = 1
+        T.expect(CrateRoll.longRunRates(gold).mythic).toBeCloseTo(BALANCE_GOLD_RATES.mythic, BALANCE_10_DIGITS)
+    end)
+
+    T.it("eine geänderte Tabelle oder Pity wird neu gerechnet (kein veralteter Zwischenspeicher)", function()
+        local odds = table.clone(gold.odds)
+        local crate = { id = "probe", odds = odds, pity = { epic = 15, legendary = 60 }, currency = "gems", price = 400, eventOnly = false }
+        local first = CrateRoll.longRunRates(crate)
+        T.expect(first.mythic).toBeCloseTo(BALANCE_GOLD_RATES.mythic, BALANCE_10_DIGITS)
+        crate.pity = { epic = 15, legendary = 30 }
+        local second = CrateRoll.longRunRates(crate)
+        T.expect(second.legendary + second.mythic > first.legendary + first.mythic).toBe(true)
+        crate.pity = nil
+        T.expect(CrateRoll.longRunRates(crate).mythic).toBe(0.005)
+    end)
+
+    T.it("Simulation: viele Öffnungen am Stück treffen die Langzeitraten", function()
+        math.randomseed(SEED + 3)
+        local openings = SIMULATION_OPENINGS
+        local rates = CrateRoll.longRunRates(gold)
+        local counts: { [string]: number } = {}
+        local counters: any = nil
+        for _ = 1, openings do
+            local roll = CrateRoll.roll(gold, counters, math.random)
+            counters = roll.pity
+            counts[roll.rarityId] = (counts[roll.rarityId] or 0) + 1
+        end
+        for rarityId, p in rates do
+            local count = counts[rarityId] or 0
+            if p == 0 then
+                T.expect(count).toBe(0)
+            else
+                local ok, sigmas = withinSigma(count, openings, p)
+                if not ok then
+                    error(`{rarityId}: {count} statt {openings * p} ({sigmas} Sigma)`)
+                end
+            end
+        end
+    end)
+end)
+
 T.finish()

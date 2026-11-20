@@ -29,6 +29,7 @@ export type Snapshot = {
     itemStars: { [string]: number }?, -- Sterne ab ★2, fehlt = ★1 (Paket 4.3)
     equipBonusBp: number?, -- Sammelraten-Bonus aller ausgerüsteten Items (Hundertstel-Prozent, Paket 4.3)
     cratesAllowed: boolean?, -- false/nil: Kisten in dieser Region gesperrt oder Policy unbekannt (Paket 4.2)
+    cratePolicy: string?, -- "pending", "allowed", "restricted", "unknown" oder "none" (Paket 4.6): Direktkauf bei restricted/unknown
     offers: { [string]: { state: string, secondsLeft: number } }?, -- Angebote: hidden, active, expired oder bought, Restzeit in Sekunden (Server-Uhr, Paket 4.5)
     passes: { [string]: boolean }?, -- Gamepasses, die der Server als Besitz zählt (Produkt-ID -> true, Paket 4.4)
     autoDig: boolean?, -- Einstellung "Auto-Dig an" (wirkt nur mit Pass)

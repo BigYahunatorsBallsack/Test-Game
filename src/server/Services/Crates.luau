@@ -1,7 +1,7 @@
 --!strict
--- Crates-Service (Paket 4.2)
+-- Crates-Service (Paket 4.2, 4.6)
 -- Zuständig: Kisten öffnen (OpenCrate) mit Quoten und Pity auf dem Server, Policy
--- `ArePaidRandomItemsRestricted` je Spieler. Kisten-Wirkungen und Reveal-Details folgen in 4.3.
+-- `ArePaidRandomItemsRestricted` je Spieler, Direktkauf (BuyDirectItem, Paket 4.6).
 --
 -- Die Regeln stehen in reinen Modulen mit Lune-Tests: Logic/CrateRoll (Quoten, Pity, Item),
 -- Logic/CrateOpen (Bezahlen, Würfe, Inventar in einem Block, Gründe) und Logic/PolicyCache
@@ -17,6 +17,12 @@
 -- für immer, wenn alle Versuche scheitern, gilt der Spieler als gesperrt: jede Öffnung endet mit
 -- "restricted", und der StateSync meldet `cratesAllowed = false`. Der Abruf läuft in einem eigenen
 -- Thread und nie im Öffnen-Block.
+--
+-- Direktkauf (Paket 4.6, Logic/DirectShop): Ist die Policy gesperrt oder unbekannt
+-- (`Crates.policyState` "restricted" / "unknown"), kauft der Spieler Kisten-Items fest gegen Gems.
+-- Der Client schickt nur die Item-ID (Schema und Limit in RemoteSpec), Preis und Policy bestimmt der
+-- Server. Er liegt hier, weil dieser Service die Policy hält. Der StateSync meldet `cratePolicy`
+-- (Zustand aus `Crates.policyState`) neben `cratesAllowed`.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
 --   game.Players.Name:SetAttribute("DebugCratesRestricted", true)   -- Kisten gesperrt testen
@@ -46,6 +52,7 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local CrateOpen = loadShared("Logic", "CrateOpen")
+local DirectShop = loadShared("Logic", "DirectShop")
 local PolicyCache = loadShared("Logic", "PolicyCache")
 
 local servicesFolder = script.Parent
@@ -61,8 +68,9 @@ local function nextRandom(): number
     return random:NextNumber()
 end
 
--- Läuft für diesen Spieler gerade eine Öffnung?
-local opening: { [Player]: boolean } = {}
+-- Läuft für diesen Spieler gerade eine Öffnung oder ein Direktkauf? (Eine Gem-Buchung je Spieler
+-- zur selben Zeit.)
+local busy: { [Player]: boolean } = {}
 -- Spieler, deren Policy-Abruf und Studio-Hilfe schon angestoßen sind.
 local handled: { [Player]: boolean } = {}
 
@@ -113,6 +121,19 @@ function Crates.isAllowed(player: Player): boolean
     return restrictedOf(player) == false
 end
 
+-- Zustand der Policy für Anzeige und Direktkauf: "none" | "pending" | "allowed" | "restricted" |
+-- "unknown" (Logic/PolicyCache). In Studio überschreibt das Attribut wie bei restrictedOf:
+-- true -> "restricted", false -> "allowed".
+function Crates.policyState(player: Player): string
+    if RunService:IsStudio() then
+        local override = player:GetAttribute(DEBUG_RESTRICTED_ATTRIBUTE)
+        if type(override) == "boolean" then
+            return if override then "restricted" else "allowed"
+        end
+    end
+    return policy.state(player.UserId)
+end
+
 -- Öffnet ohne Warten. Der ganze Ablauf (Prüfen, Bezahlen, Würfeln, Pity, Inventar) steckt in
 -- CrateOpen.open und schreibt das Profil erst am Ende in einem Zug.
 local function openNow(player: Player, crateId: string, count: number): any
@@ -124,20 +145,22 @@ local function openNow(player: Player, crateId: string, count: number): any
     })
 end
 
-local function onOpenCrate(player: Player, crateId: string, count: number): any
-    if opening[player] then
+-- Gemeinsamer Ablauf für Öffnen und Direktkauf: Sperre je Spieler, pcall, Fehlertext nur ins
+-- Protokoll, Anzeige nach Erfolg. Die Antwort an den Client hat nie `detail`.
+local function runExclusive(player: Player, label: string, action: () -> any): any
+    if busy[player] then
         return { ok = false, reason = BUSY_REASON }
     end
-    opening[player] = true
-    local ok, result = pcall(openNow, player, crateId, count)
-    opening[player] = nil
+    busy[player] = true
+    local ok, result = pcall(action)
+    busy[player] = nil
     if not ok then
-        log(`Öffnen von {tostring(crateId)} für {player.Name} fehlgeschlagen: {tostring(result)}`)
+        log(`{label} für {player.Name} fehlgeschlagen: {tostring(result)}`)
         return { ok = false, reason = ERROR_REASON }
     end
     if result.ok ~= true then
         if result.reason == ERROR_REASON then
-            log(`Öffnen von {tostring(crateId)} für {player.Name} abgebrochen, nichts gebucht: {tostring(result.detail)}`)
+            log(`{label} für {player.Name} abgebrochen, nichts gebucht: {tostring(result.detail)}`)
         end
         return { ok = false, reason = result.reason } -- ohne `detail` (nur fürs Protokoll)
     end
@@ -145,9 +168,33 @@ local function onOpenCrate(player: Player, crateId: string, count: number): any
     return result
 end
 
+local function onOpenCrate(player: Player, crateId: string, count: number): any
+    return runExclusive(player, `Öffnen von {tostring(crateId)}`, function(): any
+        return openNow(player, crateId, count)
+    end)
+end
+
+-- Direktkauf ohne Warten (Logic/DirectShop prüft zuerst und schreibt dann in einem Zug).
+local function onBuyDirectItem(player: Player, itemId: string): any
+    return runExclusive(player, `Direktkauf von {tostring(itemId)}`, function(): any
+        local profile = PlayerData.get(player)
+        local result = DirectShop.buy(profile, itemId, { policyState = Crates.policyState(player) })
+        if result.ok == true then
+            return {
+                ok = true,
+                itemId = result.itemId,
+                price = result.price,
+                gems = result.gems,
+                copies = result.copies,
+            }
+        end
+        return result
+    end)
+end
+
 local function connectStudioHelper(player: Player)
     player:GetAttributeChangedSignal(DEBUG_RESTRICTED_ATTRIBUTE):Connect(function()
-        print(`[Crates] Studio: {player.Name} {DEBUG_RESTRICTED_ATTRIBUTE} = {tostring(player:GetAttribute(DEBUG_RESTRICTED_ATTRIBUTE))}, Kisten erlaubt: {Crates.isAllowed(player)}`)
+        print(`[Crates] Studio: {player.Name} {DEBUG_RESTRICTED_ATTRIBUTE} = {tostring(player:GetAttribute(DEBUG_RESTRICTED_ATTRIBUTE))}, Kisten erlaubt: {Crates.isAllowed(player)}, Policy: {Crates.policyState(player)}`)
         refresh(player)
     end)
 end
@@ -174,11 +221,13 @@ end
 
 function Crates.Start()
     Net.on("OpenCrate", onOpenCrate)
+    Net.on("BuyDirectItem", onBuyDirectItem)
 
-    -- `cratesAllowed` im StateSync: true nur bei bekannter, nicht sperrender Policy.
+    -- `cratesAllowed` im StateSync: true nur bei bekannter, nicht sperrender Policy. `cratePolicy`:
+    -- Zustand für Kisten-Knopf und Reiter "Direktkauf" (DirectShop.isOpen).
     if type(Sand.addSnapshotProvider) == "function" then
         Sand.addSnapshotProvider(function(player: Player): { [string]: any }
-            return { cratesAllowed = Crates.isAllowed(player) }
+            return { cratesAllowed = Crates.isAllowed(player), cratePolicy = Crates.policyState(player) }
         end)
     else
         log("Sand.addSnapshotProvider fehlt: cratesAllowed wird nicht gesendet (der Client zeigt Kisten dann gesperrt)")
@@ -190,7 +239,7 @@ function Crates.Start()
     end
     Players.PlayerRemoving:Connect(function(player: Player)
         policy.forget(player.UserId)
-        opening[player] = nil
+        busy[player] = nil
         handled[player] = nil
     end)
 end

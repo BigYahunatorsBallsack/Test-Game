@@ -480,18 +480,18 @@ Tests: tests/offers.spec.luau (Auslöser, Zustände, alte Spielstände, Kauf, Ve
 
 ## 4.6 Policy-Funktionen
 
-Plan: Claude-Dokument "Paket 4.6: Policy-Funktionen, Plan". Fertig, wenn: Die Policy-Checkliste aus dem Konzept ist abgehakt.
+Tests: tests/crateroll.spec.luau, tests/directshop.spec.luau, tests/policyguards.spec.luau, tests/oddsview.spec.luau, tests/priceview.spec.luau, tests/policycache.spec.luau, tests/purchases.spec.luau, tests/remotespec.spec.luau, tests/data.spec.luau. Plan: Claude-Dokument "Paket 4.6: Policy-Funktionen, Plan". Fertig, wenn: Die Policy-Checkliste aus dem Konzept ist abgehakt.
 
-- [ ] [Lune] `effectiveOdds` ergibt für jede Kiste und jeden Pity-Stand 100 %; bei anstehender Garantie nur Seltenheiten ab der garantierten Stufe.
-- [ ] [Lune] `roll` würfelt über `effectiveOdds`: für feste Zufallsfolgen dasselbe Ergebnis wie vor 4.6, und die Simulation trifft die angezeigten Quoten.
-- [ ] [Lune] `itemOdds`: jedes Item jeder Kiste kommt vor, exakte Summe 100 %, Quote je Item = Seltenheits-Quote geteilt durch Poolgröße.
-- [ ] [Lune] Glück-Ast, Glück-Boost, Pässe, Münz-Boost und Ausrüstung ändern weder Kistenquoten noch Wurf.
-- [ ] [Lune] Direktpreis: aus den Daten gerechnet, nie unter dem Erwartungswert der günstigsten Gem-Kiste, gerundet; Event-Items haben keinen Preis.
-- [ ] [Lune] Direktkauf: nur bei gesperrter oder unbekannter Policy, nie während der ersten Abfrage und nie bei erlaubten Kisten; genau der Preis wird abgebucht, Inventar +1; zu wenig Gems, unbekanntes Item, Event-Item, kein Profil: Ablehnung, Profil unverändert; Fehler oder Warten im Block: nichts gebucht.
-- [ ] [Lune] Remote `BuyDirectItem`: Schema und Limit aus `RemoteSpec`, falsche Typen und zu lange Texte abgelehnt.
-- [ ] [Lune] Keine Remote außer `OpenCrate`, `EquipItem`, `MergeItem` und `BuyDirectItem` verändert das Inventar, keine überträgt Items oder Gems an andere Spieler.
-- [ ] [Lune] DataCheck: Ersatzgegenstand Tag 7 ist ein festes Item aus `CrateItems`, kein Event-Item.
-- [ ] [Lune] ProcessReceipt mit abweichendem `CurrencySpent`: gebucht, Warnung im Protokoll und Vermerk im Kaufprotokoll.
+- [x] [Lune] `effectiveOdds` ergibt für jede Kiste und jeden Pity-Stand 100 %; bei anstehender Garantie nur Seltenheiten ab der garantierten Stufe.
+- [x] [Lune] `roll` würfelt über `effectiveOdds`: für feste Zufallsfolgen dasselbe Ergebnis wie vor 4.6, und die Simulation trifft die angezeigten Quoten.
+- [x] [Lune] `itemOdds`: jedes Item jeder Kiste kommt vor, exakte Summe 100 %, Quote je Item = Seltenheits-Quote geteilt durch Poolgröße.
+- [x] [Lune] Glück-Ast, Glück-Boost, Pässe, Münz-Boost und Ausrüstung ändern weder Kistenquoten noch Wurf.
+- [x] [Lune] Direktpreis: aus den Daten gerechnet, nie unter dem Erwartungswert der günstigsten Gem-Kiste, gerundet; Event-Items haben keinen Preis.
+- [x] [Lune] Direktkauf: nur bei gesperrter oder unbekannter Policy, nie während der ersten Abfrage und nie bei erlaubten Kisten; genau der Preis wird abgebucht, Inventar +1; zu wenig Gems, unbekanntes Item, Event-Item, kein Profil: Ablehnung, Profil unverändert; Fehler oder Warten im Block: nichts gebucht.
+- [x] [Lune] Remote `BuyDirectItem`: Schema und Limit aus `RemoteSpec`, falsche Typen und zu lange Texte abgelehnt.
+- [x] [Lune] Keine Remote außer `OpenCrate`, `EquipItem`, `MergeItem` und `BuyDirectItem` verändert das Inventar, keine überträgt Items oder Gems an andere Spieler.
+- [x] [Lune] DataCheck: Ersatzgegenstand Tag 7 ist ein festes Item aus `CrateItems`, kein Event-Item.
+- [x] [Lune] ProcessReceipt mit abweichendem `CurrencySpent`: gebucht, Warnung im Protokoll und Vermerk im Kaufprotokoll.
 - [ ] [Studio] Kisten-Fenster: "Details" zeigt alle Items mit Quote und Rundungshinweis; Pity-Zeile mit Gems.
 - [ ] [Studio] `DebugCratesRestricted = true`: Kisten-Knopf weg, Reiter "Direktkauf" da, Kauf mit Gems landet im Inventar und lässt sich ausrüsten; `false`: Reiter weg, Kisten wieder da.
 - [ ] [Studio] Gold-Pity kurz vor der Garantie (14 Öffnungen ohne Episch): Karte zeigt "Deine nächste Öffnung" mit 75 / 22,5 / 2,5 %, die 15. Öffnung bringt mindestens Episch.

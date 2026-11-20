@@ -63,8 +63,20 @@
 -- `processDebug(userId, datenId, purchaseId)` (Paket 4.4) ist dieselbe Hilfe für Gem-Pakete UND für
 -- registrierte Produkte aus Data/Products mit Handler (zum Beispiel "coin_boost"), gleiche Regeln.
 -- Gamepasses gehen nie über diesen Weg: Sie stehen gar nicht in der Produktliste von Purchases.
+--
+-- Bezahlter Betrag (Paket 4.6, Sicherheitsprüfung 4.5 H1): `process` vergleicht `CurrencySpent` des
+-- Belegs mit dem Robux-Preis aus den Daten (bei Preisspannen: von priceRobux bis priceRobuxMax).
+-- Weicht er ab, wird trotzdem gutgeschrieben (bezahlt ist bezahlt), das Protokoll warnt und der
+-- Eintrag im Kaufprotokoll bekommt `currencySpent`. Fehlt der Wert oder ist er kaputt, gibt es nur
+-- eine Warnung. Idempotenz und Speichern vor PurchaseGranted bleiben unverändert.
+--
+-- Preise im Creator Dashboard (Paket 4.6, Sicherheitsprüfung 4.1 N7): `dashboardTargets` listet
+-- jedes Produkt mit ProductId über 0 (Gem-Pakete, Developer Products, Gamepasses), `checkDashboard`
+-- fragt Roblox mit bis zu `attempts` Versuchen und vergleicht über PriceView.mismatch. Der Shop
+-- meldet Abweichungen beim Start im Output.
 
 local Gems = require("./Gems")
+local PriceView = require("./PriceView")
 local Profile = require("./Profile")
 local EconomyData = require("../Data/Economy")
 local GemPacksData = require("../Data/GemPacks")
@@ -104,7 +116,24 @@ export type Product = {
     id: string, -- Produkt-ID aus den Daten, z. B. "gems_550"
     productId: number, -- Developer-Product-ID (0 = Platzhalter)
     robux: number, -- Preis laut Datentabelle (Kaufprotokoll und `spent`)
+    robuxMax: number?, -- nur bei Preisspannen: höchster Preis laut Datentabelle
     gems: number, -- Gems des Pakets (0 bei anderen Produkten)
+}
+
+-- Ein Produkt mit echter ProductId für den Preisvergleich mit dem Creator Dashboard.
+export type DashboardTarget = {
+    id: string, -- Produkt-ID aus den Daten
+    productId: number, -- Roblox-ID (über 0)
+    robux: number, -- Preis laut Daten (bei Spannen der kleinste)
+    robuxMax: number?, -- bei Spannen der höchste
+    infoType: "Product" | "GamePass", -- Enum.InfoType für GetProductInfo
+}
+
+export type DashboardDeps = {
+    fetch: (productId: number, infoType: string) -> any, -- GetProductInfo; darf warten und werfen
+    wait: (seconds: number) -> (),
+    attempts: number,
+    retrySeconds: number,
 }
 
 -- Vorbereitete Gutschrift eines Handlers.
@@ -368,6 +397,81 @@ function Purchases.hasReceipt(data: any, purchaseId: string): boolean
     return table.find(Profile.receiptList(data.receipts), purchaseId) ~= nil
 end
 
+-- Passt der bezahlte Betrag (`CurrencySpent`) zum Preis aus den Daten? Bei Preisspannen zählt jeder
+-- Betrag von `robux` bis `robuxMax`.
+function Purchases.spentMatches(product: { robux: number, robuxMax: number? }, currencySpent: number): boolean
+    local low = product.robux
+    local high = if type(product.robuxMax) == "number" then product.robuxMax else low
+    return currencySpent >= low and currencySpent <= high
+end
+
+-- Produkte mit echter ProductId (über 0) für den Preisvergleich, in der Reihenfolge der Daten
+-- (erst Gem-Pakete, dann Products). Gamepasses mit InfoType "GamePass", alle anderen "Product".
+function Purchases.dashboardTargets(data: any?): { DashboardTarget }
+    local gemPacks = if data and data.GemPacks then data.GemPacks else GemPacksData
+    local products = if data and data.Products then data.Products else ProductsData
+    local targets: { DashboardTarget } = {}
+    for _, pack in gemPacks.list do
+        if isInteger(pack.productId) and pack.productId > 0 then
+            table.insert(targets, { id = pack.id, productId = pack.productId, robux = pack.robux, infoType = "Product" })
+        end
+    end
+    for _, product in products.list do
+        if isInteger(product.productId) and product.productId > 0 then
+            table.insert(targets, {
+                id = product.id,
+                productId = product.productId,
+                robux = product.priceRobux,
+                robuxMax = product.priceRobuxMax,
+                infoType = if product.kind == "gamepass" then "GamePass" else "Product",
+            })
+        end
+    end
+    return targets
+end
+
+-- Antwort von GetProductInfo als PriceView.Info (`price` aus PriceInRobux, `forSale` aus IsForSale).
+-- nil, wenn die Antwort keine Tabelle ist oder keines der beiden Felder brauchbar ist.
+function Purchases.dashboardInfo(raw: any): PriceView.Info?
+    if type(raw) ~= "table" then
+        return nil
+    end
+    local price = raw.PriceInRobux
+    local forSale = raw.IsForSale
+    local info: PriceView.Info = {
+        price = if type(price) == "number" then price else nil,
+        forSale = if type(forSale) == "boolean" then forSale else nil,
+    }
+    if info.price == nil and info.forSale == nil then
+        return nil
+    end
+    return info
+end
+
+-- Fragt den Preis eines Produkts im Creator Dashboard ab (darf warten, eigener Thread) und vergleicht
+-- ihn mit den Daten. Gibt (Abweichung, nil) zurück, (nil, nil) wenn alles passt, oder (nil, Fehler),
+-- wenn alle Versuche scheitern. Die Abweichung ist der Text aus PriceView.mismatch; bei Preisspannen
+-- zählt ein Dashboard-Preis innerhalb der Spanne als passend.
+function Purchases.checkDashboard(target: DashboardTarget, deps: DashboardDeps): (string?, string?)
+    local lastProblem = "keine Antwort"
+    for attempt = 1, deps.attempts do
+        local ok, raw = pcall(deps.fetch, target.productId, target.infoType)
+        local info = if ok then Purchases.dashboardInfo(raw) else nil
+        if info ~= nil then
+            local price = info.price
+            if info.forSale ~= false and target.robuxMax ~= nil and type(price) == "number" and Purchases.spentMatches(target, price) then
+                return nil, nil
+            end
+            return PriceView.mismatch(info, target.robux), nil
+        end
+        lastProblem = if ok then "ungültige Antwort" else tostring(raw)
+        if attempt < deps.attempts then
+            deps.wait(deps.retrySeconds)
+        end
+    end
+    return nil, `Preis nicht abrufbar nach {deps.attempts} Versuchen ({lastProblem})`
+end
+
 -- Eingebauter Handler für Gem-Pakete: Gems über Gems.grant (ganze Zahl, gekappt bei maxGems).
 local function gemPackHandler(profile: any, product: Product, data: any?): Prepared?
     local added = Gems.grant(profile, product.gems, `purchase:{product.id}`, data) -- auf der Kopie
@@ -432,7 +536,7 @@ function Purchases.new(deps: Deps): Purchases
     end
     for _, product in products.list do
         if product.kind ~= "gamepass" then -- Gamepasses laufen nicht über ProcessReceipt (Paket 4.4)
-            addProduct({ id = product.id, productId = product.productId, robux = product.priceRobux, gems = 0 })
+            addProduct({ id = product.id, productId = product.productId, robux = product.priceRobux, robuxMax = product.priceRobuxMax, gems = 0 })
         end
     end
 
@@ -492,7 +596,7 @@ function Purchases.new(deps: Deps): Purchases
     -- Kritisches Fenster, Teil 1. Läuft über runAtOnce in einer eigenen Koroutine und darf nie warten:
     -- Kopie und Handler, Prüfung der Antwort, Uhr, Belege, Kaufprotokoll, `spent`, Kappen-Hinweis und
     -- erneute Prüfung. Ändert das Profil nicht. Gibt den Plan zurück oder nil (Grund protokolliert).
-    local function planWrites(userId: number, purchaseId: string, product: Product, profile: any, handler: Handler, label: string): Plan?
+    local function planWrites(userId: number, purchaseId: string, product: Product, profile: any, handler: Handler, label: string, currencySpent: any): Plan?
         local cfg = configOf(data)
         -- 1. Handler auf Kopien von Profil und Produkt.
         local handled, answer = pcall(handler, deepCopy(profile), table.clone(product), data)
@@ -520,13 +624,24 @@ function Purchases.new(deps: Deps): Purchases
         table.insert(receipts, purchaseId)
         receipts = keepNewest(receipts, cfg.receiptCacheSize)
         local purchaseLog = listCopy(profile.purchaseLog)
-        table.insert(purchaseLog, {
+        local entry: { [string]: any } = {
             purchaseId = purchaseId,
             productId = product.id,
             gems = prepared.gems,
             robux = product.robux,
             time = now,
-        })
+        }
+        -- Bezahlter Betrag (nur echte Belege): Abweichung vom Datenpreis wird trotzdem gutgeschrieben,
+        -- gewarnt und im Kaufprotokoll vermerkt.
+        if currencySpent ~= nil then
+            if not isInteger(currencySpent) or currencySpent < 0 then
+                log(`{label}: CurrencySpent ungültig ({tostring(currencySpent)}), trotzdem gutgeschrieben`)
+            elseif not Purchases.spentMatches(product, currencySpent) then
+                log(`{label}: CurrencySpent {currencySpent} Robux, in den Daten {product.robux} Robux, trotzdem gutgeschrieben`)
+                entry.currencySpent = currencySpent
+            end
+        end
+        table.insert(purchaseLog, entry)
         purchaseLog = keepNewest(purchaseLog, cfg.purchaseLogSize)
         local spent: { [string]: any } = if type(profile.spent) == "table" then table.clone(profile.spent) else {}
         spent.robux = wholeAtLeastZero(spent.robux) + product.robux
@@ -562,7 +677,7 @@ function Purchases.new(deps: Deps): Purchases
     end
 
     -- Gutschrift und Speichern für einen Kauf. Läuft nur unter der Sperre (runLocked) und in pcall.
-    local function grantAndSave(userId: number, purchaseId: string, product: Product): Decision
+    local function grantAndSave(userId: number, purchaseId: string, product: Product, currencySpent: any): Decision
         local label = `Kauf {purchaseId} ({product.id}) von Spieler {userId}`
         local profile = profileOf(userId)
         if profile == nil or deps.isSessionActive(userId) ~= true then
@@ -582,7 +697,7 @@ function Purchases.new(deps: Deps): Purchases
             end
             -- Kritisches Fenster: alles bis vor das Schreiben in einer Koroutine, die nie warten darf.
             local ran, plan = runAtOnce(function(): any
-                return planWrites(userId, purchaseId, product, profile, handler, label)
+                return planWrites(userId, purchaseId, product, profile, handler, label, currencySpent)
             end)
             if not ran then
                 log(`{label}: Abschnitt vor dem Schreiben {tostring(plan)}, nichts geschrieben, NotProcessedYet`)
@@ -652,7 +767,7 @@ function Purchases.new(deps: Deps): Purchases
     end
 
     -- Sperre je Spieler und PurchaseId: Ein zweiter Aufruf wartet auf das Ergebnis des ersten.
-    local function runLocked(userId: number, purchaseId: string, product: Product): Decision
+    local function runLocked(userId: number, purchaseId: string, product: Product, currencySpent: any): Decision
         local key = keyOf(userId, purchaseId)
         local running = inFlight[key]
         if running ~= nil then
@@ -660,7 +775,7 @@ function Purchases.new(deps: Deps): Purchases
         end
         local job: Job = { done = false, result = NOT_PROCESSED }
         inFlight[key] = job
-        local ok, result = pcall(grantAndSave, userId, purchaseId, product)
+        local ok, result = pcall(grantAndSave, userId, purchaseId, product, currencySpent)
         if not ok then
             log(`Kauf {purchaseId} ({product.id}) von Spieler {userId}: Fehler {tostring(result)}, NotProcessedYet`)
         end
@@ -680,7 +795,8 @@ function Purchases.new(deps: Deps): Purchases
         return job.result
     end
 
-    -- Echtpfad: Beleg aus ProcessReceipt. Nur PlayerId, ProductId und PurchaseId zählen.
+    -- Echtpfad: Beleg aus ProcessReceipt. Nur PlayerId, ProductId und PurchaseId zählen für die
+    -- Gutschrift; CurrencySpent wird nur verglichen (Warnung und Vermerk im Kaufprotokoll).
     function purchases.process(receipt: any): Decision
         local ok, result = pcall(function(): Decision
             if type(receipt) ~= "table" then
@@ -708,7 +824,7 @@ function Purchases.new(deps: Deps): Purchases
                 log(`Kauf {purchaseId} von Spieler {userId}: kein Handler für "{product.id}", NotProcessedYet`)
                 return NOT_PROCESSED
             end
-            return runLocked(userId, purchaseId, product)
+            return runLocked(userId, purchaseId, product, receipt.CurrencySpent)
         end)
         if not ok then
             log(`Beleg konnte nicht verarbeitet werden: {tostring(result)}, NotProcessedYet`)
@@ -735,7 +851,7 @@ function Purchases.new(deps: Deps): Purchases
                 log(`Studio-Kauf von Spieler {userId}: {why or "unbekannt"} "{tostring(dataId)}"`)
                 return NOT_PROCESSED
             end
-            return runLocked(userId, fullId :: string, product)
+            return runLocked(userId, fullId :: string, product, nil) -- Studio: kein bezahlter Betrag
         end)
         if not ok then
             log(`Studio-Kauf konnte nicht verarbeitet werden: {tostring(result)}`)

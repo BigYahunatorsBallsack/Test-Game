@@ -22,6 +22,13 @@ export type PurchasesConfig = {
     maxGems: number, -- Obergrenze des Gem-Stands (Schutz gegen kaputte Werte und Überlauf)
 }
 
+-- Direktkauf (Paket 4.6), siehe Logic/DirectShop.
+export type DirectShopConfig = {
+    roundSignificantDigits: number, -- Preis auf so viele gültige Stellen aufgerundet (1 bis 4)
+    monotoneFloor: boolean, -- Preis mindestens der Einstiegspreis jeder niedrigeren Seltenheit
+    crates: { string }, -- Gem-Kisten, aus denen der Preis gerechnet wird (nie Münz- oder Event-Kisten)
+}
+
 -- Kisten-Items (Paket 4.3), siehe Logic/Equipment.
 export type ItemsConfig = {
     maxStars: number, -- höchster Stern (★1 = Grundwert, jedes Item startet bei ★1)
@@ -103,6 +110,19 @@ local Economy = {
         maxTotalBonusBp = 12000,
     } :: ItemsConfig,
 
+    -- Direktkauf (Paket 4.6): Nur bei gesperrten oder unbekannten Zufallsitems
+    -- (ArePaidRandomItemsRestricted) kauft man Kisten-Items fest gegen Gems. Preis = Erwartungswert:
+    -- Einzelpreis der Kiste / Wahrscheinlichkeit genau dieses Items je Öffnung (mit Pity), die
+    -- günstigste Kiste aus `crates` zählt, aufgerundet auf `roundSignificantDigits` gültige Stellen.
+    -- `monotoneFloor`: Seltenheiten nach Rang, der Preis ist mindestens der Einstiegspreis (billigstes
+    -- Item) jeder niedrigeren Seltenheit (hebt nur an). Event-Items haben nie einen Preis.
+    -- Werte und Begründung: docs/balance/directshop_4_6.md (balance-analyst).
+    directShop = {
+        roundSignificantDigits = 2,
+        monotoneFloor = true,
+        crates = { "iron", "gold" },
+    } :: DirectShopConfig,
+
     -- Freunde-Bonus: 10 % mehr Münzen pro Freund im Server, höchstens 50 %.
     friendBonusPerFriendBp = 1000,
     friendBonusMaxBp = 5000,
@@ -142,8 +162,9 @@ local Economy = {
             { day = 6, kind = "gems", amount = 20 },
         } :: { DailyReward },
         day7 = { day = 7, kind = "crate", amount = 1, crateId = "iron" } :: DailyReward,
-        -- TODO(content): festes Ersatz-Ausrüstungsstück festlegen (ID aus den Kisten-Inhalten, Paket 4.3).
-        day7FallbackItemId = "daily_fallback_item",
+        -- Festes Ersatz-Item bei gesperrten Zufallsitems: Kupferschaufel, gleichwertig zur Eisenkiste
+        -- (docs/balance/directshop_4_6.md, "Tag 7"). DataCheck: bekanntes Item, kein Event-Item.
+        day7FallbackItemId = "toolVariant_uncommon_1",
     },
 }
 
