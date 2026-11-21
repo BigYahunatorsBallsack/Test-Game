@@ -11,6 +11,7 @@ local UpgradeTree = require("../Data/UpgradeTree")
 local Crates = require("../Data/Crates")
 local CrateItems = require("../Data/CrateItems")
 local Equipment = require("../Logic/Equipment")
+local Codes = require("../Logic/Codes") -- nur die Längen; die Codes selbst stehen nur auf dem Server
 
 export type Limit = RateLimiter.Limit
 
@@ -121,6 +122,16 @@ local list: { RemoteDef } = {
         schema = {}, -- keine Argumente: Tag, Belohnung und Zeit bestimmt der Server (os.time)
         limit = { calls = 1, per = 2 }, -- ein Knopf im Fenster; die Abholung selbst geht nur einmal am Tag
         description = "Spieler holt die Daily Reward des Tages ab (Paket 5.1). Antwort: ok, Tag, Belohnung, bei Tag 7 die Kiste, oder Grund.",
+    },
+    {
+        name = "RedeemCode",
+        kind = "Function",
+        direction = "ClientToServer",
+        -- Eingegebener Text, 1 bis 24 Zeichen. Ob er ein Code ist, was er gibt und ob der Spieler gesperrt
+        -- ist, entscheidet nur der Server (Logic/Codes, Tabelle in src/server/Data/Codes).
+        schema = { Validate.string(Codes.MAX_LENGTH, Codes.MIN_LENGTH) },
+        limit = { calls = 1, per = 3 }, -- ein Knopf im Fenster; dazu die Sperre nach 5 falschen Versuchen
+        description = "Spieler löst einen Code ein (Paket 5.2). Antwort: ok und Belohnung, oder Grund (bei locked mit secondsLeft).",
     },
     {
         name = "StateSync",

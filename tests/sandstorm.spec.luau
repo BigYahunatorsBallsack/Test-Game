@@ -252,7 +252,7 @@ T.describe("Reset", function()
         T.expect(Collection.bonusBp(profile)).toBe(bonusBefore)
     end)
 
-    T.it("Gems, Belege, Kaufprotokoll, spent, Pity, Boosts, Daily, Tutorial und Zeitstempel bleiben unverändert", function()
+    T.it("Gems, Belege, Kaufprotokoll, spent, Pity, Boosts, Daily, Codes, Tutorial und Zeitstempel bleiben unverändert", function()
         local profile = runner()
         profile.gems = 345
         profile.receipts = { "abc", "def" } -- Paket 4.1: Liste der PurchaseIds
@@ -264,6 +264,7 @@ T.describe("Reset", function()
         profile.pity = { gold = { sinceEpic = 4, sinceLegendary = 9 } }
         profile.boosts = { coinsUntil = NOW + 500 }
         profile.daily = { streak = 3, lastDay = 19_000 }
+        profile.codes = { test_code = true } -- Paket 5.2: eingelöste Codes bleiben
         profile.tutorial = { step = 7 }
         profile.lastSeen = NOW + 10
         local keep = {}
