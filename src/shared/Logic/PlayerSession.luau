@@ -67,6 +67,16 @@ local MESSAGES = {
 }
 
 local PlayerSession = {}
+
+-- lastSeen geht nie zurück (Paket 5.3, Sicherheitsprüfung M1): Geht die Uhr eines Servers vor, würde
+-- der nächste Server mit richtiger Uhr sonst die Zeit zurücksetzen und die Differenz erneut als
+-- Offline-Zeit bezahlen. Kaputte Werte (keine Zahl, NaN, unendlich, negativ) zählen als 0.
+function PlayerSession.laterSeen(previous: any, now: number): number
+    if type(previous) == "number" and previous == previous and previous > 0 and previous < math.huge and previous > now then
+        return previous
+    end
+    return now
+end
 PlayerSession.MESSAGES = MESSAGES
 
 function PlayerSession.keyFor(userId: number): string
@@ -160,7 +170,7 @@ function PlayerSession.new(deps: Deps): Manager
         session.setData(profile)
         local entry: Entry = { session = session, profile = profile }
         session.onSave(function()
-            profile.lastSeen = deps.now()
+            profile.lastSeen = PlayerSession.laterSeen(profile.lastSeen, deps.now())
             -- Nichts Ungültiges (NaN, unendlich, Nicht-JSON) darf in den DataStore gelangen,
             -- sonst schlägt das Speichern fehl und Fortschritt geht verloren.
             logWarnings(userId, "Vor dem Speichern repariert", Profile.sanitize(profile, deps.now()))
@@ -193,7 +203,7 @@ function PlayerSession.new(deps: Deps): Manager
             return
         end
         loaded[userId] = nil
-        entry.profile.lastSeen = deps.now()
+        entry.profile.lastSeen = PlayerSession.laterSeen(entry.profile.lastSeen, deps.now())
         entry.session.endSession()
     end
 

@@ -134,7 +134,11 @@ local Economy = {
     offline = {
         baseHours = 4,
         autoDigHours = 12,
-        -- Offline-Erträge enthalten keine Fundstücke ab dieser Seltenheit.
+        -- Offline-Ertrag (Paket 5.3): Anteil der Online-Sammelrate, den der Begleiter schafft (0 bis 1,
+        -- Vorschlag 50 %), und die kürzeste Abwesenheit, ab der es etwas gibt (Sekunden).
+        rateFactor = 0.5,
+        minSeconds = 300,
+        -- Offline-Erträge enthalten keine Fundstücke ab dieser Seltenheit (seit 5.3 gar keine: nur Münzen).
         noFindsFromRarityId = "rare",
     },
 

@@ -67,9 +67,9 @@ local list: { Product } = {
         productId = 0,
         oneTime = true,
         consumable = false,
-        -- Die Offline-Grenze von 12 statt 4 Stunden kommt erst mit dem Offline-Ertrag (Paket 5.3), bis dahin
-        -- verspricht der Text sie nicht (docs/balance/passes_4_4.md).
-        effect = "Das Werkzeug sammelt automatisch, solange du im Spiel bist",
+        -- Seit 5.3 verspricht der Text die Offline-Grenze von 12 statt 4 Stunden (Economy.offline, nur mit
+        -- ausgerüstetem Begleiter, docs/balance/passes_4_4.md).
+        effect = "Das Werkzeug sammelt automatisch, solange du im Spiel bist. Dein Begleiter sammelt offline bis zu 12 statt 4 Stunden",
         perk = "autoDig",
     },
     {
