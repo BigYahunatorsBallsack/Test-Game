@@ -81,6 +81,7 @@ T.describe("Profile", function()
         T.expect(profile.settings).toEqual({ autoDig = true }) -- Paket 4.4
         T.expect(profile.offers).toEqual({ starter = { since = 0, bought = false } }) -- Paket 4.5
         T.expect(profile.daily).toEqual({ streak = 0, lastDay = 0 })
+        T.expect(profile.codes).toEqual({}) -- Paket 5.2: eingelöste Code-IDs
         T.expect(profile.lastSeen).toBe(NOW)
         T.expect(profile.createdAt).toBe(NOW)
     end)

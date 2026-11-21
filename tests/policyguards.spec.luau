@@ -209,6 +209,7 @@ local OTHER_REMOTES: { [string]: string } = {
     PurchaseNode = "Skilltree-Knoten",
     SetAutoDig = "Einstellung",
     Prestige = "Sandsturm (behält das Inventar, siehe Sandstorm.KEEP_FIELDS)",
+    RedeemCode = "Code einlösen: nur Gems, Münz- oder Glücks-Boost, nie Kisten oder Items (Codes, Logic/Codes, Paket 5.2)",
 }
 -- Wo die Remotes mit Inventar registriert sein müssen.
 local INVENTORY_SERVICES: { [string]: string } = {
@@ -232,6 +233,7 @@ local ID_TABLES = { Zones.byId, UpgradeTree.byId, Crates.byId, CrateItems.byId }
 -- Freie Text-Argumente (ohne ID-Liste) sind nur hier erlaubt, mit Grund.
 local FREE_TEXT_ARGS: { [string]: string } = {
     ["EquipItem#2"] = "Item-ID oder \"\" zum Abnehmen, der Server prüft gegen CrateItems",
+    ["RedeemCode#1"] = "eingegebener Code, 1 bis 24 Zeichen; der Server normalisiert ihn und vergleicht nur mit seiner Code-Tabelle (Paket 5.2)",
 }
 -- Wörter in Remote-Namen, die auf Tausch, Verkauf oder Verschenken hindeuten.
 local FORBIDDEN_NAME_PARTS = { "trade", "gift", "send", "transfer", "give", "sellitem", "market" }

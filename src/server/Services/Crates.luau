@@ -25,8 +25,8 @@
 -- (Zustand aus `Crates.policyState`) neben `cratesAllowed`.
 --
 -- Gemeinsame Sperre (Paket 5.1): `Crates.runExclusive(player, label, action)` lässt je Spieler nur einen
--- dieser Aufrufe zur selben Zeit zu: OpenCrate, BuyDirectItem und ClaimDaily (Services/Daily); ein
--- zweiter bekommt sofort "busy". Andere Schreiber (MergeItem, Kauf-Handler) nutzen sie nicht. Regel für
+-- dieser Aufrufe zur selben Zeit zu: OpenCrate, BuyDirectItem, ClaimDaily (Services/Daily) und
+-- RedeemCode (Services/Codes, Paket 5.2); ein zweiter bekommt sofort "busy". Andere Schreiber (MergeItem, Kauf-Handler) nutzen sie nicht. Regel für
 -- alle: zwischen Lesen und Schreiben des Profils nie warten.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
@@ -173,7 +173,8 @@ local function runExclusive(player: Player, label: string, action: () -> any): a
     return result
 end
 
--- Für andere Services (Daily, Paket 5.1): dieselbe Sperre je Spieler wie OpenCrate und BuyDirectItem.
+-- Für andere Services (Daily, Paket 5.1; Codes, Paket 5.2): dieselbe Sperre je Spieler wie OpenCrate
+-- und BuyDirectItem.
 -- `action` darf nicht warten und gibt `{ ok, reason?, detail? }` zurück; die Antwort hat nie `detail`.
 function Crates.runExclusive(player: Player, label: string, action: () -> any): any
     return runExclusive(player, label, action)

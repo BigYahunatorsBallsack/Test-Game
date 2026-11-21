@@ -67,6 +67,9 @@ export type Profile = {
     -- Daily Reward (Paket 5.1, Logic/Daily): abgeholte Tage der laufenden Serie und UTC-Tag
     -- (floor(Unix-Zeit / 86400)) der letzten Abholung, 0 = nie.
     daily: { streak: number, lastDay: number },
+    -- Eingelöste Codes (Paket 5.2, Logic/Codes): Code-ID aus der Server-Tabelle -> true. Nur der Server
+    -- schreibt. Profile.migrate füllt das Feld bei alten Spielständen mit {} auf (keine neue Version).
+    codes: { [string]: boolean },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
     createdAt: number,
@@ -148,6 +151,8 @@ function Profile.default(now: number?): Profile
         -- Angebote (Paket 4.5): Fenster und Merker "gekauft" je Angebot, nur der Server schreibt.
         offers = defaultOffers(),
         daily = { streak = 0, lastDay = 0 },
+        -- Codes (Paket 5.2): eingelöste Code-IDs, nur der Server schreibt (Logic/Codes).
+        codes = {},
         tutorial = { step = 1 },
         lastSeen = time,
         createdAt = time,
@@ -209,7 +214,7 @@ end
 
 -- Felder, deren Standardtabelle zwar Einträge hat, deren Schlüssel aber beliebige IDs sind.
 -- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
-local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true }
+local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true, codes = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
 local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true, runEarned = true }
 -- Echte Listen (Paket 4.1). Sie haben eigene Regeln (repairPurchaseLog, repairReceipts), weil der
@@ -692,6 +697,22 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
         for _, passId in removed do
             warn(warnings, `passes.{tostring(passId)}`, "unbekannter Gamepass oder Wert nicht true, entfernt")
             data.passes[passId] = nil
+        end
+    end
+    -- Codes (Paket 5.2): nur Einträge mit nicht leerem Text als Schlüssel (Code-ID) und Wert true
+    -- bleiben. Unbekannte Code-IDs bleiben erhalten (die Code-Tabelle liegt nur auf dem Server; ein
+    -- gelöschter Code darf beim Wiederaufnehmen nicht erneut einlösbar sein). Einen falschen Typ des
+    -- ganzen Felds setzt schon die allgemeine Prüfung oben auf {}.
+    if type(data.codes) == "table" then
+        local removed: { any } = {}
+        for codeId, value in data.codes do
+            if type(codeId) ~= "string" or codeId == "" or value ~= true then
+                table.insert(removed, codeId)
+            end
+        end
+        for _, codeId in removed do
+            warn(warnings, `codes.{tostring(codeId)}`, "Schlüssel kein Text oder Wert nicht true, entfernt")
+            data.codes[codeId] = nil
         end
     end
     -- Angebote (Paket 4.5): je Eintrag { since, bought }, `since` endliche Zahl ab 0 (sonst 0, also

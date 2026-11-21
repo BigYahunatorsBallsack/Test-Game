@@ -23,7 +23,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(11) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6), ClaimDaily (5.1)
+        T.expect(clientRemotes).toBe(12) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6), ClaimDaily (5.1), RedeemCode (5.2)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -41,6 +41,7 @@ T.describe("RemoteSpec", function()
             SetAutoDig = { 2, 1 },
             BuyDirectItem = { 2, 1 },
             ClaimDaily = { 1, 2 },
+            RedeemCode = { 1, 3 },
             Prestige = { 1, 5 },
         }
         for name, values in expected do
@@ -286,6 +287,49 @@ T.describe("Remote ClaimDaily (5.1)", function()
         T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(false)
         -- Andere Remotes zählen getrennt.
         T.expect(limiter:allow("42", "OpenCrate", RemoteSpec.byName.OpenCrate.limit :: RateLimiter.Limit)).toBe(true)
+    end)
+end)
+
+T.describe("Remote RedeemCode (5.2)", function()
+    T.it("RemoteFunction vom Client zum Server, genau ein Text von 1 bis 24 Zeichen, registrierbar", function()
+        local def = RemoteSpec.byName.RedeemCode
+        T.expect(def.kind).toBe("Function")
+        T.expect(def.direction).toBe("ClientToServer")
+        T.expect(select(1, RemoteSpec.canRegister("RedeemCode"))).toBe(true)
+        T.expect(def.schema).toEqual({ { kind = "string", maxLen = 24, minLen = 1 } })
+        T.expect(validate("RedeemCode", "A")).toBe(true)
+        T.expect(validate("RedeemCode", string.rep("A", 24))).toBe(true)
+        T.expect(validate("RedeemCode", "  irgendwas  ")).toBe(true) -- Inhalt prüft der Server (Logic/Codes)
+    end)
+
+    T.it("leer, zu lang, kein Text und falsche Argumentzahl werden abgelehnt", function()
+        T.expect(validate("RedeemCode", "")).toBe(false)
+        T.expect(validate("RedeemCode", string.rep("A", 25))).toBe(false)
+        T.expect(validate("RedeemCode", 1000)).toBe(false)
+        T.expect(validate("RedeemCode", 0 / 0)).toBe(false)
+        T.expect(validate("RedeemCode", true)).toBe(false)
+        T.expect(validate("RedeemCode", { "CODE" })).toBe(false)
+        T.expect(validate("RedeemCode")).toBe(false)
+        T.expect(validate("RedeemCode", nil)).toBe(false)
+        T.expect(validate("RedeemCode", "CODE", 50)).toBe(false) -- keine Menge vom Client
+        T.expect(validate("RedeemCode", "CODE", "CODE")).toBe(false)
+    end)
+
+    T.it("Limit 1 Aufruf je 3 Sekunden mit simulierter Uhr, Spieler getrennt", function()
+        local clock = { t = 10 }
+        local limiter = RateLimiter.new(function(): number
+            return clock.t
+        end)
+        local limit = RemoteSpec.byName.RedeemCode.limit :: RateLimiter.Limit
+        T.expect(limit).toEqual({ calls = 1, per = 3 })
+        T.expect(limiter:allow("42", "RedeemCode", limit)).toBe(true)
+        T.expect(limiter:allow("42", "RedeemCode", limit)).toBe(false)
+        T.expect(limiter:allow("43", "RedeemCode", limit)).toBe(true) -- anderer Spieler
+        clock.t += 2.9
+        T.expect(limiter:allow("42", "RedeemCode", limit)).toBe(false)
+        clock.t += 0.1
+        T.expect(limiter:allow("42", "RedeemCode", limit)).toBe(true)
+        T.expect(limiter:allow("42", "RedeemCode", limit)).toBe(false)
     end)
 end)
 

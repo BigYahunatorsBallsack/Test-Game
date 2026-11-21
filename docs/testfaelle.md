@@ -527,6 +527,23 @@ Plan: Claude-Dokument "Paket 5.1: Daily Reward, Plan". Fertig, wenn: Die Serie z
 - [ ] [Studio] Tag 7 mit `DebugCratesRestricted` true und false: Kupferschaufel bzw. Eisenkisten-Reveal.
 - [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
+## 5.2 Codes-System
+
+Plan: Claude-Dokument "Paket 5.2: Codes-System, Plan". Fertig, wenn: Codes sind einmal pro Spieler einlösbar.
+
+- [x] [Lune] Ein Code ist einmal je Spieler einlösbar; das zweite Mal gibt `alreadyRedeemed`, nichts wird gebucht.
+- [x] [Lune] `normalize`: Leerzeichen, Groß- und Kleinschreibung, falsche Zeichen, zu lang, leer, kein String.
+- [x] [Lune] Belohnungen: Gems gekappt bei `maxGems`, Münz-Boost und Glücks-Boost verlängern.
+- [x] [Lune] Abgelaufen, noch nicht begonnen und unbekannt geben dieselbe Antwort wie ungültig.
+- [x] [Lune] Fehler im Block: nichts gebucht, `codes` unverändert.
+- [x] [Lune] 5 falsche Versuche führen zur Sperre (60 Sekunden, je Spieler); in der Sperre wird auch ein richtiger Code abgelehnt.
+- [x] [Lune] Die Codes stehen nicht im Shared-Ordner, und keine Belohnung ist eine Kiste oder ein Item.
+- [x] [Lune] DataCheck lehnt doppelte Codes, unbekannte Art und kaputte Zeiten ab.
+- [x] [Lune] Remote `RedeemCode`: ein String-Argument, Länge und Limit aus `RemoteSpec`.
+- [x] [Lune] Profil: fehlendes `codes` wird aufgefüllt, der Sandsturm behält es.
+- [ ] [Studio] Fenster öffnet, ein Test-Code gibt die Belohnung, derselbe Code noch einmal "schon eingelöst", falscher Code zeigt die Standardmeldung, nach `DebugCodes` "reset" geht er wieder.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+
 ## 5.3 Begleiter, Offline-Ertrag und Auto-Dig
 
 - [ ] [Lune] Der Offline-Ertrag wird bei der Grenze gekappt (ohne Pass 4 Stunden, mit Auto-Dig 12 Stunden).

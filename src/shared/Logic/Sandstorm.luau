@@ -9,7 +9,7 @@
 --  3. Zurück geht alles, was zum Lauf gehört: Münzen, Tank, alle Knoten (also Werkzeug), Zonen
 --     und die Einnahmen des Laufs. Es bleiben Sammlung, Skins und Inventar, Gems, Belege,
 --     Kaufprotokoll und Ausgaben (Paket 4.1), Pity, Boosts, Gamepasses und Einstellungen (Paket 4.4),
---     Angebote (Paket 4.5), Daily und Tutorial. Vergebene Knoten
+--     Angebote (Paket 4.5), Daily, eingelöste Codes (Paket 5.2) und Tutorial. Vergebene Knoten
 --     (`sandstorm_1`) werden neu vergeben.
 --  4. Die Zonen starten neu: nur das Dünenmeer ist frei, die Ruinenstadt braucht in jedem Lauf den
 --     Knoten `sandstorm_ruins`. So führt jeder Lauf durch alle Zonen und alle Bücher bleiben im Spiel.
@@ -81,6 +81,7 @@ Sandstorm.KEEP_FIELDS = {
     "settings", -- Einstellungen, zum Beispiel Auto-Dig (Paket 4.4)
     "offers", -- Angebote: Fenster und Merker "gekauft" (Paket 4.5)
     "daily",
+    "codes", -- eingelöste Codes (Paket 5.2): ein Sturm macht keinen Code wieder einlösbar
     "tutorial",
     "lastSeen",
     "createdAt",

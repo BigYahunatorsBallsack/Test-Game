@@ -5,7 +5,7 @@
 
 export type Rule =
     { kind: "boolean" }
-    | { kind: "string", maxLen: number }
+    | { kind: "string", maxLen: number, minLen: number? }
     | { kind: "int", min: number, max: number }
     | { kind: "oneOf", values: { any } }
     | { kind: "idIn", ids: { [string]: any }, maxLen: number }
@@ -18,8 +18,9 @@ function Validate.boolean(): Rule
     return { kind = "boolean" }
 end
 
-function Validate.string(maxLen: number): Rule
-    return { kind = "string", maxLen = maxLen }
+-- Text mit höchstens `maxLen` Bytes, optional mindestens `minLen` Bytes (Paket 5.2, RedeemCode).
+function Validate.string(maxLen: number, minLen: number?): Rule
+    return { kind = "string", maxLen = maxLen, minLen = minLen }
 end
 
 -- Ganze Zahl im Bereich min bis max (beide eingeschlossen).
@@ -64,6 +65,10 @@ local function checkOne(rule: Rule, value: any, index: number): (boolean, string
         end
         if #value > rule.maxLen then
             return false, `Argument {index}: Text zu lang ({#value} > {rule.maxLen})`
+        end
+        local minLen = rule.minLen
+        if minLen ~= nil and #value < minLen then
+            return false, `Argument {index}: Text zu kurz ({#value} < {minLen})`
         end
         return true, nil
     elseif rule.kind == "int" then
