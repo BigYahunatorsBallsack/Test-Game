@@ -26,7 +26,8 @@
 --
 -- `openFree(profile, kistenId, ctx)`: Gratis-Einstieg (Daily Reward, Paket 5.1). Eine Öffnung, bucht
 -- nichts ab, zählt für die Pity. Policy und Saison gelten genauso (bei gesperrter Policy gibt 5.1
--- den festen Ersatzgegenstand). An keine Remote angeschlossen.
+-- den festen Ersatzgegenstand). Aufgerufen von Logic/Daily (Remote ClaimDaily, Tag 7) auf einer
+-- Arbeitskopie des Profils.
 -- `ctx.data` ist für Tests überschreibbar ({ Crates, CrateItems, Rarities, Economy }).
 
 local BigNum = require("./BigNum")

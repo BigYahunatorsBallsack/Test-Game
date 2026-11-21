@@ -4,9 +4,13 @@
 -- Der Server ruft `roll` mit der echten Sammelzeit auf (Sekunden, in denen Sand in den Tank floss).
 -- Der Zufall kommt als Funktion `random() -> [0, 1)` herein, damit Tests feste Werte nutzen können.
 --
---  1. Chance pro Sekunde = findChancePerSecond x Zonenfaktor x Glück-Ast x (1 + Wetter-Bonus).
+--  1. Chance pro Sekunde = findChancePerSecond x Zonenfaktor x Glück-Ast x Glücks-Boost
+--     x (1 + Wetter-Bonus), höchstens 1. Der Glücks-Boost (Daily Reward Tag 5, Paket 5.1,
+--     Perks.luckBoostMultiplier) ist ein eigener Faktor; seine Uhr ist `unixTime` (Server, os.time),
+--     fehlt sie, `serverTime` (beide Unix-Sekunden).
 --  2. Chance im Fenster  = 1 - (1 - p)^Sekunden (höchstens ein Fund pro Aufruf).
---  3. Seltenheit nach der Quotentabelle der Zone. Glück ändert nur die Chance, nie die Verteilung.
+--  3. Seltenheit nach der Quotentabelle der Zone. Glück (Ast und Boost) ändert nur die Chance, nie
+--     die Verteilung.
 --  4. Fundstück gleich verteilt unter den Funden der Zone mit dieser Seltenheit (fehlt sie, die
 --     nächst tiefere Stufe).
 --  5. Wert = findBaseValue x Sandfaktor x Grundrate des Werkzeugs x Wertfaktor der Seltenheit
@@ -17,6 +21,7 @@
 
 local BigNum = require("./BigNum")
 local Collection = require("./Collection")
+local Perks = require("./Perks")
 local TreeEffects = require("./TreeEffects")
 local Wind = require("./Wind")
 local WeatherLogic = require("./Weather")
@@ -38,6 +43,7 @@ export type Input = {
     zoneId: string,
     seconds: number, -- echte Sammelzeit seit dem letzten Aufruf
     serverTime: number, -- Serverzeit für das Wetter
+    unixTime: number?, -- Unix-Zeit des Servers (os.time) für den Glücks-Boost; fehlt sie, zählt serverTime
     sessionSeconds: number, -- Sammelzeit dieser Sitzung (inklusive `seconds`)
     random: () -> number,
 }
@@ -48,13 +54,16 @@ local function isGoodNumber(value: any): boolean
     return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
--- Chance pro Sekunde in [0, 1]. `data` ist für Tests überschreibbar.
-function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: number, data: any?): number
+-- Chance pro Sekunde in [0, 1]. `data` ist für Tests überschreibbar ({ FindOdds, Weather, Economy }).
+-- `unixTime` ist die Uhr für den Glücks-Boost (os.time des Servers); fehlt sie, zählt `serverTime`.
+function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: number, data: any?, unixTime: number?): number
     local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
     local zoneFactor = (odds.zoneFindChanceFactor[zoneId] or 0) / 10000
     local weather = WeatherLogic.stateAt(zoneId, serverTime, if data and data.Weather then data.Weather else nil)
     local weatherFactor = 1 + weather.findChanceBonusBp * weather.strength / 10000
-    local p = (odds.findChancePerSecond / 10000) * zoneFactor * TreeEffects.luckMultiplier(profile) * weatherFactor
+    local boostTime = if unixTime ~= nil then unixTime else serverTime
+    local luckBoost = Perks.luckBoostMultiplier(profile, boostTime, data)
+    local p = (odds.findChancePerSecond / 10000) * zoneFactor * TreeEffects.luckMultiplier(profile) * luckBoost * weatherFactor
     if not isGoodNumber(p) then
         return 0
     end
@@ -176,7 +185,7 @@ function FindRoll.roll(input: Input, data: any?): Roll?
         forced = true
         rarityId = "common"
     else
-        local chance = FindRoll.chanceInWindow(FindRoll.chancePerSecond(profile, zoneId, input.serverTime, data), input.seconds)
+        local chance = FindRoll.chanceInWindow(FindRoll.chancePerSecond(profile, zoneId, input.serverTime, data, input.unixTime), input.seconds)
         if input.random() >= chance then
             return nil
         end

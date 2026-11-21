@@ -56,12 +56,16 @@ export type Profile = {
     receipts: { string }, -- PurchaseIds der zuletzt gutgeschriebenen Käufe, neueste am Ende (Paket 4.1)
     purchaseLog: { PurchaseLogEntry }, -- die letzten Käufe, neueste am Ende (Paket 4.1)
     spent: { robux: number, count: number }, -- Robux und Zahl aller gutgeschriebenen Käufe (Paket 4.1)
-    boosts: { coinsUntil: number }, -- Unix-Zeit, bis wann der Münz-Boost läuft (Paket 4.4, Logic/Perks)
+    -- Unix-Zeiten, bis wann der Münz-Boost (Paket 4.4) und der Glücks-Boost (Daily Reward Tag 5,
+    -- Paket 5.1) laufen, Logic/Perks. luckUntil füllt Profile.migrate bei alten Spielständen mit 0.
+    boosts: { coinsUntil: number, luckUntil: number },
     passes: { [string]: boolean }, -- gemerkter Gamepass-Besitz: Pass-ID aus Data/Products -> true (Paket 4.4)
     settings: { autoDig: boolean }, -- Einstellungen des Spielers (Paket 4.4)
     -- Angebote (Paket 4.5, seit Version 7): Angebots-ID aus Data/Offers -> { since (Unix-Zeit des
     -- Fensterstarts, 0 = nicht gestartet), bought }. Regeln in Logic/Offers.
     offers: { [string]: Offers.Entry },
+    -- Daily Reward (Paket 5.1, Logic/Daily): abgeholte Tage der laufenden Serie und UTC-Tag
+    -- (floor(Unix-Zeit / 86400)) der letzten Abholung, 0 = nie.
     daily: { streak: number, lastDay: number },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
@@ -136,7 +140,7 @@ function Profile.default(now: number?): Profile
         receipts = {},
         purchaseLog = {},
         spent = { robux = 0, count = 0 },
-        boosts = { coinsUntil = 0 },
+        boosts = { coinsUntil = 0, luckUntil = 0 },
         -- Gamepasses (Paket 4.4): nur der Server schreibt `passes` (Logic/Passes, Services/Passes).
         passes = {},
         -- Einstellungen (Paket 4.4): Auto-Dig sammelt nur mit Pass und Einstellung an.
@@ -648,11 +652,31 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
             end
         end
     end
-    -- Münz-Boost (Paket 4.4): Die Endzeit ist eine endliche Unix-Zeit ab 0. NaN und unendlich setzt
-    -- schon die allgemeine Prüfung oben auf 0, ein negativer Wert wird hier 0 (abgelaufen).
-    if type(data.boosts) == "table" and type(data.boosts.coinsUntil) == "number" and data.boosts.coinsUntil < 0 then
-        warn(warnings, "boosts.coinsUntil", "negativ, auf 0 gesetzt")
-        data.boosts.coinsUntil = 0
+    -- Daily Reward (Paket 5.1): streak und lastDay sind ganze Zahlen ab 0 (Brüche abgerundet). Den Rest
+    -- (zu große Serie, Tag in der Zukunft) behandelt Logic/Daily beim Lesen.
+    if type(data.daily) == "table" then
+        for _, field in { "streak", "lastDay" } do
+            local value = data.daily[field]
+            if type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge then
+                local clean = math.max(math.floor(value), 0)
+                if clean ~= value then
+                    warn(warnings, `daily.{field}`, "keine ganze Zahl ab 0, korrigiert")
+                    data.daily[field] = clean
+                end
+            end
+        end
+    end
+    -- Münz-Boost (Paket 4.4) und Glücks-Boost (Paket 5.1): Die Endzeit ist eine endliche Unix-Zeit ab
+    -- 0. NaN und unendlich setzt schon die allgemeine Prüfung oben auf 0, ein negativer Wert wird hier
+    -- 0 (abgelaufen).
+    if type(data.boosts) == "table" then
+        for _, field in { "coinsUntil", "luckUntil" } do
+            local value = data.boosts[field]
+            if type(value) == "number" and value < 0 then
+                warn(warnings, `boosts.{field}`, "negativ, auf 0 gesetzt")
+                data.boosts[field] = 0
+            end
+        end
     end
     -- Gamepasses (Paket 4.4): Es bleiben nur bekannte Gamepass-IDs aus Data/Products mit Wert true.
     -- Ein unbekannter Pass (zum Beispiel von einem neueren Server) wird entfernt; die Abfrage beim

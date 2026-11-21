@@ -339,6 +339,87 @@ T.describe("Münz-Boost (4.4)", function()
     end)
 end)
 
+T.describe("Glücks-Boost (5.1)", function()
+    local LUCK = Economy.luckBoost.multiplier
+    local SECONDS = 15 * 60
+
+    T.it("wirkt nur vor luckUntil (Server-Uhr), danach Faktor 1; Restsekunden für die Anzeige", function()
+        local profile: any = Profile.default(NOW)
+        T.expect(Perks.luckBoostActive(profile, NOW)).toBe(false)
+        T.expect(Perks.luckBoostMultiplier(profile, NOW)).toBe(1)
+        T.expect(Perks.luckBoostSeconds(profile, NOW)).toBe(0)
+        profile.boosts = { coinsUntil = 0, luckUntil = NOW + SECONDS }
+        T.expect(Perks.luckBoostActive(profile, NOW)).toBe(true)
+        T.expect(Perks.luckBoostMultiplier(profile, NOW)).toBe(LUCK)
+        T.expect(LUCK).toBe(2)
+        T.expect(Perks.luckBoostMultiplier(profile, NOW + SECONDS - 1)).toBe(LUCK)
+        T.expect(Perks.luckBoostMultiplier(profile, NOW + SECONDS)).toBe(1)
+        T.expect(Perks.luckBoostSeconds(profile, NOW)).toBe(SECONDS)
+        T.expect(Perks.luckBoostSeconds(profile, NOW + 100)).toBe(SECONDS - 100)
+        T.expect(Perks.luckBoostSeconds(profile, NOW + SECONDS + 5)).toBe(0)
+    end)
+
+    T.it("Münz- und Glücks-Boost sind getrennt: keiner schaltet den anderen ein", function()
+        local luckOnly: any = Profile.default(NOW)
+        luckOnly.boosts = { coinsUntil = 0, luckUntil = NOW + 60 }
+        T.expect(Perks.coinBoostActive(luckOnly, NOW)).toBe(false)
+        T.expect(Perks.coinMultiplier(luckOnly, NOW)).toBe(1)
+        T.expect(Perks.options(luckOnly, NOW)).toEqual({ capacityMultiplier = 1, coinMultiplier = 1 })
+        local coinsOnly: any = Profile.default(NOW)
+        coinsOnly.boosts = { coinsUntil = NOW + 60, luckUntil = 0 }
+        T.expect(Perks.luckBoostActive(coinsOnly, NOW)).toBe(false)
+        T.expect(Perks.luckBoostMultiplier(coinsOnly, NOW)).toBe(1)
+    end)
+
+    T.it("Faktor aus den Daten; kaputt oder unter 1 zählt als 1", function()
+        local profile: any = Profile.default(NOW)
+        profile.boosts = { coinsUntil = 0, luckUntil = NOW + 60 }
+        T.expect(Perks.luckBoostMultiplier(profile, NOW, { Economy = { luckBoost = { multiplier = 3 } } })).toBe(3)
+        for _, bad in { 0.5, 0 / 0, math.huge, "2" } do
+            T.expect(Perks.luckBoostMultiplier(profile, NOW, { Economy = { luckBoost = { multiplier = bad } } })).toBe(1)
+        end
+        T.expect(Perks.luckBoostMultiplier(profile, NOW, { Economy = {} })).toBe(1)
+    end)
+
+    T.it("kaputte Endzeit oder Uhr zählt als abgelaufen", function()
+        for _, bad in { 0 / 0, -5, math.huge, -math.huge, "bald", true } do
+            local profile: any = Profile.default(NOW)
+            profile.boosts = { coinsUntil = 0, luckUntil = bad }
+            T.expect(Perks.luckBoostActive(profile, NOW)).toBe(false)
+            T.expect(Perks.luckBoostSeconds(profile, NOW)).toBe(0)
+            T.expect(Perks.luckBoostMultiplier(profile, NOW)).toBe(1)
+        end
+        local running: any = Profile.default(NOW)
+        running.boosts = { coinsUntil = 0, luckUntil = NOW + 100 }
+        T.expect(Perks.luckBoostActive(running, 0 / 0)).toBe(false)
+        running.boosts = "kaputt"
+        T.expect(Perks.luckBoostActive(running, NOW)).toBe(false)
+    end)
+
+    T.it("verlängern: ab der alten Endzeit oder ab jetzt, coinsUntil bleibt, die alte Tabelle bleibt unverändert", function()
+        T.expect(Perks.extendLuckBoost({ coinsUntil = 5, luckUntil = 0 }, NOW, SECONDS)).toEqual({ coinsUntil = 5, luckUntil = NOW + SECONDS })
+        T.expect(Perks.extendLuckBoost({ coinsUntil = 5, luckUntil = NOW - 1 }, NOW, SECONDS)).toEqual({ coinsUntil = 5, luckUntil = NOW + SECONDS })
+        T.expect(Perks.extendLuckBoost({ coinsUntil = 5, luckUntil = NOW + 60 }, NOW, SECONDS)).toEqual({ coinsUntil = 5, luckUntil = NOW + 60 + SECONDS })
+        T.expect(Perks.extendLuckBoost({ coinsUntil = 5 }, NOW, SECONDS)).toEqual({ coinsUntil = 5, luckUntil = NOW + SECONDS })
+        T.expect(Perks.extendLuckBoost(nil, NOW, SECONDS)).toEqual({ luckUntil = NOW + SECONDS })
+        local old = { coinsUntil = NOW + 7, luckUntil = 0 / 0 }
+        local extended: any = Perks.extendLuckBoost(old, NOW, SECONDS)
+        T.expect(extended.luckUntil).toBe(NOW + SECONDS)
+        T.expect(extended.coinsUntil).toBe(NOW + 7)
+        T.expect(old.luckUntil ~= old.luckUntil).toBe(true) -- alte Tabelle unverändert (NaN)
+        -- Der Münz-Boost lässt luckUntil stehen.
+        T.expect(Perks.extendCoinBoost({ coinsUntil = 0, luckUntil = NOW + 9 }, NOW, 60)).toEqual({ coinsUntil = NOW + 60, luckUntil = NOW + 9 })
+    end)
+
+    T.it("verlängern: kaputte Uhr oder Dauer gibt nil", function()
+        T.expect(Perks.extendLuckBoost({ luckUntil = 0 }, 0 / 0, SECONDS)).toBeNil()
+        T.expect(Perks.extendLuckBoost({ luckUntil = 0 }, -1, SECONDS)).toBeNil()
+        T.expect(Perks.extendLuckBoost({ luckUntil = 0 }, NOW, 0)).toBeNil()
+        T.expect(Perks.extendLuckBoost({ luckUntil = 0 }, NOW, -SECONDS)).toBeNil()
+        T.expect(Perks.extendLuckBoost({ luckUntil = 0 }, NOW, math.huge)).toBeNil()
+    end)
+end)
+
 T.describe("Auto-Dig: Einstellung und Entscheidung (4.4)", function()
     T.it("aktiv nur mit Pass und Einstellung an; ohne Pass ändert die Einstellung nichts", function()
         T.expect(Perks.autoDigActive(Profile.default(NOW))).toBe(false)

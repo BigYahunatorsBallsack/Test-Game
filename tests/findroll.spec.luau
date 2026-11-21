@@ -120,6 +120,61 @@ T.describe("Chance", function()
     end)
 end)
 
+T.describe("Glücks-Boost (5.1)", function()
+    local LUCK = Economy.luckBoost.multiplier
+
+    local function boosted(untilTime: number): any
+        local profile = fresh()
+        profile.boosts.luckUntil = untilTime
+        return profile
+    end
+
+    T.it("verdoppelt die Chance pro Sekunde, solange er läuft (Uhr unixTime), danach wieder einfach", function()
+        local plain = fresh()
+        local profile = boosted(NOW + 900)
+        local base = FindRoll.chancePerSecond(plain, "dunes", 200, nil, NOW)
+        T.expect(LUCK).toBe(2)
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, nil, NOW)).toBeCloseTo(base * LUCK, 1e-12)
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, nil, NOW + 899)).toBeCloseTo(base * LUCK, 1e-12)
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, nil, NOW + 900)).toBeCloseTo(base, 1e-12)
+        -- Ohne unixTime zählt serverTime (beide Unix-Sekunden).
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", NOW, nil)).toBeCloseTo(base * LUCK, 1e-12)
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", NOW + 900, nil)).toBeCloseTo(base, 1e-12)
+    end)
+
+    T.it("eigener Faktor: multipliziert mit Glück-Ast, Zone und Wetter, höchstens 1", function()
+        local profile = boosted(NOW + 900)
+        profile.nodes.luck_1 = true -- +10 %
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, nil, NOW)).toBeCloseTo(0.02 * 1.1 * LUCK, 1e-12)
+        T.expect(FindRoll.chancePerSecond(profile, "ruins", 200, nil, NOW)).toBeCloseTo(0.02 * 2 * 1.1 * LUCK, 1e-12)
+        local bonus = WeatherData.zones.oasis.findChanceBonusBp / 10000
+        T.expect(FindRoll.chancePerSecond(profile, "oasis", rainTime(), nil, NOW)).toBeCloseTo(0.02 * 1.2 * 1.1 * LUCK * (1 + bonus), 1e-12)
+        local data = { FindOdds = { findChancePerSecond = 8000, zoneFindChanceFactor = FindOdds.zoneFindChanceFactor } }
+        T.expect(FindRoll.chancePerSecond(profile, "dunes", 200, data, NOW)).toBe(1)
+    end)
+
+    T.it("ändert nur, ob ein Fund fällt, nie Seltenheit, Fundstück oder Wert", function()
+        local plain = fresh()
+        plain.finds = { [Finds.list[1].id] = 1 } -- kein "Erster Fund sicher"
+        local profile = deepCopy(plain)
+        profile.boosts.luckUntil = NOW + 900
+        -- Zwischen p und 2p: nur mit Boost ein Fund.
+        local p = FindRoll.chanceInWindow(FindRoll.chancePerSecond(plain, "dunes", 200, nil, NOW), 1)
+        local between = p * 1.5
+        T.expect(FindRoll.roll(input(plain, "dunes", 1, sequence({ between, 0.5, 0.5 }), { unixTime = NOW }))).toBeNil()
+        T.expect(FindRoll.roll(input(profile, "dunes", 1, sequence({ between, 0.5, 0.5 }), { unixTime = NOW })) ~= nil).toBe(true)
+        -- Fällt in beiden ein Fund, ist alles danach gleich (dieselbe Quotentabelle, derselbe Pool).
+        math.randomseed(51)
+        for _ = 1, 300 do
+            local r2, r3 = math.random(), math.random()
+            local a = FindRoll.roll(input(plain, "dunes", 1, sequence({ 0, r2, r3 }), { unixTime = NOW }))
+            local b = FindRoll.roll(input(profile, "dunes", 1, sequence({ 0, r2, r3 }), { unixTime = NOW }))
+            T.expect(a ~= nil).toBe(true)
+            T.expect(b).toEqual(a)
+        end
+    end)
+end)
+
 T.describe("Seltenheit und Auswahl", function()
     local odds = FindOdds.tables.base
 

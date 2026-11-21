@@ -36,6 +36,8 @@ export type Snapshot = {
     autoDigOwned: boolean?, -- Auto-Dig-Pass vorhanden
     coinMultiplier: number?, -- Faktor aus 2x-Pass und Münz-Boost (steckt schon in pricePerSand)
     coinBoostSeconds: number?, -- Restzeit des Münz-Boosts in Sekunden (Server-Uhr zum Zeitpunkt des Snapshots)
+    luckBoostSeconds: number?, -- Restzeit des Glücks-Boosts in Sekunden (Paket 5.1)
+    daily: { started: boolean, day: number, canClaim: boolean, secondsLeft: number, streak: number }?, -- Daily Reward (Paket 5.1)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 

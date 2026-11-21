@@ -213,6 +213,17 @@ function CrateShop.open()
     end
 end
 
+-- Spielt den Reveal für eine Antwort im Format von OpenCrate ab (Daily Reward Tag 7, Paket 5.1).
+-- Gibt false zurück, wenn der Controller noch nicht bereit ist.
+local playExternal: ((any) -> ())? = nil
+function CrateShop.playReveal(reply: any): boolean
+    if playExternal == nil or type(reply) ~= "table" or type(reply.results) ~= "table" or #reply.results == 0 then
+        return false
+    end
+    playExternal(reply)
+    return true
+end
+
 function CrateShop.Init() end
 
 function CrateShop.Start()
@@ -684,6 +695,13 @@ function CrateShop.Start()
                 closeReveal() -- ein Fehler im Reveal darf das Vollbild nicht hängen lassen
             end
         end)
+    end
+
+    playExternal = function(reply: any)
+        local revealOk = pcall(playReveal, reply)
+        if not revealOk then
+            closeReveal()
+        end
     end
 
     local order = 0

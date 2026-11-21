@@ -8,7 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- verlangt einen anderen Platz: Passes (Paket 4.4) und Offers (Paket 4.5) stehen vor Shop, damit sie
 -- ihre Kauf-Handler (Münz-Boost, Starterpaket) in ihrem Start registrieren, bevor Shop.Start
 -- ProcessReceipt setzt. Offers steht nach Finds und meldet sich in Init für gebuchte Funde an.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events" }
+-- Daily (Paket 5.1) nutzt zur Laufzeit Crates (Policy, gemeinsame Sperre) und hängt sich in Start an
+-- den StateSync von Sand.
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "Daily" }
 
 type Service = {
     Init: () -> (),

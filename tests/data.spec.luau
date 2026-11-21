@@ -288,15 +288,14 @@ T.describe("Datentabellen (0.1)", function()
             T.expect(FindOdds.zoneFindChanceFactor[zone.id] > 0).toBe(true)
         end
         T.expect(#Economy.daily.days).toBe(6)
-        local validKinds: { [string]: boolean } =
-            { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
+        -- Arten der Daily Reward seit Paket 5.1 (Logic/Daily): Boosts mit Sekunden, Gems mit Menge.
+        local validKinds: { [string]: boolean } = { coinBoost = true, luck = true, gems = true }
         for _, reward in Economy.daily.days do
             T.expect(validKinds[reward.kind]).toBe(true)
-            if reward.kind == "boost" then
-                T.expect(type(reward.boostId) == "string" and reward.boostId ~= "").toBe(true)
-                T.expect((reward.durationSeconds or 0) > 0).toBe(true)
+            if reward.kind == "gems" then
+                T.expect((reward.amount or 0) > 0).toBe(true)
             else
-                T.expect(reward.amount > 0).toBe(true)
+                T.expect((reward.seconds or 0) > 0).toBe(true)
             end
         end
         T.expect(Products.byId.double_coins.productId).toBe(0)
@@ -315,8 +314,8 @@ T.describe("Datentabellen (0.1)", function()
         expectError(broken(function(d) d.FindOdds.findBaseValue = 0 end), "findBaseValue")
         expectError(broken(function(d) d.FindOdds.zoneFindChanceFactor.ruins = nil end), "ruins")
         expectError(broken(function(d) d.Economy.daily.days[2].kind = "geld" end), "unbekannte Art")
-        expectError(broken(function(d) d.Economy.daily.days[1].boostId = nil end), "boostId")
-        expectError(broken(function(d) d.Economy.daily.days[1].durationSeconds = 0 end), "durationSeconds")
+        expectError(broken(function(d) d.Economy.daily.days[1].seconds = nil end), "seconds")
+        expectError(broken(function(d) d.Economy.daily.days[1].seconds = 0 end), "seconds")
         expectError(broken(function(d) table.remove(d.Economy.daily.days) end), "Tag 1 bis 6")
     end)
 end)
@@ -835,6 +834,70 @@ T.describe("Angebote (4.5)", function()
         -- gültige Ränder
         T.expect(broken(function(d) d.Offers.byId.starter.gems = 0 end)).toEqual({})
         T.expect(broken(function(d) d.Offers.byId.starter.windowHours = 0.5 end)).toEqual({})
+    end)
+end)
+
+T.describe("Daily Reward und Glücks-Boost (5.1)", function()
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    T.it("die echten Werte: Plan aus phase0_startwerte, Start nach der Schaufel, Glück x2", function()
+        local daily = Economy.daily
+        T.expect(daily.days).toEqual({
+            { day = 1, kind = "coinBoost", seconds = 600 },
+            { day = 2, kind = "gems", amount = 5 },
+            { day = 3, kind = "coinBoost", seconds = 900 },
+            { day = 4, kind = "gems", amount = 10 },
+            { day = 5, kind = "luck", seconds = 900 },
+            { day = 6, kind = "gems", amount = 20 },
+        })
+        T.expect(daily.day7).toEqual({ day = 7, kind = "crate", crateId = "iron" })
+        T.expect(Economy.luckBoost).toEqual({ multiplier = 2 })
+        -- Der Startknoten ist der Knoten, der die Schaufel freischaltet (aus den Daten, keine feste Zahl).
+        T.expect(UpgradeTree.byId[daily.startNodeId].effect).toEqual({ kind = "setTool", toolId = "shovel" })
+        T.expect(Tools.byId.shovel.nodeId).toBe(daily.startNodeId)
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("Tage: unbekannte Art, falscher Tag, fremde Felder, ungültige Menge oder Dauer", function()
+        expectError(broken(function(d) d.Economy.daily.days[2].kind = "boost" end), "unbekannte Art")
+        expectError(broken(function(d) d.Economy.daily.days[3].day = 4 end), "day muss 3 sein")
+        expectError(broken(function(d) d.Economy.daily.days[1].durationSeconds = 600 end), 'Feld "durationSeconds" gehört nicht zur Art "coinBoost"')
+        expectError(broken(function(d) d.Economy.daily.days[2].crateId = "iron" end), 'Feld "crateId" gehört nicht zur Art "gems"')
+        expectError(broken(function(d) d.Economy.daily.days[2].amount = 2.5 end), "amount muss eine ganze Zahl")
+        expectError(broken(function(d) d.Economy.daily.days[2].amount = 0 end), "amount muss eine ganze Zahl")
+        expectError(broken(function(d) d.Economy.daily.days[2].amount = d.Economy.purchases.maxGems + 1 end), "höchstens maxGems")
+        expectError(broken(function(d) d.Economy.daily.days[5].seconds = 0 / 0 end), "seconds muss eine ganze Zahl")
+        expectError(broken(function(d) d.Economy.daily.days[5].seconds = 1.5 end), "seconds muss eine ganze Zahl")
+        expectError(broken(function(d) d.Economy.daily.days = {} end), "Tag 1 bis 6")
+    end)
+
+    T.it("Tag 7: Eisenkiste aus Crates, keine fremden Felder", function()
+        expectError(broken(function(d) d.Economy.daily.day7.crateId = "gold" end), "Tag 7 muss die Eisenkiste sein")
+        expectError(broken(function(d) d.Economy.daily.day7.kind = "gems" end), "Tag 7 muss die Eisenkiste sein")
+        expectError(broken(function(d) d.Economy.daily.day7 = nil end), "Tag 7 muss die Eisenkiste sein")
+        expectError(broken(function(d) d.Economy.daily.day7.amount = 1 end), 'Feld "amount" gehört nicht zu Tag 7')
+        expectError(broken(function(d) d.Crates.byId.iron = nil end), 'Kiste "iron" fehlt in Crates')
+        expectError(broken(function(d) d.Crates.byId.iron.eventOnly = true end), "oder ist eine Event-Kiste")
+    end)
+
+    T.it("Startknoten: steht in UpgradeTree und wird gekauft, nicht vergeben", function()
+        expectError(broken(function(d) d.Economy.daily.startNodeId = "schaufel" end), 'startNodeId "schaufel" steht nicht in UpgradeTree')
+        expectError(broken(function(d) d.Economy.daily.startNodeId = nil end), "startNodeId")
+        expectError(broken(function(d) d.Economy.daily.startNodeId = 2 end), "startNodeId")
+        expectError(broken(function(d) d.Economy.daily.startNodeId = "sandstorm_1" end), 'startNodeId "sandstorm_1" wird vergeben, nicht gekauft')
+        T.expect(broken(function(d) d.Economy.daily.startNodeId = "collect_tool_3" end)).toEqual({})
+    end)
+
+    T.it("Glücks-Boost: Faktor endlich und größer als 1", function()
+        for _, bad in { 1, 0.5, 0 / 0, math.huge, "2" } do
+            expectError(broken(function(d) d.Economy.luckBoost.multiplier = bad end), "Economy.luckBoost.multiplier")
+        end
+        expectError(broken(function(d) d.Economy.luckBoost = nil end), "Economy.luckBoost.multiplier")
+        T.expect(broken(function(d) d.Economy.luckBoost.multiplier = 1.5 end)).toEqual({})
     end)
 end)
 

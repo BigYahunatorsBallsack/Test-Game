@@ -13,6 +13,11 @@
 -- Münz-Faktor = (2x Münzen ? doubleCoinsMultiplier : 1) x (Boost aktiv ? coinBoost.multiplier : 1),
 -- also multiplikativ (mit beidem 4-fach, so entschieden).
 --
+-- Glücks-Boost (Daily Reward Tag 5, Paket 5.1): aktiv, solange die Server-Uhr (Unix, os.time) vor
+-- `profile.boosts.luckUntil` liegt; dann Fundchance aus dem Sand mal Economy.luckBoost.multiplier
+-- (Logic/FindRoll, eigener Faktor neben dem Glück-Ast). Er ändert nie die Verteilung der Seltenheiten
+-- und nie Kisten. Verlängern wie beim Münz-Boost: ab der alten Endzeit oder ab jetzt.
+--
 -- `options(profile, jetzt)` liefert die Collecting.Options für alle Rechnungen von Sammeln, Tank,
 -- Verkauf und Sandsturm-Vorschau. Ohne Pass und Boost sind beide Faktoren genau 1, alle Rechnungen
 -- bleiben dann wie vor Paket 4.4.
@@ -92,9 +97,13 @@ local function factor(value: any): number
     return 1
 end
 
--- Gültige Endzeit des Boosts (endlich, ab 0), sonst nil. Kaputte Werte zählen als abgelaufen.
-local function validUntil(boosts: any): number?
-    local value = if type(boosts) == "table" then boosts.coinsUntil else nil
+-- Felder in `profile.boosts` (Unix-Endzeiten).
+local COINS_UNTIL = "coinsUntil"
+local LUCK_UNTIL = "luckUntil"
+
+-- Gültige Endzeit eines Boosts (endlich, ab 0), sonst nil. Kaputte Werte zählen als abgelaufen.
+local function validUntil(boosts: any, field: string): number?
+    local value = if type(boosts) == "table" then boosts[field] else nil
     if isFinite(value) and value >= 0 then
         return value
     end
@@ -112,19 +121,50 @@ function Perks.owns(profile: any, perk: Perk, data: any?): boolean
     return false
 end
 
--- Läuft der Münz-Boost zur Unix-Zeit `unixNow`?
-function Perks.coinBoostActive(profile: any, unixNow: number): boolean
-    local untilTime = validUntil(if type(profile) == "table" then profile.boosts else nil)
+-- Läuft der Boost mit Endzeit `boosts[field]` zur Unix-Zeit `unixNow`?
+local function boostActive(profile: any, field: string, unixNow: number): boolean
+    local untilTime = validUntil(if type(profile) == "table" then profile.boosts else nil, field)
     return untilTime ~= nil and isFinite(unixNow) and unixNow < untilTime
 end
 
--- Restsekunden des Münz-Boosts (ab 0) für die Anzeige.
-function Perks.coinBoostSeconds(profile: any, unixNow: number): number
-    local untilTime = validUntil(if type(profile) == "table" then profile.boosts else nil)
+-- Restsekunden des Boosts (ab 0).
+local function boostSeconds(profile: any, field: string, unixNow: number): number
+    local untilTime = validUntil(if type(profile) == "table" then profile.boosts else nil, field)
     if untilTime == nil or not isFinite(unixNow) then
         return 0
     end
     return math.max(untilTime - unixNow, 0)
+end
+
+-- Läuft der Münz-Boost zur Unix-Zeit `unixNow`?
+function Perks.coinBoostActive(profile: any, unixNow: number): boolean
+    return boostActive(profile, COINS_UNTIL, unixNow)
+end
+
+-- Restsekunden des Münz-Boosts (ab 0) für die Anzeige.
+function Perks.coinBoostSeconds(profile: any, unixNow: number): number
+    return boostSeconds(profile, COINS_UNTIL, unixNow)
+end
+
+-- Läuft der Glücks-Boost zur Unix-Zeit `unixNow`? (Paket 5.1)
+function Perks.luckBoostActive(profile: any, unixNow: number): boolean
+    return boostActive(profile, LUCK_UNTIL, unixNow)
+end
+
+-- Restsekunden des Glücks-Boosts (ab 0) für die Anzeige (StateSync `luckBoostSeconds`).
+function Perks.luckBoostSeconds(profile: any, unixNow: number): number
+    return boostSeconds(profile, LUCK_UNTIL, unixNow)
+end
+
+-- Faktor des Glücks-Boosts auf die Fundchance aus dem Sand: Economy.luckBoost.multiplier, solange er
+-- läuft, sonst 1. Kaputt oder unter 1 in den Daten: 1. Logic/FindRoll multipliziert ihn als eigenen
+-- Faktor; Kisten lesen ihn nie.
+function Perks.luckBoostMultiplier(profile: any, unixNow: number, data: any?): number
+    if not Perks.luckBoostActive(profile, unixNow) then
+        return 1
+    end
+    local cfg = economyOf(data).luckBoost
+    return factor(if type(cfg) == "table" then cfg.multiplier else nil)
 end
 
 -- Faktor auf alle Münzen aus Verkäufen.
@@ -156,23 +196,34 @@ function Perks.options(profile: any, unixNow: number, data: any?): Options
     }
 end
 
--- Neue boosts-Tabelle mit verlängertem Münz-Boost: coinsUntil = max(jetzt, gültige Endzeit) + seconds.
--- Abgelaufen oder kaputt: ab jetzt. Andere Felder der Tabelle bleiben. Keine Obergrenze für die
--- Stapelzeit (bezahlte Belege werden nie abgelehnt). nil nur bei kaputtem `unixNow` oder `seconds`
--- (dann bucht der Kauf nicht, NotProcessedYet).
-function Perks.extendCoinBoost(boosts: any, unixNow: number, seconds: number): { [string]: any }?
+-- Neue boosts-Tabelle, in der `boosts[field]` = max(jetzt, gültige Endzeit) + seconds ist.
+local function extendBoost(boosts: any, field: string, unixNow: number, seconds: number): { [string]: any }?
     if not isFinite(unixNow) or unixNow < 0 or not isFinite(seconds) or seconds <= 0 then
         return nil
     end
     local result: { [string]: any } = if type(boosts) == "table" then table.clone(boosts) else {}
-    local current = validUntil(boosts)
+    local current = validUntil(boosts, field)
     local start = if current ~= nil then math.max(current, unixNow) else unixNow
     local untilTime = start + seconds
     if not isFinite(untilTime) then
         return nil
     end
-    result.coinsUntil = untilTime
+    result[field] = untilTime
     return result
+end
+
+-- Neue boosts-Tabelle mit verlängertem Münz-Boost: coinsUntil = max(jetzt, gültige Endzeit) + seconds.
+-- Abgelaufen oder kaputt: ab jetzt. Andere Felder der Tabelle bleiben. Keine Obergrenze für die
+-- Stapelzeit (bezahlte Belege werden nie abgelehnt). nil nur bei kaputtem `unixNow` oder `seconds`
+-- (dann bucht der Kauf nicht, NotProcessedYet).
+function Perks.extendCoinBoost(boosts: any, unixNow: number, seconds: number): { [string]: any }?
+    return extendBoost(boosts, COINS_UNTIL, unixNow, seconds)
+end
+
+-- Wie extendCoinBoost, für den Glücks-Boost (luckUntil, Daily Reward Tag 5, Paket 5.1). Andere Felder
+-- (auch coinsUntil) bleiben, die alte Tabelle bleibt unverändert.
+function Perks.extendLuckBoost(boosts: any, unixNow: number, seconds: number): { [string]: any }?
+    return extendBoost(boosts, LUCK_UNTIL, unixNow, seconds)
 end
 
 -- Einstellung "Auto-Dig an" (fehlt oder kaputt: Standard).

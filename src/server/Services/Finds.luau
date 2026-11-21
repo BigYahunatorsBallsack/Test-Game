@@ -9,7 +9,8 @@
 --
 -- Der Client sendet nichts: Funde entstehen allein aus der Sammelzeit, die der Server in
 -- Collecting.update misst (Sand floss wirklich in den Tank). Es gibt darum keine Remote vom
--- Client zum Server. Das Wetter liest der Server aus seiner eigenen Zeit (GetServerTimeNow).
+-- Client zum Server. Das Wetter liest der Server aus seiner eigenen Zeit (GetServerTimeNow), den
+-- Glücks-Boost (Daily Reward Tag 5, Paket 5.1) aus seiner Unix-Uhr (os.time), wie den Münz-Boost.
 --
 -- Studio-Hilfe (nur in Studio, in der Befehlszeile der Ansicht "Server"): Am Spieler das Attribut "DebugFindSet" auf eine Set-ID setzen
 -- (z. B. "dunes_set_1") oder "DebugFindZone" auf eine Zonen-ID (z. B. "oasis"), dann trägt der
@@ -131,6 +132,7 @@ local function tickPlayer(player: Player)
             zoneId = zoneId,
             seconds = clamped,
             serverTime = serverTime(),
+            unixTime = os.time(), -- Glücks-Boost (boosts.luckUntil), Paket 5.1
             sessionSeconds = total,
             random = function(): number
                 return random:NextNumber()

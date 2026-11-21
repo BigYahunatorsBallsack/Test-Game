@@ -23,7 +23,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(10) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6)
+        T.expect(clientRemotes).toBe(11) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6), ClaimDaily (5.1)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -40,6 +40,7 @@ T.describe("RemoteSpec", function()
             MergeItem = { 2, 1 },
             SetAutoDig = { 2, 1 },
             BuyDirectItem = { 2, 1 },
+            ClaimDaily = { 1, 2 },
             Prestige = { 1, 5 },
         }
         for name, values in expected do
@@ -244,6 +245,47 @@ T.describe("Remote BuyDirectItem (4.6)", function()
         T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(false)
         clock.t += 1
         T.expect(limiter:allow("42", "BuyDirectItem", limit)).toBe(true)
+    end)
+end)
+
+T.describe("Remote ClaimDaily (5.1)", function()
+    T.it("RemoteFunction vom Client zum Server ohne Argumente, registrierbar", function()
+        local def = RemoteSpec.byName.ClaimDaily
+        T.expect(def.kind).toBe("Function")
+        T.expect(def.direction).toBe("ClientToServer")
+        T.expect(def.schema).toEqual({})
+        T.expect(select(1, RemoteSpec.canRegister("ClaimDaily"))).toBe(true)
+        T.expect(validate("ClaimDaily")).toBe(true)
+    end)
+
+    T.it("jedes Argument wird abgelehnt: kein Tag, keine Zeit, kein Spieler vom Client", function()
+        T.expect(validate("ClaimDaily", 7)).toBe(false)
+        T.expect(validate("ClaimDaily", 1_700_000_000)).toBe(false) -- keine Client-Zeit
+        T.expect(validate("ClaimDaily", "day7")).toBe(false)
+        T.expect(validate("ClaimDaily", true)).toBe(false)
+        T.expect(validate("ClaimDaily", nil)).toBe(false) -- ein angehängtes nil zählt als Argument
+        T.expect(validate("ClaimDaily", { day = 7 })).toBe(false)
+        T.expect(validate("ClaimDaily", 0 / 0)).toBe(false)
+    end)
+
+    T.it("Limit 1 Aufruf je 2 Sekunden mit simulierter Uhr, Spieler getrennt", function()
+        local clock = { t = 10 }
+        local limiter = RateLimiter.new(function(): number
+            return clock.t
+        end)
+        local limit = RemoteSpec.byName.ClaimDaily.limit :: RateLimiter.Limit
+        T.expect(limit.calls).toBe(1)
+        T.expect(limit.per).toBe(2)
+        T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(true)
+        T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(false)
+        T.expect(limiter:allow("43", "ClaimDaily", limit)).toBe(true) -- anderer Spieler
+        clock.t += 1.9
+        T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(false)
+        clock.t += 0.1
+        T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(true)
+        T.expect(limiter:allow("42", "ClaimDaily", limit)).toBe(false)
+        -- Andere Remotes zählen getrennt.
+        T.expect(limiter:allow("42", "OpenCrate", RemoteSpec.byName.OpenCrate.limit :: RateLimiter.Limit)).toBe(true)
     end)
 end)
 

@@ -174,7 +174,7 @@ function Hud.Start()
 
     -- Zeile "Pässe und Boost". Die Restzeit kommt vom Server (seine Uhr), der Client zählt nur von
     -- dort lokal herunter, bis der nächste Snapshot kommt.
-    local perks = { autoDig = false, multiplier = 1, boostEndsAt = 0 }
+    local perks = { autoDig = false, multiplier = 1, boostEndsAt = 0, luckEndsAt = 0 }
     local function renderPerks()
         local parts: { string } = {}
         if perks.autoDig then
@@ -187,15 +187,22 @@ function Hud.Start()
         if left > 0 then
             table.insert(parts, `Boost {clockText(left)}`)
         end
+        local luckLeft = perks.luckEndsAt - os.clock()
+        if luckLeft > 0 then
+            table.insert(parts, `Glück x2 {clockText(luckLeft)}`)
+        end
         perksLabel.Text = table.concat(parts, " · ")
     end
     task.spawn(function()
         while true do
             task.wait(BOOST_TICK_SECONDS)
-            if perks.boostEndsAt > 0 then
+            if perks.boostEndsAt > 0 or perks.luckEndsAt > 0 then
                 renderPerks()
                 if perks.boostEndsAt <= os.clock() then
                     perks.boostEndsAt = 0
+                end
+                if perks.luckEndsAt <= os.clock() then
+                    perks.luckEndsAt = 0
                 end
             end
         end
@@ -207,6 +214,8 @@ function Hud.Start()
         perks.multiplier = if type(snapshot.coinMultiplier) == "number" and snapshot.coinMultiplier == snapshot.coinMultiplier then snapshot.coinMultiplier else 1
         local boostSeconds = if type(snapshot.coinBoostSeconds) == "number" and snapshot.coinBoostSeconds == snapshot.coinBoostSeconds then snapshot.coinBoostSeconds else 0
         perks.boostEndsAt = if boostSeconds > 0 then os.clock() + boostSeconds else 0
+        local luckSeconds = if type(snapshot.luckBoostSeconds) == "number" and snapshot.luckBoostSeconds == snapshot.luckBoostSeconds then snapshot.luckBoostSeconds else 0
+        perks.luckEndsAt = if luckSeconds > 0 then os.clock() + luckSeconds else 0
         renderPerks()
         coinsLabel.Text = `Münzen: {display(snapshot.coins)}`
         local tool = Tools.byId[snapshot.toolId]
