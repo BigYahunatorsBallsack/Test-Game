@@ -115,6 +115,14 @@ local list: { RemoteDef } = {
         description = "Spieler löst den Sandsturm (Prestige) aus.",
     },
     {
+        name = "ClaimDaily",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = {}, -- keine Argumente: Tag, Belohnung und Zeit bestimmt der Server (os.time)
+        limit = { calls = 1, per = 2 }, -- ein Knopf im Fenster; die Abholung selbst geht nur einmal am Tag
+        description = "Spieler holt die Daily Reward des Tages ab (Paket 5.1). Antwort: ok, Tag, Belohnung, bei Tag 7 die Kiste, oder Grund.",
+    },
+    {
         name = "StateSync",
         kind = "Event",
         direction = "ServerToClient",

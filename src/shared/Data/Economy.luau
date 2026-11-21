@@ -4,14 +4,17 @@
 -- Die Balance-Startwerte (Grundpreis, Tank, Daily Reward) stammen aus
 -- docs/balance/phase0_startwerte.md.
 
+-- Eine Belohnung der Daily Reward (Paket 5.1, Logic/Daily). Je Art nur diese Felder (DataCheck):
+--   "coinBoost" { day, kind, seconds }  2x-Münzen-Boost (Economy.coinBoost.multiplier), verlängert boosts.coinsUntil
+--   "luck"      { day, kind, seconds }  Glücks-Boost (Economy.luckBoost.multiplier), verlängert boosts.luckUntil
+--   "gems"      { day, kind, amount }   Gems, gekappt bei purchases.maxGems
+--   "crate"     { day, kind, crateId }  nur Tag 7: Kiste gratis (bei gesperrten Zufallsitems day7FallbackItemId)
 export type DailyReward = {
     day: number,
-    kind: "coins" | "gems" | "boost" | "crate" | "fixedItem",
-    amount: number,
-    crateId: string?,
-    itemId: string?,
-    boostId: ("coins2x" | "luck2x")?, -- nur bei kind = "boost"
-    durationSeconds: number?, -- nur bei kind = "boost"
+    kind: "coinBoost" | "luck" | "gems" | "crate",
+    amount: number?, -- nur bei "gems": ganze Zahl über 0
+    seconds: number?, -- nur bei "coinBoost" und "luck": ganze Sekunden über 0
+    crateId: string?, -- nur bei "crate": Kiste aus Data/Crates
 }
 
 -- Käufe und Gems (Paket 4.1), siehe Logic/Purchases und Logic/Gems.
@@ -149,19 +152,29 @@ local Economy = {
         shovel = 120,
     },
 
-    -- Daily Reward: 7-Tage-Serie. Tag 7 gibt eine Eisenkiste gratis. In Regionen mit
-    -- gesperrten Zufallsitems gibt es stattdessen ein festes Ausrüstungsstück.
+    -- Glücks-Boost (Daily Reward Tag 5, Paket 5.1): Faktor auf die Fundchance aus dem Sand, solange
+    -- boosts.luckUntil nach der Server-Uhr (Unix) liegt. Er ändert nur die Chance, dass ein Fund fällt,
+    -- nie die Verteilung der Seltenheiten und nie Kisten (Logic/FindRoll, Logic/Perks).
+    luckBoost = {
+        multiplier = 2,
+    },
+
+    -- Daily Reward (Paket 5.1, Logic/Daily): 7-Tage-Serie nach UTC-Kalendertagen. Tag 7 gibt eine
+    -- Eisenkiste gratis. Bei gesperrten oder unbekannten Zufallsitems gibt es stattdessen ein festes
+    -- Ausrüstungsstück (day7FallbackItemId). Werte: docs/balance/phase0_startwerte.md.
     daily = {
-        -- Die Serie startet erst nach dem Kauf der Schaufel (docs/balance/phase0_startwerte.md).
+        -- Die Serie startet erst nach dem Kauf der Schaufel (Knoten aus UpgradeTree, DataCheck prüft
+        -- ihn). Nach einem Sandsturm gilt sie immer als gestartet, auch ohne diesen Knoten.
+        startNodeId = "collect_tool_2",
         days = {
-            { day = 1, kind = "boost", boostId = "coins2x", durationSeconds = 600, amount = 1 },
+            { day = 1, kind = "coinBoost", seconds = 10 * 60 },
             { day = 2, kind = "gems", amount = 5 },
-            { day = 3, kind = "boost", boostId = "coins2x", durationSeconds = 900, amount = 1 },
+            { day = 3, kind = "coinBoost", seconds = 15 * 60 },
             { day = 4, kind = "gems", amount = 10 },
-            { day = 5, kind = "boost", boostId = "luck2x", durationSeconds = 900, amount = 1 },
+            { day = 5, kind = "luck", seconds = 15 * 60 },
             { day = 6, kind = "gems", amount = 20 },
         } :: { DailyReward },
-        day7 = { day = 7, kind = "crate", amount = 1, crateId = "iron" } :: DailyReward,
+        day7 = { day = 7, kind = "crate", crateId = "iron" } :: DailyReward,
         -- Festes Ersatz-Item bei gesperrten Zufallsitems: Kupferschaufel, gleichwertig zur Eisenkiste
         -- (docs/balance/directshop_4_6.md, "Tag 7"). DataCheck: bekanntes Item, kein Event-Item.
         day7FallbackItemId = "toolVariant_uncommon_1",

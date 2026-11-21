@@ -37,7 +37,13 @@ local CRATE_ITEM_KINDS = { skin = true, companion = true, toolVariant = true }
 local MIN_POOL_ITEMS = 1
 local EXCLUSIVE_CRATE = "event"
 local PRODUCT_KINDS = { gamepass = true, developerProduct = true, direct = true }
-local DAILY_KINDS = { coins = true, gems = true, boost = true, crate = true, fixedItem = true }
+-- Daily Reward (Paket 5.1): erlaubte Felder je Art der Tage 1 bis 6 (Logic/Daily kennt genau diese).
+local DAILY_FIELDS: { [string]: { [string]: boolean } } = {
+    coinBoost = { day = true, kind = true, seconds = true },
+    luck = { day = true, kind = true, seconds = true },
+    gems = { day = true, kind = true, amount = true },
+}
+local DAILY_DAY7_FIELDS = { day = true, kind = true, crateId = true }
 local EFFECT_KINDS = {
     setTool = true,
     rateBonus = true,
@@ -1190,30 +1196,73 @@ local function checkEconomy(errors: { string }, data: DataSet)
             end
         end
     end
+end
+
+-- Daily Reward und Glücks-Boost (Paket 5.1, Logic/Daily): Tag 1 bis 6 in Reihenfolge, je Art nur ihre
+-- Felder (Tippfehler wie "durationSeconds" fallen auf): Boosts mit ganzen Sekunden über 0, Gems ganze
+-- Zahl über 0 und höchstens maxGems; Tag 7 ist die Eisenkiste (bekannte Kiste, keine Event-Kiste); der
+-- Startknoten steht in UpgradeTree und wird gekauft, nicht vergeben; der Glücks-Faktor ist endlich und
+-- größer als 1. Den Ersatzgegenstand für Tag 7 prüft checkDirectShop.
+local function checkDaily(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    if type(economy) ~= "table" then
+        return -- checkEconomy meldet die fehlende Tabelle
+    end
+    local luckBoost = economy.luckBoost
+    if type(luckBoost) ~= "table" or not isFinite(luckBoost.multiplier) or luckBoost.multiplier <= 1 then
+        table.insert(errors, "Economy.luckBoost.multiplier muss endlich und größer als 1 sein")
+    end
     local daily = economy.daily
     if type(daily) ~= "table" or type(daily.days) ~= "table" or #daily.days ~= 6 then
         table.insert(errors, "Economy.daily: Tag 1 bis 6 fehlen")
-    else
-        for index, reward in daily.days do
-            local label = `Economy.daily.days[{index}]`
-            if type(reward) ~= "table" or DAILY_KINDS[reward.kind] == nil then
-                table.insert(errors, `{label}: unbekannte Art (kind)`)
-            elseif reward.day ~= index then
-                table.insert(errors, `{label}: day muss {index} sein`)
-            elseif reward.kind == "boost" then
-                if type(reward.boostId) ~= "string" or reward.boostId == "" then
-                    table.insert(errors, `{label}: boostId fehlt`)
-                end
-                if not isFinite(reward.durationSeconds) or reward.durationSeconds <= 0 then
-                    table.insert(errors, `{label}: durationSeconds muss größer als 0 sein`)
-                end
-            elseif not isFinite(reward.amount) or reward.amount <= 0 then
-                table.insert(errors, `{label}: amount muss größer als 0 sein`)
+        return
+    end
+    local maxGems = if type(economy.purchases) == "table" and isFinite(economy.purchases.maxGems) then economy.purchases.maxGems else math.huge
+    for index, reward in daily.days do
+        local label = `Economy.daily.days[{index}]`
+        local fields = if type(reward) == "table" then DAILY_FIELDS[reward.kind] else nil
+        if fields == nil then
+            table.insert(errors, `{label}: unbekannte Art (kind)`)
+            continue
+        end
+        if reward.day ~= index then
+            table.insert(errors, `{label}: day muss {index} sein`)
+        end
+        for key in reward do
+            if not fields[key] then
+                table.insert(errors, `{label}: Feld "{tostring(key)}" gehört nicht zur Art "{reward.kind}"`)
             end
         end
-        if type(daily.day7) ~= "table" or daily.day7.crateId ~= "iron" then
-            table.insert(errors, "Economy.daily: Tag 7 muss die Eisenkiste sein")
+        if reward.kind == "gems" then
+            if not isInt(reward.amount) or reward.amount <= 0 or reward.amount > maxGems then
+                table.insert(errors, `{label}: amount muss eine ganze Zahl über 0 und höchstens maxGems sein`)
+            end
+        elseif not isInt(reward.seconds) or reward.seconds <= 0 then
+            table.insert(errors, `{label}: seconds muss eine ganze Zahl über 0 sein`)
         end
+    end
+    local day7 = daily.day7
+    if type(day7) ~= "table" or day7.kind ~= "crate" or day7.day ~= 7 or day7.crateId ~= "iron" then
+        table.insert(errors, "Economy.daily: Tag 7 muss die Eisenkiste sein")
+    else
+        for key in day7 do
+            if not DAILY_DAY7_FIELDS[key] then
+                table.insert(errors, `Economy.daily.day7: Feld "{tostring(key)}" gehört nicht zu Tag 7`)
+            end
+        end
+        local crates = data.Crates
+        local crate = if type(crates) == "table" and type(crates.byId) == "table" then crates.byId[day7.crateId] else nil
+        if type(crate) ~= "table" or crate.eventOnly == true then
+            table.insert(errors, `Economy.daily.day7: Kiste "{tostring(day7.crateId)}" fehlt in Crates oder ist eine Event-Kiste`)
+        end
+    end
+    local nodeId = daily.startNodeId
+    local tree = data.UpgradeTree
+    local node = if type(nodeId) == "string" and type(tree) == "table" and type(tree.byId) == "table" then tree.byId[nodeId] else nil
+    if type(node) ~= "table" then
+        table.insert(errors, `Economy.daily.startNodeId "{tostring(nodeId)}" steht nicht in UpgradeTree`)
+    elseif node.granted == true then
+        table.insert(errors, `Economy.daily.startNodeId "{nodeId}" wird vergeben, nicht gekauft`)
     end
 end
 
@@ -2498,6 +2547,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkFinds(errors, data)
     checkCollection(errors, data)
     checkEconomy(errors, data)
+    checkDaily(errors, data)
     checkSandstorm(errors, data)
     checkPurchases(errors, data)
     checkDirectShop(errors, data)

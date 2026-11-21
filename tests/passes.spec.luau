@@ -631,7 +631,8 @@ T.describe("Spielstand Version 6 (4.4)", function()
         T.expect(Migrations.CURRENT_VERSION >= 6).toBe(true)
         T.expect(profile.passes).toEqual({})
         T.expect(profile.settings).toEqual({ autoDig = true })
-        T.expect(profile.boosts).toEqual({ coinsUntil = NOW + 77 })
+        -- Der Boost bleibt; luckUntil (Glücks-Boost, Paket 5.1) füllt Profile.migrate mit 0 auf.
+        T.expect(profile.boosts).toEqual({ coinsUntil = NOW + 77, luckUntil = 0 })
         T.expect(Profile.sanitize(profile, NOW)).toEqual({})
         local again = Profile.migrate(deepCopy(profile), nil, NOW)
         T.expect(again).toEqual(profile)
@@ -700,14 +701,14 @@ T.describe("Spielstand Version 6 (4.4)", function()
         local profile: any = Profile.default(NOW)
         profile.passes = { big_tank = true, double_coins = true }
         profile.settings = { autoDig = false }
-        profile.boosts = { coinsUntil = NOW + 1234 }
+        profile.boosts = { coinsUntil = NOW + 1234, luckUntil = NOW + 99 } -- luckUntil: Paket 5.1
         T.expect(Profile.sanitize(profile, NOW)).toEqual({})
         local stored = serde.decode("json", serde.encode("json", profile))
         local loaded: any = Profile.migrate(stored, nil, NOW)
         T.expect(Profile.sanitize(loaded, NOW, { trimLists = false })).toEqual({})
         T.expect(loaded.passes).toEqual({ big_tank = true, double_coins = true })
         T.expect(loaded.settings).toEqual({ autoDig = false })
-        T.expect(loaded.boosts).toEqual({ coinsUntil = NOW + 1234 })
+        T.expect(loaded.boosts).toEqual({ coinsUntil = NOW + 1234, luckUntil = NOW + 99 })
         T.expect(Perks.options(loaded, NOW)).toEqual(Perks.options(profile, NOW))
     end)
 

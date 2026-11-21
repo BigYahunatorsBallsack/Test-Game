@@ -4,7 +4,8 @@
 -- 1. Kistenquoten und Wurf hängen nur von Kiste, Pity-Zähler und Zufall ab. Glück-Ast, Glück-Boost,
 --    Pässe, Münz-Boost und ausgerüstete Items ändern daran nichts (sonst stimmten die angezeigten
 --    Quoten nicht).
--- 2. Remotes: Nur OpenCrate, EquipItem, MergeItem und BuyDirectItem dürfen das Inventar ändern, und
+-- 2. Remotes: Nur OpenCrate, EquipItem, MergeItem, BuyDirectItem und ClaimDaily (Tag 7: Eisenkiste
+--    gratis oder fester Ersatzgegenstand, Paket 5.1) dürfen das Inventar ändern, und
 --    keine Remote nimmt ein Argument, mit dem man einen anderen Spieler nennen könnte (kein Tausch,
 --    kein Verschenken, kein Verkauf von Kisten-Items).
 --
@@ -24,6 +25,8 @@ local TreeEffects = require("../src/shared/Logic/TreeEffects")
 local Perks = require("../src/shared/Logic/Perks")
 local Equipment = require("../src/shared/Logic/Equipment")
 local Sandstorm = require("../src/shared/Logic/Sandstorm")
+local FindRoll = require("../src/shared/Logic/FindRoll")
+local Daily = require("../src/shared/Logic/Daily")
 local BigNum = require("../src/shared/Logic/BigNum")
 local RemoteSpec = require("../src/shared/Net/RemoteSpec")
 local Crates = require("../src/shared/Data/Crates")
@@ -31,6 +34,7 @@ local CrateItems = require("../src/shared/Data/CrateItems")
 local UpgradeTree = require("../src/shared/Data/UpgradeTree")
 local Products = require("../src/shared/Data/Products")
 local Zones = require("../src/shared/Data/Zones")
+local Economy = require("../src/shared/Data/Economy")
 
 local NOW = 1_700_000_000
 local SEED = 4646
@@ -96,7 +100,7 @@ T.describe("Glück, Pässe, Boosts und Ausrüstung ändern weder Kistenquoten no
                 profile.passes[product.id] = true
             end
         end
-        profile.boosts = { coinsUntil = NOW + 10 * 3600, luckUntil = NOW + 10 * 3600 } -- luckUntil: Glück-Boost (Daily Tag 5, später)
+        profile.boosts = { coinsUntil = NOW + 10 * 3600, luckUntil = NOW + 10 * 3600 } -- luckUntil: Glücks-Boost (Daily Tag 5, Paket 5.1)
         profile.equipped = { skin = "skin_mythic_1", companion = "companion_mythic_1", toolVariant = "toolVariant_mythic_1" }
         profile.itemStars = { skin_mythic_1 = 5, companion_mythic_1 = 5, toolVariant_mythic_1 = 5 }
         profile.luckBonusBp = 50_000 -- kein echtes Feld: auch so ein Wert darf nichts ändern
@@ -108,6 +112,11 @@ T.describe("Glück, Pässe, Boosts und Ausrüstung ändern weder Kistenquoten no
         local plain, boosted = plainProfile(), boostedProfile()
         T.expect(TreeEffects.of(boosted).luckBonusBp > TreeEffects.of(plain).luckBonusBp).toBe(true)
         T.expect(Perks.options(boosted, NOW).coinMultiplier > Perks.options(plain, NOW).coinMultiplier).toBe(true)
+        -- Der Glücks-Boost läuft wirklich und verdoppelt die Fundchance (Paket 5.1).
+        T.expect(Perks.luckBoostActive(boosted, NOW)).toBe(true)
+        T.expect(Perks.luckBoostMultiplier(boosted, NOW)).toBe(Economy.luckBoost.multiplier)
+        T.expect(Perks.luckBoostMultiplier(plain, NOW)).toBe(1)
+        T.expect(FindRoll.chancePerSecond(boosted, "dunes", 200, nil, NOW) > FindRoll.chancePerSecond(plain, "dunes", 200, nil, NOW)).toBe(true)
         T.expect(Equipment.bonusBp(boosted) > 0).toBe(true)
         T.expect(Equipment.bonusBp(plain)).toBe(0)
     end)
@@ -141,6 +150,28 @@ T.describe("Glück, Pässe, Boosts und Ausrüstung ändern weder Kistenquoten no
         T.expect(runs).toBe(#Crates.list * 2 * 30)
     end)
 
+    T.it("Daily Tag 7 (Gratis-Eisenkiste, 5.1): gleiche Zufallsfolge, gleiches Ergebnis mit und ohne Glücks-Boost", function()
+        math.randomseed(SEED + 7)
+        for _ = 1, 30 do
+            local values: { number } = {}
+            for i = 1, 4 do
+                values[i] = math.random()
+            end
+            local plain, boosted = plainProfile(), boostedProfile()
+            for _, profile in { plain, boosted } do
+                profile.nodes[Economy.daily.startNodeId] = true
+                profile.daily = { streak = #Economy.daily.days, lastDay = math.floor(NOW / 86400) - 1 }
+            end
+            local a = Daily.claim(plain, NOW, { policyState = "allowed", random = replay(values) })
+            local b = Daily.claim(boosted, NOW, { policyState = "allowed", random = replay(values) })
+            T.expect(a.ok).toBe(true)
+            T.expect(a.day).toBe(#Economy.daily.days + 1)
+            T.expect(b).toEqual(a)
+            T.expect(boosted.inventory).toEqual(plain.inventory)
+            T.expect(boosted.pity).toEqual(plain.pity)
+        end
+    end)
+
     T.it("Anzeige: effectiveOdds, itemOdds und longRunRates bekommen kein Profil, nur Kiste und Zähler", function()
         -- Die Schnittstelle selbst schließt das aus: Es gibt keinen Parameter für Profil, Glück oder Boosts.
         -- Gleicher Zählerstand ergibt dieselben Zahlen, egal woher er kommt.
@@ -167,6 +198,7 @@ local INVENTORY_REMOTES: { [string]: string } = {
     EquipItem = "nur Ausrüstung, Besitz bleibt (Equipment)",
     MergeItem = "verbraucht Kopien desselben Items (Equipment)",
     BuyDirectItem = "Direktkauf gegen Gems (Crates, Logic/DirectShop)",
+    ClaimDaily = "Daily Reward Tag 7: Eisenkiste gratis oder fester Ersatzgegenstand (Daily, Logic/Daily)",
 }
 -- Alle anderen Remotes vom Client zum Server, mit dem, was sie tun. Kommt eine neue dazu, muss sie
 -- hier oder oben eingeordnet werden (der Test scheitert sonst).
@@ -184,6 +216,7 @@ local INVENTORY_SERVICES: { [string]: string } = {
     BuyDirectItem = "src/server/Services/Crates.luau",
     EquipItem = "src/server/Services/Equipment.luau",
     MergeItem = "src/server/Services/Equipment.luau",
+    ClaimDaily = "src/server/Services/Daily.luau",
 }
 -- Dateien, die `.inventory = ...` zuweisen dürfen (Textsuche). Gutschriften aus Käufen (Starterpaket)
 -- laufen über `changes.inventory` in Logic/Purchases (ProcessReceipt, keine Remote).
@@ -192,6 +225,7 @@ local INVENTORY_WRITERS: { [string]: string } = {
     ["src/shared/Logic/DirectShop.luau"] = "BuyDirectItem",
     ["src/shared/Logic/Equipment.luau"] = "MergeItem",
     ["src/server/Services/Equipment.luau"] = "Studio-Hilfe DebugItem (nur in Studio)",
+    ["src/shared/Logic/Daily.luau"] = "ClaimDaily (Tag 7)",
 }
 -- Datentabellen, gegen die eine ID-Regel prüfen darf (keine davon enthält Spieler).
 local ID_TABLES = { Zones.byId, UpgradeTree.byId, Crates.byId, CrateItems.byId }
@@ -213,7 +247,7 @@ local function clientRemotes(): { [string]: any }
 end
 
 T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes", function()
-    T.it("jede Remote vom Client ist eingeordnet: mit Inventar genau OpenCrate, EquipItem, MergeItem, BuyDirectItem", function()
+    T.it("jede Remote vom Client ist eingeordnet: mit Inventar genau OpenCrate, EquipItem, MergeItem, BuyDirectItem, ClaimDaily", function()
         local remotes = clientRemotes()
         for name in remotes do
             if INVENTORY_REMOTES[name] == nil and OTHER_REMOTES[name] == nil then
@@ -231,7 +265,7 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
             table.insert(names, name)
         end
         table.sort(names)
-        T.expect(names).toEqual({ "BuyDirectItem", "EquipItem", "MergeItem", "OpenCrate" })
+        T.expect(names).toEqual({ "BuyDirectItem", "ClaimDaily", "EquipItem", "MergeItem", "OpenCrate" })
     end)
 
     T.it("jede Remote vom Client wird genau einmal registriert, die mit Inventar im vorgesehenen Service", function()

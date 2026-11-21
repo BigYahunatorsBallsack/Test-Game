@@ -24,6 +24,10 @@
 -- Server. Er liegt hier, weil dieser Service die Policy hält. Der StateSync meldet `cratePolicy`
 -- (Zustand aus `Crates.policyState`) neben `cratesAllowed`.
 --
+-- Gemeinsame Sperre (Paket 5.1): `Crates.runExclusive(player, label, action)` lässt je Spieler nur eine
+-- Buchung von Gems, Pity oder Inventar zur selben Zeit zu. OpenCrate, BuyDirectItem und ClaimDaily
+-- (Services/Daily) laufen alle darüber; ein zweiter Aufruf bekommt sofort "busy".
+--
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
 --   game.Players.Name:SetAttribute("DebugCratesRestricted", true)   -- Kisten gesperrt testen
 --   game.Players.Name:SetAttribute("DebugCratesRestricted", false)  -- Kisten erlaubt testen
@@ -68,8 +72,8 @@ local function nextRandom(): number
     return random:NextNumber()
 end
 
--- Läuft für diesen Spieler gerade eine Öffnung oder ein Direktkauf? (Eine Gem-Buchung je Spieler
--- zur selben Zeit.)
+-- Läuft für diesen Spieler gerade eine Öffnung, ein Direktkauf oder eine Daily-Abholung? (Eine
+-- Buchung von Gems, Pity oder Inventar je Spieler zur selben Zeit.)
 local busy: { [Player]: boolean } = {}
 -- Spieler, deren Policy-Abruf und Studio-Hilfe schon angestoßen sind.
 local handled: { [Player]: boolean } = {}
@@ -166,6 +170,12 @@ local function runExclusive(player: Player, label: string, action: () -> any): a
     end
     refresh(player)
     return result
+end
+
+-- Für andere Services (Daily, Paket 5.1): dieselbe Sperre je Spieler wie OpenCrate und BuyDirectItem.
+-- `action` darf nicht warten und gibt `{ ok, reason?, detail? }` zurück; die Antwort hat nie `detail`.
+function Crates.runExclusive(player: Player, label: string, action: () -> any): any
+    return runExclusive(player, label, action)
 end
 
 local function onOpenCrate(player: Player, crateId: string, count: number): any

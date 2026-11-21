@@ -76,7 +76,7 @@ T.describe("Profile", function()
         T.expect(profile.receipts).toEqual({})
         T.expect(profile.purchaseLog).toEqual({})
         T.expect(profile.spent).toEqual({ robux = 0, count = 0 })
-        T.expect(profile.boosts).toEqual({ coinsUntil = 0 })
+        T.expect(profile.boosts).toEqual({ coinsUntil = 0, luckUntil = 0 }) -- luckUntil: Glücks-Boost (Paket 5.1)
         T.expect(profile.passes).toEqual({}) -- Paket 4.4
         T.expect(profile.settings).toEqual({ autoDig = true }) -- Paket 4.4
         T.expect(profile.offers).toEqual({ starter = { since = 0, bought = false } }) -- Paket 4.5
@@ -120,7 +120,7 @@ T.describe("Profile", function()
         local profile, status = Profile.migrate(data, exampleMigrations, NOW)
         local migrated: any = profile
         T.expect(status).toBe("ok")
-        T.expect(migrated.boosts).toEqual({ coinsUntil = 0 })
+        T.expect(migrated.boosts).toEqual({ coinsUntil = 0, luckUntil = 0 })
         T.expect(migrated.daily).toEqual({ streak = 3, lastDay = 0 })
         T.expect(migrated.inventory.skins).toEqual({ sand_skin = 1 })
         T.expect(migrated.inventory.companions).toEqual({})
@@ -418,6 +418,42 @@ T.describe("Profil Version 4 (Paket 4.1)", function()
         T.expect(#Profile.sanitize(profile, NOW)).toBe(0)
         T.expect(profile).toEqual(before)
         T.expect(rawequal(profile.receipts, before.receipts)).toBe(true)
+    end)
+end)
+
+T.describe("Glücks-Boost im Profil (5.1)", function()
+    T.it("alter Spielstand ohne luckUntil: migrate füllt 0 auf, coinsUntil bleibt, keine neue Version", function()
+        local old: any = Profile.default(NOW)
+        old.boosts = { coinsUntil = NOW + 300 } -- Stand vor Paket 5.1
+        local versionBefore = old.version
+        local migrated, status = Profile.migrate(old, nil, NOW)
+        local profile: any = migrated
+        T.expect(status).toBe("ok")
+        T.expect(profile.version).toBe(versionBefore)
+        T.expect(Migrations.CURRENT_VERSION).toBe(versionBefore) -- 5.1 bringt keine neue Profilversion
+        T.expect(profile.boosts).toEqual({ coinsUntil = NOW + 300, luckUntil = 0 })
+        T.expect(Profile.sanitize(profile, NOW)).toEqual({})
+        -- Eine zweite Migration ändert nichts mehr, ein gesetzter Wert bleibt.
+        profile.boosts.luckUntil = NOW + 900
+        local again: any = Profile.migrate(profile, nil, NOW)
+        T.expect(again.boosts).toEqual({ coinsUntil = NOW + 300, luckUntil = NOW + 900 })
+    end)
+
+    T.it("sanitize: luckUntil negativ wird 0, NaN, unendlich und falscher Typ auf 0, gültige Werte bleiben", function()
+        local profile: any = Profile.default(NOW)
+        profile.boosts.luckUntil = -5
+        local warnings = Profile.sanitize(profile, NOW)
+        T.expect(#warnings).toBe(1)
+        T.expect(warnings[1]).toContain("boosts.luckUntil")
+        T.expect(profile.boosts.luckUntil).toBe(0)
+        for _, bad in { 0 / 0, math.huge, -math.huge, "bald", true } do
+            profile.boosts.luckUntil = bad
+            T.expect(#Profile.sanitize(profile, NOW)).toBe(1)
+            T.expect(profile.boosts.luckUntil).toBe(0)
+        end
+        profile.boosts = { coinsUntil = NOW + 5, luckUntil = NOW + 10 }
+        T.expect(Profile.sanitize(profile, NOW)).toEqual({})
+        T.expect(profile.boosts).toEqual({ coinsUntil = NOW + 5, luckUntil = NOW + 10 })
     end)
 end)
 

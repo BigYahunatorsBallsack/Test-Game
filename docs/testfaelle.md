@@ -513,16 +513,16 @@ Skript: `lune run scripts/cratesim [Öffnungen] [Startwert] [Bericht]`, Bericht 
 
 ## 5.1 Daily Reward
 
-Plan: Claude-Dokument "Paket 5.1: Daily Reward, Plan". Fertig, wenn: Die Serie zählt richtig, und Tag 7 gibt die Eisenkiste oder den Ersatz.
+Plan: Claude-Dokument "Paket 5.1: Daily Reward, Plan". Fertig, wenn: Die Serie zählt richtig, und Tag 7 gibt die Eisenkiste oder den Ersatz. Tests: `daily`, `perks`, `findroll`, `profile`, `data`, `remotespec`, `policyguards`, `passes`.
 
-- [ ] [Lune] Serie: Tag 1 bis 7 an aufeinanderfolgenden Tagen, danach wieder Tag 1; ein ausgelassener Tag setzt auf Tag 1; zweimal am selben Tag geht nicht; Tagwechsel genau um 0 Uhr UTC.
-- [ ] [Lune] Vor dem Kauf der Schaufel nichts abholbar; nach einem Sandsturm weiter abholbar.
-- [ ] [Lune] Belohnungen aus den Daten: Gems (gekappt bei maxGems), Münz-Boost verlängert, Glücks-Boost verlängert.
-- [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` (und bei unbekannter Policy) den festen Ersatzgegenstand; während der ersten Abfrage `policyPending`, nichts gebucht.
-- [ ] [Lune] Fehler oder Warten im Block: nichts gebucht, Serie unverändert.
-- [ ] [Lune] Glücks-Boost verdoppelt die Fundchance und ändert keine Kistenquote.
-- [ ] [Lune] Gespeicherter Tag in der Zukunft: keine zweite Belohnung.
-- [ ] [Lune] Remote `ClaimDaily`: kein Argument, Limit aus `RemoteSpec`.
+- [x] [Lune] Serie: Tag 1 bis 7 an aufeinanderfolgenden Tagen, danach wieder Tag 1; ein ausgelassener Tag setzt auf Tag 1; zweimal am selben Tag geht nicht; Tagwechsel genau um 0 Uhr UTC.
+- [x] [Lune] Vor dem Kauf der Schaufel nichts abholbar; nach einem Sandsturm weiter abholbar.
+- [x] [Lune] Belohnungen aus den Daten: Gems (gekappt bei maxGems), Münz-Boost verlängert, Glücks-Boost verlängert.
+- [x] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` (und bei unbekannter Policy) den festen Ersatzgegenstand; während der ersten Abfrage `policyPending`, nichts gebucht.
+- [x] [Lune] Fehler oder Warten im Block: nichts gebucht, Serie unverändert.
+- [x] [Lune] Glücks-Boost verdoppelt die Fundchance und ändert keine Kistenquote.
+- [x] [Lune] Gespeicherter Tag in der Zukunft: keine zweite Belohnung.
+- [x] [Lune] Remote `ClaimDaily`: kein Argument, Limit aus `RemoteSpec`.
 - [ ] [Studio] Fenster öffnet sich einmal nach dem Tutorial, Abholen zeigt die Belohnung; `DebugDaily` "yesterday" macht den nächsten Tag abholbar.
 - [ ] [Studio] Tag 7 mit `DebugCratesRestricted` true und false: Kupferschaufel bzw. Eisenkisten-Reveal.
 - [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
