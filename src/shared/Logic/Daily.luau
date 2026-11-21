@@ -273,7 +273,7 @@ local function prepare(profile: any, unixNow: any, ctx: any): any
             local work = table.clone(profile)
             local opened = CrateOpen.openFree(work, reward.crateId, {
                 random = ctx.random :: any,
-                restricted = false,
+                restricted = policyState ~= Daily.POLICY_ALLOWED,
                 inSeason = ctx.inSeason,
                 data = data,
             })

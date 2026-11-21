@@ -24,9 +24,10 @@
 -- Server. Er liegt hier, weil dieser Service die Policy hält. Der StateSync meldet `cratePolicy`
 -- (Zustand aus `Crates.policyState`) neben `cratesAllowed`.
 --
--- Gemeinsame Sperre (Paket 5.1): `Crates.runExclusive(player, label, action)` lässt je Spieler nur eine
--- Buchung von Gems, Pity oder Inventar zur selben Zeit zu. OpenCrate, BuyDirectItem und ClaimDaily
--- (Services/Daily) laufen alle darüber; ein zweiter Aufruf bekommt sofort "busy".
+-- Gemeinsame Sperre (Paket 5.1): `Crates.runExclusive(player, label, action)` lässt je Spieler nur einen
+-- dieser Aufrufe zur selben Zeit zu: OpenCrate, BuyDirectItem und ClaimDaily (Services/Daily); ein
+-- zweiter bekommt sofort "busy". Andere Schreiber (MergeItem, Kauf-Handler) nutzen sie nicht. Regel für
+-- alle: zwischen Lesen und Schreiben des Profils nie warten.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
 --   game.Players.Name:SetAttribute("DebugCratesRestricted", true)   -- Kisten gesperrt testen

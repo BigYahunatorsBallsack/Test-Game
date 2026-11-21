@@ -652,6 +652,20 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
             end
         end
     end
+    -- Daily Reward (Paket 5.1): streak und lastDay sind ganze Zahlen ab 0 (Brüche abgerundet). Den Rest
+    -- (zu große Serie, Tag in der Zukunft) behandelt Logic/Daily beim Lesen.
+    if type(data.daily) == "table" then
+        for _, field in { "streak", "lastDay" } do
+            local value = data.daily[field]
+            if type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge then
+                local clean = math.max(math.floor(value), 0)
+                if clean ~= value then
+                    warn(warnings, `daily.{field}`, "keine ganze Zahl ab 0, korrigiert")
+                    data.daily[field] = clean
+                end
+            end
+        end
+    end
     -- Münz-Boost (Paket 4.4) und Glücks-Boost (Paket 5.1): Die Endzeit ist eine endliche Unix-Zeit ab
     -- 0. NaN und unendlich setzt schon die allgemeine Prüfung oben auf 0, ein negativer Wert wird hier
     -- 0 (abgelaufen).

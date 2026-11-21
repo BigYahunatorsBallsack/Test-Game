@@ -421,6 +421,19 @@ T.describe("Profil Version 4 (Paket 4.1)", function()
     end)
 end)
 
+T.describe("Daily im Profil (5.1)", function()
+    T.it("sanitize: Brüche werden abgerundet, negative Werte 0, gültige Werte bleiben", function()
+        local profile: any = Profile.default(NOW)
+        profile.daily = { streak = 3.7, lastDay = -5 }
+        local warnings = Profile.sanitize(profile, NOW)
+        T.expect(profile.daily).toEqual({ streak = 3, lastDay = 0 })
+        T.expect(#warnings).toBe(2)
+        profile.daily = { streak = 4, lastDay = 20000 }
+        T.expect(#Profile.sanitize(profile, NOW)).toBe(0)
+        T.expect(profile.daily).toEqual({ streak = 4, lastDay = 20000 })
+    end)
+end)
+
 T.describe("Glücks-Boost im Profil (5.1)", function()
     T.it("alter Spielstand ohne luckUntil: migrate füllt 0 auf, coinsUntil bleibt, keine neue Version", function()
         local old: any = Profile.default(NOW)

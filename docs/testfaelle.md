@@ -525,7 +525,7 @@ Plan: Claude-Dokument "Paket 5.1: Daily Reward, Plan". Fertig, wenn: Die Serie z
 - [x] [Lune] Remote `ClaimDaily`: kein Argument, Limit aus `RemoteSpec`.
 - [ ] [Studio] Fenster öffnet sich einmal nach dem Tutorial, Abholen zeigt die Belohnung; `DebugDaily` "yesterday" macht den nächsten Tag abholbar.
 - [ ] [Studio] Tag 7 mit `DebugCratesRestricted` true und false: Kupferschaufel bzw. Eisenkisten-Reveal.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.3 Begleiter, Offline-Ertrag und Auto-Dig
 

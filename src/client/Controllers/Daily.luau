@@ -143,6 +143,7 @@ function Daily.Start()
 
     -- Zeilen: je Tag eine
     local rows: { { frame: Frame, mark: TextLabel } } = {}
+    local day7Label: TextLabel? = nil
     local days: { any } = {}
     for index, reward in EconomyData.daily.days do
         days[index] = reward
@@ -158,14 +159,10 @@ function Daily.Start()
         frame.Parent = window.body
         Instance.new("UICorner").Parent = frame
         newLabel(frame, "Day", UDim2.new(0, 10, 0.15, 0), UDim2.new(0, 56, 0.7, 0), Enum.Font.GothamBold, ACCENT_COLOR, `Tag {day}`)
-        local text = rewardText(days[day], true)
+        local label = newLabel(frame, "Reward", UDim2.new(0, 72, 0.08, 0), UDim2.new(1, -120, 0.84, 0), Enum.Font.Gotham, TEXT_COLOR, rewardText(days[day], true))
         if day == 7 then
-            local fallback = CrateItems.byId[EconomyData.daily.day7FallbackItemId]
-            if fallback ~= nil then
-                text = `{text} (wo Kisten gesperrt sind: {fallback.name})`
-            end
+            day7Label = label
         end
-        newLabel(frame, "Reward", UDim2.new(0, 72, 0.08, 0), UDim2.new(1, -120, 0.84, 0), Enum.Font.Gotham, TEXT_COLOR, text)
         local mark = newLabel(frame, "Mark", UDim2.new(1, -40, 0.1, 0), UDim2.new(0, 32, 0.8, 0), Enum.Font.GothamBold, ACCENT_COLOR, "")
         mark.TextXAlignment = Enum.TextXAlignment.Center
         rows[day] = { frame = frame, mark = mark }
@@ -229,7 +226,25 @@ function Daily.Start()
         end
     end
 
+    -- Tag 7: Wo Kisten gesperrt oder die Policy unbekannt ist, steht dort nur der Ersatzgegenstand.
+    local function renderDay7(policy: any)
+        local label = day7Label
+        if label == nil then
+            return
+        end
+        local fallback = CrateItems.byId[EconomyData.daily.day7FallbackItemId]
+        local fallbackName = if fallback ~= nil then fallback.name else "Ersatzgegenstand"
+        if policy == "allowed" then
+            label.Text = rewardText(days[7], true)
+        elseif policy == "restricted" or policy == "unknown" then
+            label.Text = `{fallbackName} (Kisten sind bei dir nicht verfügbar)`
+        else
+            label.Text = `{rewardText(days[7], true)} (oder {fallbackName}, wenn Kisten gesperrt sind)`
+        end
+    end
+
     State.onChanged(function(snapshot: any)
+        renderDay7(snapshot.cratePolicy)
         tutorialStep = if type(snapshot.tutorialStep) == "number" then snapshot.tutorialStep else 1
         local entry = snapshot.daily
         if type(entry) ~= "table" then
