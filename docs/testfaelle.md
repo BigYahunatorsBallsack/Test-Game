@@ -560,7 +560,7 @@ Plan: Claude-Dokument "Paket 5.3: Begleiter, Offline-Ertrag und Auto-Dig, Plan".
 - [x] [Lune] DataCheck: `Economy.offline` mit `rateFactor` von 0 bis 1 und größerer Auto-Dig-Grenze.
 - [ ] [Studio] Mit ausgestattetem Begleiter und `DebugOffline` 30 kommt die Karte mit passender Zahl, ohne Begleiter der Hinweis, mit `DebugOffline` 1000 die Zeile "Grenze erreicht".
 - [ ] [Studio] Der Auto-Dig-Text im Shop nennt die 12 Stunden.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.6 Server-Event "Der Koloss"
 

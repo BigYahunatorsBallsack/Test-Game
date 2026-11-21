@@ -14,8 +14,9 @@
 --    mal dem dauerhaften Faktor des 2x-Münzen-Passes. Der Münz-Boost, der Glücks-Boost und Fundstücke
 --    zählen nicht (Balance 4.4 und 2.6): es gibt nur Münzen, nie Funde. Die Münzen gehen wie verdiente
 --    Münzen über Wind.credit auf `coins` und `runEarned` (nicht in den Tank).
---  * Kaputte Zeit (lastSeen fehlt, ist keine Zahl oder liegt in der Zukunft, kaputte Uhr): nichts, und
---    lastSeen wird auf jetzt gesetzt.
+--  * Kaputte Zeit (lastSeen fehlt oder ist keine Zahl, kaputte Uhr): nichts. lastSeen in der Zukunft
+--    (Server mit vorgehender Uhr): nichts, lastSeen bleibt (geht nie zurück); über 7 Tage in der Zukunft
+--    gilt es als kaputt und wird auf jetzt gesetzt.
 --  * In jedem Fall außer "tooShort" setzt `apply` lastSeen im selben Schritt auf jetzt: derselbe
 --    Zeitraum wird nie zweimal bezahlt.
 -- `apply` rechnet zuerst alles aus und schreibt danach nur fertige Werte (ohne Warten).
@@ -26,8 +27,13 @@ local Equipment = require("./Equipment")
 local Perks = require("./Perks")
 local Wind = require("./Wind")
 local EconomyData = require("../Data/Economy")
+local ZoneData = require("../Data/Zones")
+local ZoneLogic = require("./Zones")
 
 local Offline = {}
+
+-- Eine lastSeen weiter als so viele Sekunden in der Zukunft gilt als kaputt (7 Tage) und wird neu gesetzt.
+Offline.MAX_FUTURE_SECONDS = 7 * 86400
 
 export type Report = {
     ok: boolean,
@@ -71,8 +77,13 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
         return fail("badTime", 0, cap)
     end
     local lastSeen = profile.lastSeen
-    if not isFinite(lastSeen) or lastSeen <= 0 or lastSeen > unixNow then
-        profile.lastSeen = unixNow
+    if not isFinite(lastSeen) or lastSeen <= 0 or lastSeen > unixNow + Offline.MAX_FUTURE_SECONDS then
+        profile.lastSeen = unixNow -- kaputt oder weit in der Zukunft: neu anfangen
+        return fail("badTime", 0, cap)
+    end
+    if lastSeen > unixNow then
+        -- Ein Server mit vorgehender Uhr hat lastSeen geschrieben: nichts zahlen, aber nie zurücksetzen
+        -- (sonst ließe sich die Uhrdifferenz durch Serverwechsel immer wieder bezahlen, Review 5.3, M1).
         return fail("badTime", 0, cap)
     end
     local away = unixNow - lastSeen
@@ -90,7 +101,7 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
     end
 
     -- Alles rechnen, bevor etwas geschrieben wird (auch die neuen Münzstände). Wirft etwas, bleibt das
-    -- Profil unverändert und lastSeen stehen: der nächste Beitritt versucht es erneut.
+    -- Profil unverändert und lastSeen stehen (bis zum nächsten Speichern; ein Fehler kostet den Zeitraum).
     local ok, result = pcall(function(): { coins: BigNum.BigNum, newCoins: BigNum.Serialized, newRunEarned: BigNum.Serialized }?
         -- Sammelrate ohne den Ausrüstungsbonus (Kisten-Items zählen offline nicht).
         local equipment = Equipment.multiplier(profile, data)
@@ -102,12 +113,17 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
         if not isFinite(rate) or rate <= 0 or not isFinite(pass) or pass <= 0 then
             return nil
         end
-        local price = Collecting.priceOf(profile, Collecting.sandTypeOf(profile), { coinMultiplier = pass })
+        -- Eine gesperrte aktuelle Zone zahlt nie (der Sand-Service setzt sie beim Laden zurück, hier zur Sicherheit).
+        local sandTypeId = if ZoneLogic.isUnlocked(profile, profile.currentZone) then Collecting.sandTypeOf(profile) else ZoneData.list[1].sandTypeId
+        local price = Collecting.priceOf(profile, sandTypeId, { coinMultiplier = pass })
         local amount = rate * seconds * config.rateFactor * price
         if not isFinite(amount) or amount <= 0 then
             return nil
         end
-        local earned = BigNum.new(amount)
+        local earned = BigNum.floor(BigNum.new(amount)) -- ganze Münzen wie beim Verkauf
+        if earned.m <= 0 then
+            return nil
+        end
         return {
             coins = earned,
             newCoins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned)),

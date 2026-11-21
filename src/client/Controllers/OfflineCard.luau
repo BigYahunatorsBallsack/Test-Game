@@ -127,7 +127,8 @@ function OfflineCard.Start()
             titleLabel.Text = "Schön, dass du wieder da bist"
             bodyLabel.Text = `Du warst {durationText(report.awaySeconds)} weg. Dein Begleiter hat {BigNum.format(BigNum.deserialize(report.coins))} Münzen gesammelt.`
             if report.capped == true then
-                noteLabel.Text = `Grenze erreicht: {hoursText(cap)} (mit Auto-Dig {hoursText(EconomyData.offline.autoDigHours * 3600)}).`
+                local maxCap = EconomyData.offline.autoDigHours * 3600
+                noteLabel.Text = if cap < maxCap then `Grenze erreicht: {hoursText(cap)} (mit Auto-Dig {hoursText(maxCap)}).` else `Grenze erreicht: {hoursText(cap)}.`
             else
                 noteLabel.Text = ""
             end

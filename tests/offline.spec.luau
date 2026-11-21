@@ -5,6 +5,7 @@
 
 local T = require("./lib/expect")
 local Offline = require("../src/shared/Logic/Offline")
+local PlayerSession = require("../src/shared/Logic/PlayerSession")
 local Profile = require("../src/shared/Logic/Profile")
 local Collecting = require("../src/shared/Logic/Collecting")
 local Equipment = require("../src/shared/Logic/Equipment")
@@ -96,6 +97,7 @@ T.describe("Rechnung", function()
         for _, zoneId in { "dunes", "canyon" } do
             local profile = withCompanion(HOUR)
             profile.currentZone = zoneId
+            profile.zones = { [zoneId] = true }
             local before = coinsOf(profile)
             Offline.apply(profile, NOW)
             local gained = coinsOf(profile) - before
@@ -185,7 +187,7 @@ T.describe("Zeit", function()
         T.expect(Offline.apply(enough, NOW).ok).toBe(true)
     end)
     T.it("fehlende, kaputte und in der Zukunft liegende lastSeen geben nichts und setzen lastSeen neu", function()
-        for _, bad in { "x", -5, 0 / 0, math.huge, NOW + 100, 0 } do
+        for _, bad in { "x", -5, 0 / 0, math.huge, NOW + 8 * 86400, 0 } do
             local profile = withCompanion(3 * HOUR)
             profile.lastSeen = bad
             local before = table.clone(profile.coins)
@@ -198,6 +200,44 @@ T.describe("Zeit", function()
         local missing = withCompanion(3 * HOUR)
         missing.lastSeen = nil
         T.expect(Offline.apply(missing, NOW).reason).toBe("badTime")
+    end)
+    T.it("lastSeen kurz in der Zukunft (Server mit vorgehender Uhr): nichts, und lastSeen geht nie zurück", function()
+        local profile = withCompanion(3 * HOUR)
+        profile.lastSeen = NOW + 600
+        local before = table.clone(profile.coins)
+        local report = Offline.apply(profile, NOW)
+        T.expect(report.reason).toBe("badTime")
+        T.expect(profile.coins).toEqual(before)
+        T.expect(profile.lastSeen).toBe(NOW + 600)
+    end)
+    T.it("Hin und Zurück zwischen zwei Uhren zahlt die Differenz nur einmal", function()
+        local skew = 900 -- Server F geht 15 Minuten vor
+        local profile = withCompanion(3 * HOUR)
+        local function leave(clock: number)
+            profile.lastSeen = PlayerSession.laterSeen(profile.lastSeen, clock)
+        end
+        local t = NOW
+        T.expect(Offline.apply(profile, t).ok).toBe(true) -- Server C: normale Zahlung
+        leave(t) -- verlassen auf C
+        t += 60
+        local onF = Offline.apply(profile, t + skew) -- Server F betreten (Uhr + 900)
+        T.expect(onF.ok).toBe(true) -- einmal die Differenz (900 - 60 s zählen als Abwesenheit)
+        leave(t + skew)
+        t += 60
+        T.expect(Offline.apply(profile, t).ok).toBe(false) -- zurück auf C: lastSeen liegt in der Zukunft
+        leave(t)
+        T.expect(profile.lastSeen).toBe(NOW + 60 + skew) -- nicht zurückgesetzt
+        local coins = table.clone(profile.coins)
+        t += 60
+        T.expect(Offline.apply(profile, t + skew).ok).toBe(false) -- wieder auf F: nichts mehr, Differenz ist verbraucht
+        T.expect(profile.coins).toEqual(coins)
+    end)
+    T.it("laterSeen: nie zurück, kaputte Werte zählen als 0", function()
+        T.expect(PlayerSession.laterSeen(100, 50)).toBe(100)
+        T.expect(PlayerSession.laterSeen(50, 100)).toBe(100)
+        for _, bad in { "x", -1, 0 / 0, math.huge, 0 } do
+            T.expect(PlayerSession.laterSeen(bad, 100)).toBe(100)
+        end
     end)
     T.it("kaputte Uhr gibt nichts", function()
         for _, bad in { "x", -1, 0 / 0, math.huge } do
@@ -220,6 +260,23 @@ T.describe("Zeit", function()
         -- auch 10 Sekunden später (noch unter minSeconds)
         T.expect(Offline.apply(profile, NOW + 10).reason).toBe("tooShort")
         T.expect(profile.coins).toEqual(after)
+    end)
+end)
+
+T.describe("Zone", function()
+    T.it("eine gesperrte aktuelle Zone zahlt den Preis der Startzone", function()
+        local locked = withCompanion(HOUR)
+        locked.currentZone = "ruins" -- nicht freigeschaltet
+        local home = withCompanion(HOUR)
+        Offline.apply(locked, NOW)
+        Offline.apply(home, NOW)
+        T.expect(coinsOf(locked)).toBe(coinsOf(home))
+    end)
+    T.it("Münzen sind ganze Zahlen wie beim Verkauf", function()
+        local profile = withCompanion(HOUR + 7)
+        local report = Offline.apply(profile, NOW)
+        local coins = BigNum.deserialize(report.coins :: any)
+        T.expect(BigNum.toNumber(coins) % 1).toBe(0)
     end)
 end)
 

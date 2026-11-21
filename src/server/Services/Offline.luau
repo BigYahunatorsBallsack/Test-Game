@@ -11,6 +11,8 @@
 -- Ein Absturz vor dem Speichern verliert Münzen und lastSeen zusammen (dann zahlt der nächste Beitritt
 -- für denselben Zeitraum, nie doppelt).
 --
+-- Reihenfolge: Offline muss in SERVICE_NAMES nach Sand stehen (dessen onLoaded prüft die Zone zuerst).
+--
 -- Pässe: Die Grenze von 12 Stunden gilt, wenn `profile.passes` den Pass beim Laden schon enthält (er
 -- wird mit dem Kauf gespeichert). Ein Pass, der erst beim Laden vom Marktplatz bestätigt wird, zählt
 -- erst beim nächsten Mal (zahlt höchstens zu wenig).
@@ -52,7 +54,7 @@ end
 local function pay(player: Player, profile: any)
     local report = OfflineLogic.apply(profile, unixNow())
     if report.reason == "error" then
-        warn(`[Offline] Ertrag für {player.Name} nicht gerechnet (Fehler), lastSeen bleibt`)
+        warn(`[Offline] Ertrag für {player.Name} nicht gerechnet (Fehler)`)
     end
     if report.reason == "tooShort" or report.reason == "badTime" or report.reason == "noProfile" or report.reason == "error" then
         if report.reason ~= "tooShort" then

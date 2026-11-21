@@ -1152,12 +1152,19 @@ local function checkEconomy(errors: { string }, data: DataSet)
     local offline = economy.offline
     if type(offline) ~= "table" or not isFinite(offline.baseHours) or not isFinite(offline.autoDigHours) then
         table.insert(errors, "Economy.offline: baseHours und autoDigHours fehlen")
-    elseif offline.baseHours <= 0 or offline.autoDigHours <= offline.baseHours then
-        table.insert(errors, "Economy.offline: autoDigHours muss größer als baseHours sein")
-    elseif not isFinite(offline.rateFactor) or offline.rateFactor <= 0 or offline.rateFactor > 1 then
-        table.insert(errors, "Economy.offline: rateFactor muss größer als 0 und höchstens 1 sein")
-    elseif not isFinite(offline.minSeconds) or offline.minSeconds < 0 or offline.minSeconds >= offline.baseHours * 3600 then
-        table.insert(errors, "Economy.offline: minSeconds muss ab 0 und kleiner als die Grundgrenze sein")
+    else
+        if offline.baseHours <= 0 or offline.autoDigHours <= offline.baseHours then
+            table.insert(errors, "Economy.offline: autoDigHours muss größer als baseHours sein")
+        end
+        if offline.autoDigHours > 48 then
+            table.insert(errors, "Economy.offline: autoDigHours darf höchstens 48 sein (Tippfehler?)")
+        end
+        if not isFinite(offline.rateFactor) or offline.rateFactor <= 0 or offline.rateFactor > 1 then
+            table.insert(errors, "Economy.offline: rateFactor muss größer als 0 und höchstens 1 sein")
+        end
+        if not isFinite(offline.minSeconds) or offline.minSeconds < 0 or offline.minSeconds >= offline.baseHours * 3600 then
+            table.insert(errors, "Economy.offline: minSeconds muss ab 0 und kleiner als die Grundgrenze sein")
+        end
     end
     local boost = economy.coinBoost
     if type(boost) ~= "table" or not isFinite(boost.durationSeconds) or boost.durationSeconds <= 0 or not isFinite(boost.multiplier) or boost.multiplier < 1 then
