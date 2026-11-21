@@ -546,9 +546,21 @@ Plan: Claude-Dokument "Paket 5.2: Codes-System, Plan". Fertig, wenn: Codes sind 
 
 ## 5.3 Begleiter, Offline-Ertrag und Auto-Dig
 
-- [ ] [Lune] Der Offline-Ertrag wird bei der Grenze gekappt (ohne Pass 4 Stunden, mit Auto-Dig 12 Stunden).
-- [ ] [Lune] Der Offline-Ertrag enthält keine Fundstücke ab "Selten".
-- [ ] [Lune] Der Offline-Ertrag wird aus dem Zeitstempel des Servers berechnet, nicht aus einer Angabe des Clients.
+Plan: Claude-Dokument "Paket 5.3: Begleiter, Offline-Ertrag und Auto-Dig, Plan". Fertig, wenn: Der Ertrag nach Abwesenheit stimmt und ist gekappt.
+
+- [ ] [Lune] Der Offline-Ertrag wird bei der Grenze gekappt (ohne Pass 4 Stunden, mit Auto-Dig 12 Stunden); genau an der Grenze und eine Sekunde darüber.
+- [ ] [Lune] Der Ertrag stimmt gegen eine feste Rechnung (Rate, Sekunden, Faktor, Preis) für zwei Zonen und mit 2x-Pass.
+- [ ] [Lune] Der Offline-Ertrag enthält keine Fundstücke (die Gutschrift ändert nur `coins`, `runEarned` und `lastSeen`).
+- [ ] [Lune] Der Offline-Ertrag wird aus dem Zeitstempel des Servers berechnet, nicht aus einer Angabe des Clients (kein Argument, keine Remote).
+- [ ] [Lune] Ohne ausgestatteten oder ohne besessenen Begleiter gibt es nichts.
+- [ ] [Lune] Unter 5 Minuten sowie fehlende, kaputte oder in der Zukunft liegende `lastSeen` geben nichts.
+- [ ] [Lune] Münz-Boost, Glücks-Boost und Item-Bonus verändern den Offline-Ertrag nicht.
+- [ ] [Lune] Zweimal hintereinander laden zahlt nur einmal (`lastSeen` wird im selben Schritt gesetzt); ein Fehler im Block bucht nichts.
+- [ ] [Lune] Die Münzen laufen wie verdiente Münzen über `Collecting` und `runEarned` (kein Weg über Gems oder `Wind.credit` für gekaufte Münzen).
+- [ ] [Lune] DataCheck: `Economy.offline` mit `rateFactor` von 0 bis 1 und größerer Auto-Dig-Grenze.
+- [ ] [Studio] Mit ausgestattetem Begleiter und `DebugOffline` 30 kommt die Karte mit passender Zahl, ohne Begleiter der Hinweis, mit `DebugOffline` 1000 die Zeile "Grenze erreicht".
+- [ ] [Studio] Der Auto-Dig-Text im Shop nennt die 12 Stunden.
+- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.6 Server-Event "Der Koloss"
 
