@@ -74,6 +74,14 @@ local GEM_COLOR = Color3.fromRGB(120, 200, 235)
 local CHEST_COLOR = Color3.fromRGB(120, 86, 52)
 local DIM_COLOR = Color3.fromRGB(0, 0, 0)
 
+-- Event-Kiste (Paket 5.4): Höhe der Saison-Zeile und Texte. Der Server entscheidet, ob die Kiste
+-- offen ist (Snapshot `season`); der Client rechnet nur den Countdown herunter.
+local SEASON_LINE_HEIGHT = 40
+local SEASON_TICK_SECONDS = 1
+local SEASON_ENDS_TEXT = "Saison endet in %s"
+local SEASON_NEXT_TEXT = "Nächste Saison in %s"
+local SEASON_CLOSED_TEXT = "Diese Woche ist die Event-Kiste geschlossen."
+
 local REASONS: { [string]: string } = {
     notEnoughGems = "Zu wenig Gems. Im Gems-Fenster gibt es Pakete.",
     notEnoughCoins = "Zu wenig Münzen.",
@@ -124,6 +132,35 @@ local function priceText(crate: any, count: number): string
         return `{total} Gems`
     end
     return `{BigNum.format(BigNum.new(total))} Münzen`
+end
+
+-- "3 Tage 4 Std", "5 Std 12 Min" oder "12 Min" (mindestens 1 Min).
+local function leftText(seconds: number): string
+    local minutes = math.max(math.ceil(seconds / 60), 1)
+    local days = math.floor(minutes / 1440)
+    local hours = math.floor((minutes % 1440) / 60)
+    if days > 0 then
+        return `{days} {if days == 1 then "Tag" else "Tage"} {hours} Std`
+    end
+    if hours > 0 then
+        return `{hours} Std {minutes % 60} Min`
+    end
+    return `{minutes} Min`
+end
+
+-- Text der Saison-Zeile einer Event-Kiste (Paket 5.4), siehe seasonView.
+local function seasonText(view: string, seconds: number, hint: string?): string
+    if view == "open" then
+        local ends = string.format(SEASON_ENDS_TEXT, leftText(seconds))
+        return if hint ~= nil then `{hint}\n{ends}` else ends
+    end
+    if view == "closed" then
+        return SEASON_CLOSED_TEXT
+    end
+    if view == "next" then
+        return string.format(SEASON_NEXT_TEXT, leftText(seconds))
+    end
+    return ""
 end
 
 local function newText(parent: Instance, name: string, position: UDim2, size: UDim2, font: Enum.Font, color: Color3, text: string, align: Enum.TextXAlignment?): TextLabel
@@ -509,12 +546,42 @@ function CrateShop.Start()
     local lastOpenAt = 0
     local openDetails: (crate: any) -> () = function(_crate: any) end
     local refreshCards: () -> () = function() end
-    local cards: { [string]: { frame: Frame, pity: TextLabel?, single: TextButton, bundle: TextButton, oddsTitle: TextLabel, oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } } } = {}
+    local cards: { [string]: { frame: Frame, seasonLine: TextLabel?, pity: TextLabel?, single: TextButton, bundle: TextButton, oddsTitle: TextLabel, oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } } } = {}
 
     -- Pity-Stand einer Kiste aus dem letzten Zustand des Servers (fehlt = 0/0).
     local function countersOf(snapshot: any, crateId: string): any
         local pity = if snapshot ~= nil then snapshot.pity else nil
         return if type(pity) == "table" and type(pity[crateId]) == "table" then pity[crateId] else nil
+    end
+
+    -- Event-Kiste (Paket 5.4): Stand der Saison für diese Kiste aus dem letzten Zustand des Servers.
+    -- "open": die Saison der Kiste läuft und die Woche erlaubt das Öffnen; "next": diese Saison
+    -- kommt als nächste (Kiste gesperrt, Quoten bleiben sichtbar); "hidden" (auch "none"): keine
+    -- Saison dieser Kiste läuft oder kommt (Karte unsichtbar). Dazu die Sekunden
+    -- (Countdown, seit dem Snapshot heruntergezählt).
+    local seasonSyncedAt = os.clock()
+    local function seasonView(crateId: string): (string, number, string?)
+        local season = if snapshotNow ~= nil then snapshotNow.season else nil
+        if type(season) ~= "table" then
+            return "none", 0, nil
+        end
+        local elapsed = os.clock() - seasonSyncedAt
+        if season.active == true then
+            if season.crateId ~= crateId then
+                return "hidden", 0, nil
+            end
+            local left = if type(season.secondsLeft) == "number" then math.max(season.secondsLeft - elapsed, 0) else 0
+            return (if season.crateOpen == true then "open" else "closed"), left, season.hint
+        end
+        local nextSeason = season.next
+        if type(nextSeason) == "table" then
+            if nextSeason.crateId ~= crateId then
+                return "hidden", 0, nil
+            end
+            local left = if type(nextSeason.secondsToNext) == "number" then math.max(nextSeason.secondsToNext - elapsed, 0) else 0
+            return "next", left, nil
+        end
+        return "none", 0, nil
     end
 
     -- Quoten der nächsten Öffnung in die Karte schreiben (dieselbe Funktion, über die der Server
@@ -660,6 +727,10 @@ function CrateShop.Start()
         end
         lastOpenAt = now
         local snapshot = State.get()
+        if crate.eventOnly and seasonView(crate.id) ~= "open" then
+            showMessage(REASONS.notInSeason) -- nur Hinweis: der Server entscheidet ohnehin
+            return
+        end
         if snapshot ~= nil and not canAfford(snapshot, crate, count) then
             showMessage(if crate.currency == "gems" then REASONS.notEnoughGems else REASONS.notEnoughCoins)
             return
@@ -706,119 +777,127 @@ function CrateShop.Start()
 
     local order = 0
     for _, crate in Crates.list do
-        if not crate.eventOnly then
-            order += 1
-            local frame = Instance.new("Frame")
-            frame.Name = crate.id
-            frame.LayoutOrder = order
-            frame.Size = UDim2.new(1, 0, 0, 0)
-            frame.AutomaticSize = Enum.AutomaticSize.Y
-            frame.BackgroundColor3 = ROW_COLOR
-            frame.BackgroundTransparency = 0.2
-            frame.Parent = window.body
-            Instance.new("UICorner").Parent = frame
-            local pad = Instance.new("UIPadding")
-            pad.PaddingTop = UDim.new(0, 8)
-            pad.PaddingBottom = UDim.new(0, 8)
-            pad.PaddingLeft = UDim.new(0, 10)
-            pad.PaddingRight = UDim.new(0, 10)
-            pad.Parent = frame
-            local layout = Instance.new("UIListLayout")
-            layout.SortOrder = Enum.SortOrder.LayoutOrder
-            layout.Padding = UDim.new(0, 4)
-            layout.Parent = frame
+        order += 1
+        local frame = Instance.new("Frame")
+        frame.Name = crate.id
+        frame.LayoutOrder = order
+        frame.Size = UDim2.new(1, 0, 0, 0)
+        frame.AutomaticSize = Enum.AutomaticSize.Y
+        frame.BackgroundColor3 = ROW_COLOR
+        frame.BackgroundTransparency = 0.2
+        frame.Parent = window.body
+        Instance.new("UICorner").Parent = frame
+        local pad = Instance.new("UIPadding")
+        pad.PaddingTop = UDim.new(0, 8)
+        pad.PaddingBottom = UDim.new(0, 8)
+        pad.PaddingLeft = UDim.new(0, 10)
+        pad.PaddingRight = UDim.new(0, 10)
+        pad.Parent = frame
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 4)
+        layout.Parent = frame
 
-            local line = 0
-            local function nextLine(): number
-                line += 1
-                return line
-            end
-
-            local title = newText(frame, "Title", UDim2.new(), UDim2.new(1, 0, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, `{crate.name}: {priceText(crate, 1)}`)
-            title.LayoutOrder = nextLine()
-
-            -- Quotentabelle: alle Seltenheiten in Rang-Reihenfolge von oben (selten) nach unten. Die Werte
-            -- schreibt `refresh` aus CrateRoll.effectiveOdds (bei anstehender Garantie die Quoten der
-            -- nächsten Öffnung dieses Spielers, Paket 4.6).
-            local oddsTitle = newText(frame, "OddsTitle", UDim2.new(), UDim2.new(1, 0, 0, 20), Enum.Font.Gotham, MUTED_COLOR, OddsView.oddsTitle(nil))
-            oddsTitle.LayoutOrder = nextLine()
-            local oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } = {}
-            for index = #Rarities.list, 1, -1 do
-                local rarity = Rarities.list[index]
-                local row = Instance.new("Frame")
-                row.Name = `Odds_{rarity.id}`
-                row.LayoutOrder = nextLine()
-                row.Size = UDim2.new(1, 0, 0, 20)
-                row.BackgroundTransparency = 1
-                row.Parent = frame
-                local color = hexColor(rarity.colorHex)
-                local nameLabel = newText(row, "Name", UDim2.new(), UDim2.new(0.6, 0, 1, 0), Enum.Font.GothamBold, MUTED_COLOR, rarity.name)
-                local valueLabel = newText(row, "Value", UDim2.fromScale(0.6, 0), UDim2.fromScale(0.4, 1), Enum.Font.GothamBold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
-                oddsRows[rarity.id] = { name = nameLabel, value = valueLabel, color = color }
-            end
-
-            local pityLabel: TextLabel? = nil
-            if crate.pity ~= nil then
-                local created = newText(frame, "Pity", UDim2.new(), UDim2.new(1, 0, 0, PITY_TEXT_HEIGHT), Enum.Font.Gotham, GOOD_COLOR, "")
-                created.LayoutOrder = nextLine()
-                pityLabel = created
-            end
-
-            -- "Details": alle Items mit ihrer Quote (Roblox verlangt ein Wort am Knopf, kein nacktes Symbol).
-            local detailsButton = Instance.new("TextButton")
-            detailsButton.Name = "Details"
-            detailsButton.LayoutOrder = nextLine()
-            detailsButton.Size = UDim2.new(1, 0, 0, DETAILS_BUTTON_HEIGHT)
-            detailsButton.BackgroundColor3 = BUTTON_COLOR
-            detailsButton.Font = Enum.Font.GothamBold
-            detailsButton.TextColor3 = TEXT_COLOR
-            detailsButton.TextScaled = true
-            detailsButton.Text = TEXT_DETAILS
-            detailsButton.Parent = frame
-            Instance.new("UICorner").Parent = detailsButton
-            local detailsPad = Instance.new("UIPadding")
-            detailsPad.PaddingTop = UDim.new(0, 6)
-            detailsPad.PaddingBottom = UDim.new(0, 6)
-            detailsPad.Parent = detailsButton
-            detailsButton.Activated:Connect(function()
-                openDetails(crate)
-            end)
-
-            local buttons = Instance.new("Frame")
-            buttons.Name = "Buttons"
-            buttons.LayoutOrder = nextLine()
-            buttons.Size = UDim2.new(1, 0, 0, controls.rowButtonH)
-            buttons.BackgroundTransparency = 1
-            buttons.Parent = frame
-
-            local function makeButton(name: string, anchorX: number, text: string, count: number): TextButton
-                local b = Instance.new("TextButton")
-                b.Name = name
-                b.AnchorPoint = Vector2.new(anchorX, 0)
-                b.Position = UDim2.fromScale(anchorX, 0)
-                b.Size = UDim2.new(0.49, 0, 1, 0)
-                b.BackgroundColor3 = BUY_COLOR
-                b.Font = Enum.Font.GothamBold
-                b.TextColor3 = PANEL_COLOR
-                b.TextScaled = true
-                b.Text = text
-                b.Parent = buttons
-                Instance.new("UICorner").Parent = b
-                local p = Instance.new("UIPadding")
-                p.PaddingTop = UDim.new(0, 8)
-                p.PaddingBottom = UDim.new(0, 8)
-                p.PaddingLeft = UDim.new(0, 4)
-                p.PaddingRight = UDim.new(0, 4)
-                p.Parent = b
-                b.Activated:Connect(function()
-                    tryOpen(crate, count)
-                end)
-                return b
-            end
-            local single = makeButton("Single", 0, `Öffnen\n{priceText(crate, 1)}`, 1)
-            local bundle = makeButton("Bundle", 1, `{Crates.bundle.buy} + {Crates.bundle.get - Crates.bundle.buy} öffnen\n{priceText(crate, 10)}`, 10)
-            cards[crate.id] = { frame = frame, pity = pityLabel, single = single, bundle = bundle, oddsTitle = oddsTitle, oddsRows = oddsRows }
+        local line = 0
+        local function nextLine(): number
+            line += 1
+            return line
         end
+
+        local title = newText(frame, "Title", UDim2.new(), UDim2.new(1, 0, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, `{crate.name}: {priceText(crate, 1)}`)
+        title.LayoutOrder = nextLine()
+
+        -- Event-Kiste (Paket 5.4): Zeile mit Saison-Countdown oder Hinweis. Die Karte selbst ist nur
+        -- zu sehen, wenn die Saison dieser Kiste läuft oder als nächste kommt (`refresh`).
+        local seasonLine: TextLabel? = nil
+        if crate.eventOnly then
+            frame.Visible = false
+            local created = newText(frame, "Season", UDim2.new(), UDim2.new(1, 0, 0, SEASON_LINE_HEIGHT), Enum.Font.GothamBold, GOOD_COLOR, "")
+            created.LayoutOrder = nextLine()
+            seasonLine = created
+        end
+
+        -- Quotentabelle: alle Seltenheiten in Rang-Reihenfolge von oben (selten) nach unten. Die Werte
+        -- schreibt `refresh` aus CrateRoll.effectiveOdds (bei anstehender Garantie die Quoten der
+        -- nächsten Öffnung dieses Spielers, Paket 4.6).
+        local oddsTitle = newText(frame, "OddsTitle", UDim2.new(), UDim2.new(1, 0, 0, 20), Enum.Font.Gotham, MUTED_COLOR, OddsView.oddsTitle(nil))
+        oddsTitle.LayoutOrder = nextLine()
+        local oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } = {}
+        for index = #Rarities.list, 1, -1 do
+            local rarity = Rarities.list[index]
+            local row = Instance.new("Frame")
+            row.Name = `Odds_{rarity.id}`
+            row.LayoutOrder = nextLine()
+            row.Size = UDim2.new(1, 0, 0, 20)
+            row.BackgroundTransparency = 1
+            row.Parent = frame
+            local color = hexColor(rarity.colorHex)
+            local nameLabel = newText(row, "Name", UDim2.new(), UDim2.new(0.6, 0, 1, 0), Enum.Font.GothamBold, MUTED_COLOR, rarity.name)
+            local valueLabel = newText(row, "Value", UDim2.fromScale(0.6, 0), UDim2.fromScale(0.4, 1), Enum.Font.GothamBold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
+            oddsRows[rarity.id] = { name = nameLabel, value = valueLabel, color = color }
+        end
+
+        local pityLabel: TextLabel? = nil
+        if crate.pity ~= nil then
+            local created = newText(frame, "Pity", UDim2.new(), UDim2.new(1, 0, 0, PITY_TEXT_HEIGHT), Enum.Font.Gotham, GOOD_COLOR, "")
+            created.LayoutOrder = nextLine()
+            pityLabel = created
+        end
+
+        -- "Details": alle Items mit ihrer Quote (Roblox verlangt ein Wort am Knopf, kein nacktes Symbol).
+        local detailsButton = Instance.new("TextButton")
+        detailsButton.Name = "Details"
+        detailsButton.LayoutOrder = nextLine()
+        detailsButton.Size = UDim2.new(1, 0, 0, DETAILS_BUTTON_HEIGHT)
+        detailsButton.BackgroundColor3 = BUTTON_COLOR
+        detailsButton.Font = Enum.Font.GothamBold
+        detailsButton.TextColor3 = TEXT_COLOR
+        detailsButton.TextScaled = true
+        detailsButton.Text = TEXT_DETAILS
+        detailsButton.Parent = frame
+        Instance.new("UICorner").Parent = detailsButton
+        local detailsPad = Instance.new("UIPadding")
+        detailsPad.PaddingTop = UDim.new(0, 6)
+        detailsPad.PaddingBottom = UDim.new(0, 6)
+        detailsPad.Parent = detailsButton
+        detailsButton.Activated:Connect(function()
+            openDetails(crate)
+        end)
+
+        local buttons = Instance.new("Frame")
+        buttons.Name = "Buttons"
+        buttons.LayoutOrder = nextLine()
+        buttons.Size = UDim2.new(1, 0, 0, controls.rowButtonH)
+        buttons.BackgroundTransparency = 1
+        buttons.Parent = frame
+
+        local function makeButton(name: string, anchorX: number, text: string, count: number): TextButton
+            local b = Instance.new("TextButton")
+            b.Name = name
+            b.AnchorPoint = Vector2.new(anchorX, 0)
+            b.Position = UDim2.fromScale(anchorX, 0)
+            b.Size = UDim2.new(0.49, 0, 1, 0)
+            b.BackgroundColor3 = BUY_COLOR
+            b.Font = Enum.Font.GothamBold
+            b.TextColor3 = PANEL_COLOR
+            b.TextScaled = true
+            b.Text = text
+            b.Parent = buttons
+            Instance.new("UICorner").Parent = b
+            local p = Instance.new("UIPadding")
+            p.PaddingTop = UDim.new(0, 8)
+            p.PaddingBottom = UDim.new(0, 8)
+            p.PaddingLeft = UDim.new(0, 4)
+            p.PaddingRight = UDim.new(0, 4)
+            p.Parent = b
+            b.Activated:Connect(function()
+                tryOpen(crate, count)
+            end)
+            return b
+        end
+        local single = makeButton("Single", 0, `Öffnen\n{priceText(crate, 1)}`, 1)
+        local bundle = makeButton("Bundle", 1, `{Crates.bundle.buy} + {Crates.bundle.get - Crates.bundle.buy} öffnen\n{priceText(crate, 10)}`, 10)
+        cards[crate.id] = { frame = frame, seasonLine = seasonLine, pity = pityLabel, single = single, bundle = bundle, oddsTitle = oddsTitle, oddsRows = oddsRows }
     end
 
     -- Anzeige auffrischen: Pity-Zähler, Kontostand, ausgegraute Knöpfe ---------------------------
@@ -854,10 +933,18 @@ function CrateShop.Start()
                 end
                 card.pity.Text = table.concat(lines, "\n")
             end
-            local singleOk = canAfford(snapshot, crate, 1)
+            local seasonOpen = true
+            if card.seasonLine ~= nil then
+                local view, seconds, hint = seasonView(crateId)
+                seasonOpen = view == "open"
+                card.frame.Visible = view == "open" or view == "next" or view == "closed"
+                card.seasonLine.Text = seasonText(view, seconds, hint)
+                card.seasonLine.TextColor3 = if seasonOpen then GOOD_COLOR else WARN_COLOR
+            end
+            local singleOk = seasonOpen and canAfford(snapshot, crate, 1)
             card.single.BackgroundColor3 = if singleOk then BUY_COLOR else BUTTON_COLOR
             card.single.TextColor3 = if singleOk then PANEL_COLOR else MUTED_COLOR
-            local bundleOk = canAfford(snapshot, crate, 10)
+            local bundleOk = seasonOpen and canAfford(snapshot, crate, 10)
             card.bundle.BackgroundColor3 = if bundleOk then BUY_COLOR else BUTTON_COLOR
             card.bundle.TextColor3 = if bundleOk then PANEL_COLOR else MUTED_COLOR
         end
@@ -866,7 +953,17 @@ function CrateShop.Start()
     refreshCards = refresh
     State.onChanged(function(snapshot: any)
         snapshotNow = snapshot
+        seasonSyncedAt = os.clock()
         refresh()
+    end)
+    -- Countdown der Saison-Zeile: einmal pro Sekunde, nur solange das Fenster offen ist.
+    task.spawn(function()
+        while true do
+            task.wait(SEASON_TICK_SECONDS)
+            if window.isOpen() and snapshotNow ~= nil then
+                pcall(refresh)
+            end
+        end
     end)
 end
 

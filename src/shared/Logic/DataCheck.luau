@@ -8,6 +8,7 @@ local Perks = require("./Perks")
 local Offers = require("./Offers")
 local Equipment = require("./Equipment")
 local DirectShop = require("./DirectShop")
+local Seasons = require("./Seasons")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -96,6 +97,7 @@ export type DataSet = {
     Collection: any,
     Screen: any,
     Offers: any,
+    Seasons: any,
 }
 
 local DataCheck = {}
@@ -127,6 +129,7 @@ function DataCheck.defaults(): DataSet
         Collection = require("../Data/Collection"),
         Screen = require("../Data/Screen"),
         Offers = require("../Data/Offers"),
+        Seasons = require("../Data/Seasons"),
     }
 end
 
@@ -1289,6 +1292,107 @@ local function isEventOnlyItem(item: any, crates: any): boolean
         end
     end
     return true
+end
+
+-- Event-Kalender (Paket 5.4): Phasen, Saisonzeilen, Montag-Start, keine Überlappung, Kisten.
+local function checkSeasons(errors: { string }, data: DataSet)
+    local seasons = data.Seasons
+    if type(seasons) ~= "table" or type(seasons.phases) ~= "table" or type(seasons.list) ~= "table" then
+        table.insert(errors, "Seasons: phases und list fehlen")
+        return
+    end
+    if #seasons.phases < 1 then
+        table.insert(errors, "Seasons.phases: mindestens eine Woche nötig")
+    end
+    local phaseIds: { [string]: boolean } = {}
+    for index, phase in seasons.phases do
+        local label = `Seasons.phases[{index}]`
+        if type(phase) ~= "table" or type(phase.id) ~= "string" or phase.id == "" then
+            table.insert(errors, `{label}: id muss ein nicht leerer Text sein`)
+            continue
+        end
+        if phaseIds[phase.id] then
+            table.insert(errors, `{label}: doppelte id "{phase.id}"`)
+        end
+        phaseIds[phase.id] = true
+        if type(phase.name) ~= "string" or phase.name == "" then
+            table.insert(errors, `{label}: name muss ein nicht leerer Text sein`)
+        end
+        if type(phase.crateOpen) ~= "boolean" then
+            table.insert(errors, `{label}: crateOpen muss true oder false sein`)
+        end
+        if phase.hint ~= nil and (type(phase.hint) ~= "string" or phase.hint == "") then
+            table.insert(errors, `{label}: hint muss ein nicht leerer Text sein`)
+        end
+    end
+    local crates = if type(data.Crates) == "table" then data.Crates.byId else nil
+    local zones = if type(data.Zones) == "table" then data.Zones.byId else nil
+    local products = if type(data.Products) == "table" then data.Products.byId else nil
+    local length = #seasons.phases * Seasons.WEEK_SECONDS
+    local ids: { [string]: boolean } = {}
+    local crateUsers: { [string]: string } = {}
+    local ranges: { { id: string, startAt: number } } = {}
+    for index, season in seasons.list do
+        local label = `Seasons.list[{index}]`
+        if type(season) ~= "table" then
+            table.insert(errors, `{label}: muss eine Tabelle sein`)
+            continue
+        end
+        local id = season.id
+        if type(id) ~= "string" or id == "" then
+            table.insert(errors, `{label}: id muss ein nicht leerer Text sein`)
+            id = `#{index}`
+        elseif ids[id] then
+            table.insert(errors, `{label}: doppelte id "{id}"`)
+        end
+        ids[id] = true
+        label = `Seasons "{id}"`
+        if type(season.name) ~= "string" or season.name == "" then
+            table.insert(errors, `{label}: name muss ein nicht leerer Text sein`)
+        end
+        local start = Seasons.parseDate(season.startDate)
+        if start == nil then
+            table.insert(errors, `{label}: startDate muss ein gültiges Datum JJJJ-MM-TT sein`)
+        elseif not Seasons.isMondayStart(start) then
+            table.insert(errors, `{label}: startDate {season.startDate} ist kein Montag`)
+        else
+            table.insert(ranges, { id = id, startAt = start })
+        end
+        local crate = if type(season.crateId) == "string" and crates ~= nil then crates[season.crateId] else nil
+        if crate == nil then
+            table.insert(errors, `{label}: crateId "{tostring(season.crateId)}" steht nicht in Crates`)
+        else
+            if crate.eventOnly ~= true then
+                table.insert(errors, `{label}: Kiste "{season.crateId}" ist keine Event-Kiste (eventOnly)`)
+            end
+            if crateUsers[season.crateId] ~= nil then
+                table.insert(errors, `{label}: Kiste "{season.crateId}" gehört schon zu Saison "{crateUsers[season.crateId]}"`)
+            end
+            crateUsers[season.crateId] = id
+        end
+        if season.zoneId ~= nil and (type(season.zoneId) ~= "string" or zones == nil or zones[season.zoneId] == nil) then
+            table.insert(errors, `{label}: zoneId "{tostring(season.zoneId)}" steht nicht in Zones`)
+        end
+        if season.passId ~= nil and (type(season.passId) ~= "string" or products == nil or products[season.passId] == nil) then
+            table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
+        end
+    end
+    table.sort(ranges, function(a, b)
+        return a.startAt < b.startAt
+    end)
+    for index = 2, #ranges do
+        if ranges[index].startAt < ranges[index - 1].startAt + length then
+            table.insert(errors, `Seasons "{ranges[index].id}" überlappt "{ranges[index - 1].id}"`)
+        end
+    end
+    -- Jede Event-Kiste braucht eine Saison, sonst ist sie nie öffnbar.
+    if crates ~= nil then
+        for crateId, crate in crates do
+            if type(crate) == "table" and crate.eventOnly == true and crateUsers[crateId] == nil then
+                table.insert(errors, `Kiste "{crateId}" ist eine Event-Kiste ohne Saison in Seasons`)
+            end
+        end
+    end
 end
 
 -- Direktkauf (Paket 4.6): Kisten für den Preis sind bekannte Gem-Kisten ohne eventOnly (nie Münz-
@@ -2562,6 +2666,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkSandstorm(errors, data)
     checkPurchases(errors, data)
     checkDirectShop(errors, data)
+    checkSeasons(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)
