@@ -566,22 +566,22 @@ Plan: Claude-Dokument "Paket 5.3: Begleiter, Offline-Ertrag und Auto-Dig, Plan".
 
 Plan: Claude-Dokument "Paket 5.4: Event-Kalender als Daten, Plan". Fertig, wenn: Neue Saison heißt neue Tabellenzeile.
 
-- [ ] [Lune] Zeitpunkte einer Saison (Beispiel-Tabelle im Test): eine Sekunde vor dem Start nichts aktiv, die erste Sekunde ist Woche 1, die letzte Sekunde ist Woche 4, die Sekunde nach dem Ende nichts aktiv (Ende ausschließend, 28 Tage ab 0 Uhr UTC).
-- [ ] [Lune] Wochengrenzen: Tage 0 bis 6 sind Woche 1, 7 bis 13 Woche 2, 14 bis 20 Woche 3, 21 bis 27 Woche 4, jeweils mit der Phasen-ID aus der Tabelle.
-- [ ] [Lune] Zwischen zwei Saisons ist nichts aktiv, `next` nennt die nächste Saison und die Sekunden bis zu ihrem Start; nach der letzten Saison gibt es kein `next`.
-- [ ] [Lune] `inSeason` ist nur für die Kiste der aktiven Saison und nur in Phasen mit `crateOpen` wahr; die Kiste einer anderen oder kommenden Saison bleibt gesperrt.
-- [ ] [Lune] Ungültige Zeit (nil, NaN, unendlich, negativ, Text) lässt nichts aktiv sein und wirft keinen Fehler.
-- [ ] [Lune] Eine zusätzliche Zeile in einer Testtabelle macht die Saison aktiv, ohne dass Logik-Code geändert wird (Tabelle wird als Argument übergeben).
-- [ ] [Lune] Event-Kiste und `CrateOpen`: außerhalb der Saison "notInSeason" und nichts gebucht, in der Saison öffnet sie mit denselben Quoten wie die Goldkiste und bucht Gems, Pity und Inventar wie bisher.
-- [ ] [Lune] Der Kistenbestand und die Items bleiben nach Saisonende im Profil erhalten (nur das Öffnen der Event-Kiste ist gesperrt).
-- [ ] [Lune] DataCheck für `Seasons`: doppelte ID, Start kein Montag, ungültiges Datum, Überlappung, unbekannte Kiste, Kiste ohne `eventOnly`, `eventOnly`-Kiste ohne Saison, dieselbe Kiste in zwei Saisons; optionale `zoneId` und `passId` werden nur geprüft, wenn sie gesetzt sind.
-- [ ] [Lune] `parseDebug`: "off", "clear" und "week:1" bis "week:4" werden erkannt, alles andere ergibt nichts.
-- [ ] [Lune] Die Snapshot-Form (`state`) enthält in der Saison `id`, `name`, `week`, `phaseId`, `secondsLeft`, `crateId`, `crateOpen` und in der Pause `next` mit `secondsToNext`.
-- [ ] [Shell] Es gibt keine neue Remote (RemoteSpec unverändert), die Zeit kommt nur von `os.time()` auf dem Server; `DebugSeason` wird außerhalb von Studio nie gelesen.
+- [x] [Lune] Zeitpunkte einer Saison (Beispiel-Tabelle im Test): eine Sekunde vor dem Start nichts aktiv, die erste Sekunde ist Woche 1, die letzte Sekunde ist Woche 4, die Sekunde nach dem Ende nichts aktiv (Ende ausschließend, 28 Tage ab 0 Uhr UTC).
+- [x] [Lune] Wochengrenzen: Tage 0 bis 6 sind Woche 1, 7 bis 13 Woche 2, 14 bis 20 Woche 3, 21 bis 27 Woche 4, jeweils mit der Phasen-ID aus der Tabelle.
+- [x] [Lune] Zwischen zwei Saisons ist nichts aktiv, `next` nennt die nächste Saison und die Sekunden bis zu ihrem Start; nach der letzten Saison gibt es kein `next`.
+- [x] [Lune] `inSeason` ist nur für die Kiste der aktiven Saison und nur in Phasen mit `crateOpen` wahr; die Kiste einer anderen oder kommenden Saison bleibt gesperrt.
+- [x] [Lune] Ungültige Zeit (nil, NaN, unendlich, negativ, Text) lässt nichts aktiv sein und wirft keinen Fehler.
+- [x] [Lune] Eine zusätzliche Zeile in einer Testtabelle macht die Saison aktiv, ohne dass Logik-Code geändert wird (Tabelle wird als Argument übergeben).
+- [x] [Lune] Event-Kiste und `CrateOpen`: außerhalb der Saison "notInSeason" und nichts gebucht, in der Saison öffnet sie mit denselben Quoten wie die Goldkiste und bucht Gems, Pity und Inventar wie bisher.
+- [x] [Lune] Der Kistenbestand und die Items bleiben nach Saisonende im Profil erhalten (nur das Öffnen der Event-Kiste ist gesperrt).
+- [x] [Lune] DataCheck für `Seasons`: doppelte ID, Start kein Montag, ungültiges Datum, Überlappung, unbekannte Kiste, Kiste ohne `eventOnly`, `eventOnly`-Kiste ohne Saison, dieselbe Kiste in zwei Saisons; optionale `zoneId` und `passId` werden nur geprüft, wenn sie gesetzt sind.
+- [x] [Lune] `parseDebug`: "off", "clear" und "week:1" bis "week:4" werden erkannt, alles andere ergibt nichts.
+- [x] [Lune] Die Snapshot-Form (`state`) enthält in der Saison `id`, `name`, `week`, `phaseId`, `secondsLeft`, `crateId`, `crateOpen` und in der Pause `next` mit `secondsToNext`.
+- [x] [Shell] Es gibt keine neue Remote (RemoteSpec unverändert), die Zeit kommt nur von `os.time()` auf dem Server; `DebugSeason` wird außerhalb von Studio nie gelesen.
 - [ ] [Studio] `DebugSeason` "week:1": Die Event-Kiste ist kaufbar, die Zeile zeigt "Saison endet in ...", Öffnen zieht die Gems ab.
-- [ ] [Studio] `DebugSeason` "off": Die Event-Kiste ist gesperrt mit Hinweis "Nächste Saison in ..." (oder "Keine Saison aktiv"), die Quoten bleiben sichtbar.
+- [ ] [Studio] `DebugSeason` "off": Die Karte der Event-Kiste zeigt "Nächste Saison in ...", die Knöpfe sind grau (Antippen: Hinweis "nur in der Saison"), die Quoten bleiben sichtbar. Ohne laufende oder kommende Saison ist die Karte ausgeblendet.
 - [ ] [Studio] `DebugSeason` "week:4": Die Zeile zeigt "Letzte Woche: letzte Chance auf die Event-Kiste". Ein Wechsel des Attributs aktualisiert die Anzeige ohne Neustart innerhalb weniger Sekunden.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.6 Server-Event "Der Koloss"
 

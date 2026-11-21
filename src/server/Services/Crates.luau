@@ -49,8 +49,6 @@ local DEBUG_RESTRICTED_ATTRIBUTE = "DebugCratesRestricted"
 -- der Block nie wartet; schützt gegen spätere Änderungen).
 local BUSY_REASON = "busy"
 local ERROR_REASON = "error"
--- Die Event-Kiste ist bis zum Saison-Kalender (Paket 5.x) immer zu.
-local IN_SEASON = false
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -63,6 +61,7 @@ local PolicyCache = loadShared("Logic", "PolicyCache")
 local servicesFolder = script.Parent
 local PlayerData: any = nil
 local Sand: any = nil
+local Events: any = nil
 local Net: any = nil
 
 local Crates = {}
@@ -146,7 +145,7 @@ local function openNow(player: Player, crateId: string, count: number): any
     return CrateOpen.open(profile, crateId, count, {
         random = nextRandom,
         restricted = restrictedOf(player),
-        inSeason = IN_SEASON,
+        inSeason = Events.inSeason(player, crateId), -- Saison-Kalender (Paket 5.4), Server-Uhr
     })
 end
 
@@ -228,6 +227,7 @@ end
 function Crates.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    Events = require(servicesFolder:WaitForChild("Events") :: ModuleScript)
     Net = require(servicesFolder.Parent:WaitForChild("Net"):WaitForChild("Net") :: ModuleScript)
 end
 
