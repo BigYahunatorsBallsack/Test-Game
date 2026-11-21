@@ -542,7 +542,7 @@ Plan: Claude-Dokument "Paket 5.2: Codes-System, Plan". Fertig, wenn: Codes sind 
 - [x] [Lune] Remote `RedeemCode`: ein String-Argument, Länge und Limit aus `RemoteSpec`.
 - [x] [Lune] Profil: fehlendes `codes` wird aufgefüllt, der Sandsturm behält es.
 - [ ] [Studio] Fenster öffnet, ein Test-Code gibt die Belohnung, derselbe Code noch einmal "schon eingelöst", falscher Code zeigt die Standardmeldung, nach `DebugCodes` "reset" geht er wieder.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.3 Begleiter, Offline-Ertrag und Auto-Dig
 

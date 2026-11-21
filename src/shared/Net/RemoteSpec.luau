@@ -127,7 +127,7 @@ local list: { RemoteDef } = {
         name = "RedeemCode",
         kind = "Function",
         direction = "ClientToServer",
-        -- Eingegebener Text, 1 bis 24 Zeichen. Ob er ein Code ist, was er gibt und ob der Spieler gesperrt
+        -- Eingegebener Text, 1 bis 24 Bytes. Ob er ein Code ist, was er gibt und ob der Spieler gesperrt
         -- ist, entscheidet nur der Server (Logic/Codes, Tabelle in src/server/Data/Codes).
         schema = { Validate.string(Codes.MAX_LENGTH, Codes.MIN_LENGTH) },
         limit = { calls = 1, per = 3 }, -- ein Knopf im Fenster; dazu die Sperre nach 5 falschen Versuchen

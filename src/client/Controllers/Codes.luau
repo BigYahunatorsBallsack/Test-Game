@@ -10,7 +10,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Menüleiste und Fenster
 local MENU_ORDER = 8 -- nach Zonen, Sammlung, Sandsturm, Kisten, Gems, Ausrüstung und Täglich
-local MAX_LENGTH = 24 -- wie das Schema der Remote
 local WINDOW_FOOTER_HEIGHT = 0
 local INPUT_HEIGHT = 48
 local BUTTON_HEIGHT = 48
@@ -35,6 +34,7 @@ local REASONS: { [string]: string } = {
     unknown = "Das hat nicht geklappt. Bitte versuche es gleich noch einmal.",
 }
 
+local CodesLogic = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Logic"):WaitForChild("Codes") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local Codes = {}
@@ -142,8 +142,8 @@ function Codes.Start()
 
     -- Auf die Länge des Schemas schneiden, damit die Remote den Aufruf nicht verwirft.
     input:GetPropertyChangedSignal("Text"):Connect(function()
-        if #input.Text > MAX_LENGTH then
-            input.Text = string.sub(input.Text, 1, MAX_LENGTH)
+        if #input.Text > CodesLogic.MAX_LENGTH * 2 then
+            input.Text = string.sub(input.Text, 1, CodesLogic.MAX_LENGTH * 2)
         end
     end)
 
@@ -154,8 +154,14 @@ function Codes.Start()
             showMessage(REASONS.busy, WARN_COLOR)
             return
         end
-        local text = input.Text
-        if text == "" then
+        -- Rand abschneiden und das öffentliche Format prüfen: ein Tippfehler im Format kostet so keinen
+        -- Fehlversuch auf dem Server.
+        local text = CodesLogic.normalize(string.match(input.Text, "^%s*(.-)%s*$"))
+        if input.Text == "" then
+            return
+        end
+        if text == nil then
+            showMessage(REASONS.invalid, WARN_COLOR)
             return
         end
         busy = true
@@ -170,7 +176,8 @@ function Codes.Start()
         end
         if reply.ok == true then
             input.Text = ""
-            showMessage(`Eingelöst: {rewardText(reply.reward)}`, OK_COLOR)
+            local capped = type(reply.reward) == "table" and reply.reward.capped == true
+            showMessage(if capped then "Eingelöst. Dein Gem-Konto ist voll, es gab keine Gems mehr." else `Eingelöst: {rewardText(reply.reward)}`, OK_COLOR)
         elseif reply.reason == "locked" then
             local seconds = if type(reply.secondsLeft) == "number" and reply.secondsLeft == reply.secondsLeft then math.max(math.ceil(reply.secondsLeft), 1) else 60
             showMessage(`Zu viele falsche Codes. Bitte warte {seconds} Sekunden.`, WARN_COLOR)

@@ -131,12 +131,17 @@ local function onRedeemCode(player: Player, text: string): any
     return response
 end
 
--- Beim Verlassen: Zähler löschen, eine laufende Sperre erst nach ihrem Ende.
+-- Beim Verlassen: Fehlversuche und eine laufende Sperre bleiben noch so lange stehen wie eine Sperre.
 local function forget(player: Player)
     handled[player] = nil
     local userId = player.UserId
     local state = attempts[userId]
     local secondsLeft = CodesLogic.lockSecondsLeft(state, lockClock())
+    if secondsLeft <= 0 and type(state) == "table" and (state.failures or 0) > 0 then
+        -- Fehlversuche ohne Sperre: auch sie überleben das Verlassen (sonst setzt ein Rejoin den Zähler
+        -- zurück und die Sperre greift nie), und zwar so lange wie eine Sperre.
+        secondsLeft = LOCK_SECONDS
+    end
     if secondsLeft <= 0 then
         attempts[userId] = nil
         return
@@ -186,6 +191,13 @@ function Codes.Init()
     local problems = CodesLogic.check(CodesData)
     if #problems > 0 then
         error("[Codes] Code-Tabelle fehlerhaft (src/server/Data/Codes):\n" .. table.concat(problems, "\n"))
+    end
+    if not RunService:IsStudio() then
+        for _, row in CodesData.list do
+            if (row.id == "welcome" and row.code == "WILLKOMMEN") or (row.id == "likes1000" and row.code == "1000LIKES") then
+                error(`[Codes] Beispiel-Code "{row.id}" steht noch in src/server/Data/Codes: vor dem Start durch echte Codes ersetzen`)
+            end
+        end
     end
     print(`[Codes] Code-Tabelle geprüft: {#CodesData.list} Codes`)
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)

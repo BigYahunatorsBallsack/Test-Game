@@ -634,7 +634,7 @@ T.describe("Codes nur auf dem Server, nie Kisten oder Items", function()
         T.expect(#ServerCodes.list > 0).toBe(true)
         for _, row in ServerCodes.list do
             for path, source in CLIENT_VISIBLE_SOURCES do
-                if string.find(source, row.code, 1, true) ~= nil then
+                if string.find(string.upper(source), row.code, 1, true) ~= nil then
                     error(`der Code mit der ID "{row.id}" steht in {path}`)
                 end
             end
