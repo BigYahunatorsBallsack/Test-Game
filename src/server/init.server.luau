@@ -11,7 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Daily (Paket 5.1) nutzt zur Laufzeit Crates (Policy, gemeinsame Sperre) und hängt sich in Start an
 -- den StateSync von Sand. Codes (Paket 5.2) prüft in Init die Code-Tabelle des Servers (Data/Codes,
 -- bei Fehlern Abbruch wie bei DataCheck) und nutzt zur Laufzeit die gemeinsame Sperre von Crates.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "Daily", "Codes" }
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "Daily", "Codes" }
 
 type Service = {
     Init: () -> (),
