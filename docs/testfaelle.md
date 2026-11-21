@@ -501,9 +501,31 @@ Tests: tests/crateroll.spec.luau, tests/directshop.spec.luau, tests/policyguards
 - [ ] [Dashboard] Fragebogen nach `docs/fragebogen.md` ausgefüllt, Freigabe erteilt.
 - [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (H1, M1, M2 eingearbeitet, Rest siehe docs/architektur.md).
 
+## 4.7 Quoten-Simulation
+
+Skript: `lune run scripts/cratesim [Öffnungen] [Startwert] [Bericht]`, Bericht docs/balance/crates_sim_4_7.md (Referenzlauf 10 Mio. je Kiste und Lauf), Test tests/cratesim.spec.luau. Plan: Claude-Dokument "Paket 4.7: Quoten-Simulation, Plan". Fertig, wenn: Die Abweichung von der Tabelle ist klein.
+
+- [x] [Shell] Das Skript läuft mit 1.000.000 Öffnungen je Kiste durch und schreibt den Bericht.
+- [x] [Shell] Jede Seltenheit und jedes Item jeder Kiste liegt innerhalb der Schwellen, getrennt für Einzelöffnungen und 10 + 1 Pakete.
+- [x] [Shell] Die Pity-Grenzen werden nie überschritten, auch über Paketgrenzen hinweg.
+- [x] [Shell] Gleicher Startwert ergibt den gleichen Bericht.
+- [x] [Lune] Kleiner Lauf über `CrateOpen.open` im normalen Testlauf, unter 3 Sekunden.
+
 ## 5.1 Daily Reward
 
-- [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` den festen Ersatzgegenstand.
+Plan: Claude-Dokument "Paket 5.1: Daily Reward, Plan". Fertig, wenn: Die Serie zählt richtig, und Tag 7 gibt die Eisenkiste oder den Ersatz.
+
+- [ ] [Lune] Serie: Tag 1 bis 7 an aufeinanderfolgenden Tagen, danach wieder Tag 1; ein ausgelassener Tag setzt auf Tag 1; zweimal am selben Tag geht nicht; Tagwechsel genau um 0 Uhr UTC.
+- [ ] [Lune] Vor dem Kauf der Schaufel nichts abholbar; nach einem Sandsturm weiter abholbar.
+- [ ] [Lune] Belohnungen aus den Daten: Gems (gekappt bei maxGems), Münz-Boost verlängert, Glücks-Boost verlängert.
+- [ ] [Lune] Tag 7 gibt die Eisenkiste oder bei `ArePaidRandomItemsRestricted = true` (und bei unbekannter Policy) den festen Ersatzgegenstand; während der ersten Abfrage `policyPending`, nichts gebucht.
+- [ ] [Lune] Fehler oder Warten im Block: nichts gebucht, Serie unverändert.
+- [ ] [Lune] Glücks-Boost verdoppelt die Fundchance und ändert keine Kistenquote.
+- [ ] [Lune] Gespeicherter Tag in der Zukunft: keine zweite Belohnung.
+- [ ] [Lune] Remote `ClaimDaily`: kein Argument, Limit aus `RemoteSpec`.
+- [ ] [Studio] Fenster öffnet sich einmal nach dem Tutorial, Abholen zeigt die Belohnung; `DebugDaily` "yesterday" macht den nächsten Tag abholbar.
+- [ ] [Studio] Tag 7 mit `DebugCratesRestricted` true und false: Kupferschaufel bzw. Eisenkisten-Reveal.
+- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
 ## 5.3 Begleiter, Offline-Ertrag und Auto-Dig
 
