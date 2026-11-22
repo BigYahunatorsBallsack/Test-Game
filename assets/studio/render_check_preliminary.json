@@ -1,0 +1,392 @@
+{
+  "view": "Dunes and Oasis asset prototype gallery",
+  "instance_query_ok": true,
+  "triangle_query_ok": true,
+  "viewport": "1510, 682",
+  "instances": {
+    "Children": [
+      {
+        "Children": [
+          {
+            "Name": "Camera",
+            "Size": 1
+          },
+          {
+            "Name": "Model",
+            "Size": 229
+          },
+          {
+            "Name": "MeshPart",
+            "Size": 153
+          },
+          {
+            "Name": "ProceduralModel",
+            "Size": 6
+          },
+          {
+            "Name": "UnionOperation",
+            "Size": 111
+          },
+          {
+            "Name": "Part",
+            "Size": 21
+          },
+          {
+            "Name": "IntersectOperation",
+            "Size": 2
+          },
+          {
+            "Name": "Terrain",
+            "Size": 1
+          },
+          {
+            "Name": "Status",
+            "Size": 1
+          },
+          {
+            "Name": "SpawnLocation",
+            "Size": 1
+          }
+        ],
+        "Name": "3D Objects",
+        "Size": 526
+      },
+      {
+        "Children": [
+          {
+            "Name": "RigidConstraint",
+            "Size": 1
+          },
+          {
+            "Name": "Attachment",
+            "Size": 54
+          },
+          {
+            "Name": "AnimationConstraint",
+            "Size": 15
+          },
+          {
+            "Name": "BallSocketConstraint",
+            "Size": 14
+          },
+          {
+            "Name": "NoCollisionConstraint",
+            "Size": 19
+          }
+        ],
+        "Name": "Physics",
+        "Size": 103
+      },
+      {
+        "Children": [
+          {
+            "Name": "PlayerGui",
+            "Size": 1
+          },
+          {
+            "Name": "ScreenGui",
+            "Size": 1
+          },
+          {
+            "Name": "ChatWindowConfiguration",
+            "Size": 1
+          },
+          {
+            "Name": "ChannelTabsConfiguration",
+            "Size": 1
+          },
+          {
+            "Name": "BubbleChatConfiguration",
+            "Size": 1
+          },
+          {
+            "Name": "UIGradient",
+            "Size": 1
+          },
+          {
+            "Name": "UIPadding",
+            "Size": 1
+          },
+          {
+            "Name": "ImageLabel",
+            "Size": 1
+          },
+          {
+            "Name": "UICorner",
+            "Size": 1
+          },
+          {
+            "Name": "TextChannel",
+            "Size": 2
+          },
+          {
+            "Name": "TextSource",
+            "Size": 2
+          },
+          {
+            "Name": "TextChatCommand",
+            "Size": 9
+          },
+          {
+            "Name": "ChatInputBarConfiguration",
+            "Size": 1
+          }
+        ],
+        "Name": "UI",
+        "Size": 23
+      },
+      {
+        "Children": [
+          {
+            "Name": "SunRaysEffect",
+            "Size": 1
+          },
+          {
+            "Name": "DepthOfFieldEffect",
+            "Size": 1
+          },
+          {
+            "Name": "Atmosphere",
+            "Size": 1
+          },
+          {
+            "Name": "Sky",
+            "Size": 1
+          },
+          {
+            "Name": "BloomEffect",
+            "Size": 1
+          }
+        ],
+        "Name": "PostProcessing",
+        "Size": 5
+      },
+      {
+        "Children": [
+          {
+            "Name": "ModuleScript",
+            "Size": 87
+          },
+          {
+            "Name": "Script",
+            "Size": 5
+          },
+          {
+            "Name": "LocalScript",
+            "Size": 4
+          },
+          {
+            "Name": "BindableFunction",
+            "Size": 1
+          }
+        ],
+        "Name": "Scripts",
+        "Size": 97
+      },
+      {
+        "Children": [
+          {
+            "Name": "AudioListener",
+            "Size": 1
+          },
+          {
+            "Name": "Wire",
+            "Size": 2
+          },
+          {
+            "Name": "AudioEmitter",
+            "Size": 1
+          },
+          {
+            "Name": "Sound",
+            "Size": 9
+          },
+          {
+            "Name": "AudioDeviceOutput",
+            "Size": 1
+          }
+        ],
+        "Name": "Audio",
+        "Size": 14
+      },
+      {
+        "Children": [
+          {
+            "Name": "Animator",
+            "Size": 1
+          },
+          {
+            "Name": "Animation",
+            "Size": 27
+          }
+        ],
+        "Name": "Animation",
+        "Size": 28
+      },
+      {
+        "Children": [
+          {
+            "Name": "NumberValue",
+            "Size": 18
+          },
+          {
+            "Name": "StringValue",
+            "Size": 35
+          },
+          {
+            "Name": "Vector3Value",
+            "Size": 71
+          }
+        ],
+        "Name": "Values",
+        "Size": 124
+      },
+      {
+        "Children": [
+          {
+            "Name": "Shirt",
+            "Size": 1
+          },
+          {
+            "Name": "Humanoid",
+            "Size": 1
+          },
+          {
+            "Name": "HumanoidDescription",
+            "Size": 1
+          },
+          {
+            "Name": "BodyPartDescription",
+            "Size": 6
+          },
+          {
+            "Name": "AccessoryDescription",
+            "Size": 1
+          },
+          {
+            "Name": "Pants",
+            "Size": 1
+          },
+          {
+            "Name": "BodyColors",
+            "Size": 1
+          },
+          {
+            "Name": "Accessory",
+            "Size": 1
+          },
+          {
+            "Name": "WrapTarget",
+            "Size": 15
+          },
+          {
+            "Name": "FaceControls",
+            "Size": 1
+          }
+        ],
+        "Name": "Character",
+        "Size": 29
+      },
+      {
+        "Children": [
+          {
+            "Name": "Decal",
+            "Size": 1
+          },
+          {
+            "Name": "Texture",
+            "Size": 1
+          }
+        ],
+        "Name": "Textures",
+        "Size": 2
+      },
+      {
+        "Children": [
+          {
+            "Name": "Folder",
+            "Size": 11
+          },
+          {
+            "Name": "GeneratedFolder",
+            "Size": 6
+          },
+          {
+            "Name": "Player",
+            "Size": 1
+          }
+        ],
+        "Name": "Services & Storage",
+        "Size": 18
+      },
+      {
+        "Children": [
+          {
+            "Name": "PlayerScripts",
+            "Size": 1
+          },
+          {
+            "Name": "StarterGear",
+            "Size": 1
+          },
+          {
+            "Name": "Backpack",
+            "Size": 1
+          },
+          {
+            "Name": "StarterCharacterScripts",
+            "Size": 1
+          },
+          {
+            "Name": "StarterPlayerScripts",
+            "Size": 1
+          }
+        ],
+        "Name": "Misc",
+        "Size": 5
+      },
+      {
+        "Children": [
+          {
+            "Name": "AudioDeviceInput",
+            "Size": 1
+          },
+          {
+            "Name": "InputContext",
+            "Size": 6
+          },
+          {
+            "Name": "InputAction",
+            "Size": 40
+          },
+          {
+            "Name": "InputBinding",
+            "Size": 95
+          }
+        ],
+        "Name": "Unclassified",
+        "Size": 142
+      }
+    ],
+    "Name": "InstanceComposition",
+    "Size": 1116
+  },
+  "device": "Desktop Studio client; not a real phone",
+  "triangles": {
+    "Children": [
+      {
+        "Name": "Opaque",
+        "Sizes": {
+          "Drawcalls": 11,
+          "Triangles": 14084
+        }
+      }
+    ],
+    "Name": "TriangleComposition",
+    "Sizes": {
+      "Drawcalls": 11,
+      "Triangles": 14084
+    }
+  },
+  "limitations_de": "Vorläufige Einzelansicht im Desktop-Studio-Client nach kurzer Ladezeit; kein vollständiger Asset- oder Handy-Leistungstest."
+}

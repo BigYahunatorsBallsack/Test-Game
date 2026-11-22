@@ -1,0 +1,296 @@
+=== tests/bignum.spec.luau
+Rechnen gegen Referenzwerte
+  ok   Addieren unter und über 10^15
+  ok   ein winziger Summand neben einem riesigen ändert den Wert nicht
+  ok   Subtrahieren bis genau 0 ergibt die Null
+  ok   Subtrahieren über 10^15
+  ok   Multiplizieren und Dividieren über große Exponenten
+  ok   Rauschstellen: 0,1 + 0,2 ergibt 0,3, ganze Zahlen bleiben ganz
+Vergleichen
+  ok   kleiner, gleich, größer über 10^15
+  ok   sehr große Exponenten bleiben vergleichbar
+  ok   negative Werte ordnen sich richtig
+  ok   max und min
+Anzeige unter 1000
+  ok   ganze Zahlen ohne Suffix
+  ok   Brüche mit Komma, Endnullen entfallen
+  ok   winzige Werte werden zu 0
+  ok   999,96 springt auf 1K
+Anzeige mit Suffixen
+  ok   K, M, B, T
+  ok   Qa bis Dc
+  ok   jeder Suffix entspricht seiner Zehnerpotenz
+  ok   Rundung an den Grenzen: 999,9K bleibt, 999,95K wird 1M
+  ok   die Grenze gilt in jeder Stufe bis Dc
+  ok   Hälften runden auf
+  ok   Stellenzahl wählbar und begrenzt
+Wissenschaftliche Anzeige ab 10^36
+  ok   Beispiele
+  ok   Rundung über die Zehnerstelle: 9,996e40 wird 1e41
+  ok   die Stellenzahl ändert die wissenschaftliche Form nicht
+Negative Werte und Null
+  ok   Vorzeichen davor
+  ok   negative Rundung auf 0 zeigt kein Minus
+Speichern und Laden
+  ok   serialize und deserialize verändern den Wert nicht
+  ok   serialize liefert eine Kopie
+  ok   ungültige gespeicherte Werte werden zur Null
+  ok   nicht normalisierte gespeicherte Werte werden normalisiert
+  ok   BigNum.new lehnt NaN und unendlich ab
+
+31 bestanden, 0 fehlgeschlagen
+=== tests/collecting.spec.luau
+Sand aus Zeit und Rate
+  ok   Hand: 3 s halten ergibt 3 Sand
+  ok   Schaufel (collect_tool_2): 5 Sand pro Sekunde
+  ok   höchstes gekauftes Werkzeug zählt, unbekannte Knoten nicht
+Client kann keine Mengen melden
+  ok   SetCollecting nimmt nur einen Wahrheitswert
+  ok   Sell nimmt keine Argumente
+  ok   viele SetCollecting(true) in kurzer Zeit erzeugen nicht mehr Sand
+Halten und Loslassen
+  ok   ohne Halten entsteht kein Sand
+  ok   nach dem Loslassen zählt die Zeit nicht, nach erneutem Halten wieder
+  ok   Bruchteile gehen nicht verloren, der Tank enthält ganze Körner
+  ok   ohne Auffrischung zählt nur die Zeit bis zur Frist
+  ok   eine rückwärts springende Uhr erzeugt keinen Sand
+Voller Tank
+  ok   100 s halten füllt genau bis zur Kapazität und meldet voll
+  ok   der Schritt, der den Tank füllt, meldet voll
+  ok   Kapazitätsfaktor (Großer Tank) verdoppelt
+Verkaufen
+  ok   leert den Tank und bucht Münzen nach Sandsorte (Dünen x1, Oase x3)
+  ok   leerer Tank bucht nichts
+  ok   rechnet laufendes Sammeln bis jetzt ab, bevor verkauft wird
+  ok   addiert über den Zahlentyp auf große Münzstände
+  ok   ungültige Zone fällt auf das Dünenmeer zurück
+  ok   nur in Reichweite des Händlerstands
+BigNum-Rechnen (Paket 1.2)
+  ok   add, sub, mulNumber, compare, floor, toNumber für kleine Werte
+  ok   über 10^15
+Datenprüfung (Paket 1.2)
+
+22 bestanden, 0 fehlgeschlagen
+  ok   die echten Tabellen bestehen
+  ok   kaputte Sammel-Frist oder Händler-Reichweite fallen auf
+=== tests/data.spec.luau
+Datentabellen (0.1)
+
+0 bestanden, 0 fehlgeschlagen
+  ok   alle Datenmodule laden und DataCheck findet keine Fehler
+  ok   Farben sind Hex-Text und keine Roblox-Typen
+  ok   jede Quotentabelle ergibt 10000 (Fundquoten und Kisten)
+  ok   Quoten sind ganze Zahlen ab 0 mit bekannten Seltenheiten
+  ok   Tippfehler-Seltenheit und Bruchzahl werden gemeldet
+  ok   eine absichtlich kaputte Tabelle (Summe 9999) lässt die Prüfung fehlschlagen
+  ok   neue Quotentabellen werden automatisch mitgeprüft
+  ok   die Event-Kiste verweist auf dieselbe Quotentabelle wie die Goldkiste
+  ok   alle IDs sind pro Tabelle eindeutig
+  ok   Werkzeuge steigen streng, die Hand kostet 0, jede Stufe hat einen Knoten
+  ok   Zonen verweisen auf Sandsorten und auf start oder einen existierenden Knoten
+  ok   Gem-Pakete: Bonus stimmt auf 1 Prozentpunkt, Gems und Robux steigen
+  ok   Kisten: Preis über 0, Währung coins oder gems, Pity 15/60, 10er-Paket 10 zu 11
+  ok   Finds: 6 Sets zu je 5 pro Zone, Fundliste vorerst leer
+  ok   Knoten verlangen nur existierende Knoten und der Baum hat keinen Zyklus
+  ok   alle Balance-Werte sind gesetzt und positiv
+  ok   DataCheck meldet fehlende oder ungültige Balance-Werte
+Knoten und Tutorial (1.6)
+  ok   eine kaputte Fassung schlägt fehl
+Terrain-Daten (1.4)
+  ok   jede Werkzeugstufe hat eine Lochgröße, Materialien sind Text
+  ok   eine kaputte Fassung schlägt fehl
+=== tests/example.spec.luau
+Beispiel
+  ok   lädt ein Modul aus src/shared per Pfad
+  ok   toThrow und toBeCloseTo funktionieren
+
+2 bestanden, 0 fehlgeschlagen
+=== tests/perfguard.spec.luau
+Bildraten-Wächter
+  ok   in der Aufwärmzeit wird nichts entschieden
+  ok   ein kurzer Einbruch wechselt nicht
+  ok   dauerhaft niedrige Bildrate wechselt nach downAfterSeconds auf fallback
+  ok   über highFps für upAfterSeconds geht es zurück auf full
+  ok   eine Bildrate zwischen lowFps und highFps ändert nichts
+  ok   nach maxSwitches Wechseln bleibt es bei fallback
+  ok   ein erzwungener Modus gilt immer
+  ok   ungültige Bilddauern werden ignoriert
+
+8 bestanden, 0 fehlgeschlagen
+=== tests/playersession.spec.luau
+PlayerSession
+  ok   neuer Spieler: Standardprofil mit aktueller Version, erst danach geladen
+  ok   Münzen, Gems, Inventar, Knoten und Zonen überleben einen Neustart
+  ok   altes Profil wird beim Laden migriert und in neuer Version gespeichert
+  ok   zu neues Profil: Spieler wird entfernt, gespeicherte Daten bleiben unverändert
+  ok   Laden schlägt fehl: Spieler wird entfernt, kein leeres Profil wird gespeichert
+  ok   Migration mit Fehler: Spieler wird entfernt, Daten bleiben unverändert
+  ok   Spieler geht während des Ladens: Sitzung wird beendet, nichts bleibt offen
+  ok   Spieler geht, nachdem die Sitzung offen ist, aber vor dem Melden: Sitzung wird freigegeben
+  ok   Server-Wechsel: B wartet, bis A freigibt, und lädt dann den Stand von A
+  ok   anderer Server übernimmt die Sitzung: Spieler wird hier entfernt
+  ok   lastSeen wird beim Autosave und beim Verlassen auf die aktuelle Zeit gesetzt
+  ok   Profil-Prüfung für Remotes: vor dem Laden nein, danach ja, nach dem Verlassen nein
+  ok   kaputte Felder werden beim Laden einzeln repariert und gemeldet
+PlayerSession: schneller Rejoin und Speichern
+  ok   Rejoin während das alte Laden noch läuft: busy bis es fertig ist, dann lädt der neue Spieler
+  ok   vor dem Speichern werden NaN, unendlich und Nicht-JSON-Werte entfernt
+Profile.sanitize
+  ok   ein gültiges Profil bleibt unverändert und ohne Warnung
+  ok   falscher Typ einer ganzen Gruppe setzt nur diese Gruppe zurück
+
+17 bestanden, 0 fehlgeschlagen
+=== tests/profile.spec.luau
+Profile
+  ok   ein Spieler ohne Daten bekommt ein Standardprofil mit der aktuellen Version
+  ok   das Standardprofil hat alle Felder aus dem Plan
+  ok   Standardprofile teilen keine Tabellen
+  ok   ein Profil der Version 1 wird schrittweise auf Version 2 gebracht
+  ok   fehlende Felder bekommen Standardwerte (tief)
+  ok   eine zweite Migration desselben Profils ändert nichts mehr
+  ok   ein aktuelles Profil bleibt mit den echten Migrationen unverändert
+  ok   ein Profil mit höherer Version wird nicht migriert und als nicht speichern markiert
+  ok   unbekannte Felder und Knoten-IDs bleiben erhalten und stören das Laden nicht
+  ok   eine Lücke in den Migrationen ist ein Fehler, das Original bleibt unberührt
+  ok   BigNum-Werte im Profil überstehen Speichern und Laden
+
+11 bestanden, 0 fehlgeschlagen
+=== tests/ratelimiter.spec.luau
+RateLimiter
+  ok   N Aufrufe pro Sekunde gehen durch, der nächste wird abgelehnt
+  ok   nach Ablauf der Zeit geht es wieder
+  ok   Bucket füllt sich nie über die Kapazität
+  ok   Prestige: 1 pro 5 Sekunden
+  ok   Spieler zählen getrennt
+  ok   Remotes zählen getrennt
+  ok   clear entfernt die Bucket eines Spielers
+
+7 bestanden, 0 fehlgeschlagen
+=== tests/remotespec.spec.luau
+RemoteSpec
+  ok   alle Client->Server-Remotes haben Schema und Limit und lassen sich registrieren
+  ok   Limits entsprechen dem Plan
+  ok   eine Remote ohne Schema oder ohne Limit lässt sich nicht registrieren
+  ok   Server->Client-Remotes und unbekannte Namen sind nicht registrierbar
+  ok   SetCollecting nimmt genau ein boolean
+  ok   Sell und Prestige nehmen keine Argumente
+  ok   TravelZone: bekannte Zone, Text höchstens 32 Zeichen
+  ok   PurchaseNode: nur Knoten aus UpgradeTree
+  ok   OpenCrate: Kiste aus Crates, Anzahl 1 oder 10
+
+9 bestanden, 0 fehlgeschlagen
+=== tests/sanddig.spec.luau
+Blöcke eines Lochs
+  ok   eine Kugel liefert genau die geschnittenen Blöcke
+  ok   negative Koordinaten und Blockgrenzen
+Aushöhlen
+  ok   leert Voxel in der Kugel und lässt den Rest unverändert
+  ok   ein leerer Voxel wird zu Luft, Fels bleibt
+  ok   Luft bleibt unverändert und meldet keine Änderung
+Tiefengrenze und Takt
+  ok   wiederholtes Graben wird tiefer, aber nie tiefer als maxDepthStuds
+  ok   ein Treffer an der Grenze gräbt nicht
+  ok   ein zweites Loch innerhalb des Takts wird abgelehnt
+  ok   Lochgröße folgt dem Werkzeug, unbekannt gräbt wie die Hand
+Nachwachsen
+  ok   wartet die Verzögerung ab und kehrt in regrowSteps Schritten zum Original zurück
+  ok   Zwischenschritte nähern sich dem Original nur an
+  ok   erneutes Graben setzt den Zeitplan zurück
+  ok   pro Aufruf höchstens maxWritesPerUpdate Blöcke
+  ok   ein Block unter dem eigenen Charakter wächst erst nach, wenn er weggeht
+Lange Sitzung
+       19637 Löcher, höchstens 41 Blöcke offen
+  ok   2 Stunden Dauergraben: nie mehr als maxDirtyChunks offen, danach alles zurück
+  ok   Obergrenze greift: bei 12 Blöcken werden die ältesten sofort zurückgesetzt
+
+16 bestanden, 0 fehlgeschlagen
+=== tests/skilltree.spec.luau
+Daten des ganzen Baums
+
+0 bestanden, 0 fehlgeschlagen
+  ok   DataCheck meldet keine Fehler
+  ok   alle vier Äste haben Knoten, jede Wirkung steht in ihrem Ast
+  ok   Verkauf und Glück erscheinen erst nach der Schaufel
+  ok   jeder kaufbare Knoten ist erreichbar (unbegrenzt Münzen kaufen den ganzen Baum)
+  ok   eine kaputte Fassung schlägt fehl (Ast, bp, Meilenstein)
+Kauf im ganzen Baum
+  ok   ohne Voraussetzung wird für jeden Knoten abgelehnt
+  ok   Doppelklick kauft für keinen Knoten zweimal
+  ok   zu wenig Geld wird für jeden Knoten abgelehnt, genau der Preis geht auf 0
+Kaputte Profile
+  ok   Knoten-Werte außer true zählen nicht als gekauft, ein kaputtes nodes-Feld bucht nichts ab
+  ok   DataCheck lehnt einen Preis mit Nachkommastellen ab
+Sichtbarkeit (Nebel)
+  ok   am Anfang sind nur Knoten ohne Voraussetzung kaufbar, der Rest liegt im Nebel
+  ok   nach einem Kauf werden die Folgeknoten kaufbar
+  ok   der Sandsturm-Knoten ist nie kaufbar, nach dem Sturm gilt er als gekauft
+Wirkung
+  ok   Verkauf-Knoten erhöhen die Münzen pro Sand, Boni addieren sich
+  ok   Verkaufen mit Bonus bucht ganze Münzen, Bruchteile verfallen
+  ok   Verkaufen ohne Bonus verliert keine Münze (115, 230, 1150 Sand)
+  ok   Glück-Knoten erhöhen den Fundchancen-Faktor, Boni addieren sich
+  ok   Rate und Tank folgen dem ganzen Baum, unbekannte IDs ändern nichts
+Laden
+  ok   gekaufte Knoten und ihre Wirkung überstehen Speichern und Laden auf einem neuen Server
+Baum-Update
+  ok   Knoten entfernt: Profil lädt, ID bleibt, wirkt nicht, keine Erstattung
+  ok   Knoten hinzugefügt: altes Profil lädt, der neue Knoten wird kaufbar
+  ok   neue Voraussetzung vor einem gekauften Knoten: Der gekaufte wirkt weiter
+  ok   geänderte Werte: Wirkung folgt der neuen Tabelle, Preisänderung bucht nichts nach
+Ganzer Lauf (Simulation)
+       shovel 120 s, bucket_chain 429.5 s, mini_digger 609.5 s, vacuum_robot 692.25 s, mega_machine 754.25 s, längste Pause 75 s
+  ok   Werkzeuge kommen zu den Zeiten der Balance-Tabelle, keine zu lange Pause
+=== tests/treepurchase.spec.luau
+Kauf eines Knotens
+  ok   ohne Voraussetzung wird abgelehnt, Münzen bleiben gleich
+  ok   zwei schnelle Käufe: nur der erste bucht ab
+  ok   zu wenig Münzen wird abgelehnt, genau passende gehen auf 0
+  ok   unbekannte und vergebene Knoten lassen sich nicht kaufen
+  ok   ein Knoten mit Sandsturm-Wirkung lässt sich auch ohne granted-Flag nicht kaufen
+  ok   große Münzwerte kaufen über den Zahlentyp ohne Fehler
+  ok   Kette: tank_1, tank_2, tank_3 nur nacheinander
+  ok   sichtbare Knoten: aufsteigend nach Preis, ohne gekaufte, vergebene und gesperrte
+  ok   PurchaseNode nimmt nur eine bekannte Knoten-ID, keinen Preis
+Wirkung der ersten Knoten
+  ok   Sammelrate: Hand 1 auf 1,5, mit Schaufel 7,5 (+25 % danach 8,75)
+  ok   Tank: Start, tank_1 30, tank_2 60, tank_3 150, der höchste zählt
+  ok   der Gamepass-Faktor kommt nach dem Tank-Knoten
+  ok   unbekannte und entfernte Knoten im Profil ändern nichts
+  ok   ownedNodes liefert nur bekannte, gekaufte Knoten
+  ok   jeder Knoten hat Name und Beschreibung, die Wirkung ist bekannt
+
+15 bestanden, 0 fehlgeschlagen
+=== tests/tutorial.spec.luau
+Tutorial-Fortschritt
+  ok   ein neuer Spieler startet bei Schritt 1
+  ok   15 Sand führen zu Schritt 2, der erste Verkauf zu 3, collect_rate_1 zu 4, die Schaufel zum Ende
+  ok   15 Sand bei größerem Tank zählen auch (Tank 30)
+  ok   ein Verkauf vor dem vollen Tank überspringt Schritt 1
+  ok   ein Verkauf in Schritt 3 oder später ändert nichts
+  ok   Schritte gehen nie zurück
+Tutorial beim Laden
+  ok   wer die Schaufel besitzt, überspringt alles
+  ok   wer collect_rate_1 besitzt, steht bei Schritt 4
+  ok   ein kaputter Schritt im Profil fällt auf einen gültigen Wert zurück
+  ok   ein alter Spielstand ohne tutorial-Feld bekommt Schritt 1 (Migration füllt Standardwerte)
+  ok   Knoten-Schritte nennen existierende Knoten
+Die ersten 2 Minuten (Simulation)
+       erstes Upgrade 20 s, Schaufel 120 s, Tutorial-Schritte 15 20 20 120
+  ok   erstes Upgrade nach etwa 20 s, Schaufel nach etwa 2 Minuten
+  ok   das Tutorial endet mit der Schaufel und durchläuft alle Schritte der Reihe nach
+  ok   Kaufprotokoll: Tank-Knoten und Schaufel kommen in der Reihenfolge der Balance-Tabelle
+
+14 bestanden, 0 fehlgeschlagen
+=== tests/validate.spec.luau
+Validate
+  ok   gültige Argumente gehen durch
+  ok   falscher Typ wird abgelehnt
+  ok   zu wenige oder zu viele Argumente werden abgelehnt
+  ok   NaN und Unendlich werden abgelehnt
+  ok   Brüche und Werte außerhalb des Bereichs werden abgelehnt
+  ok   zu lange Texte werden abgelehnt
+  ok   unbekannte IDs werden abgelehnt
+
+7 bestanden, 0 fehlgeschlagen
+
+14 von 14 Testdateien bestanden

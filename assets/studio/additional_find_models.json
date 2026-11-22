@@ -1,0 +1,1667 @@
+{
+  "place_id": "135831532782380",
+  "status": "complete",
+  "method": "Roblox Mesh Generation, single mesh per collectible",
+  "max_concurrent_jobs": 4,
+  "models": [
+    {
+      "id": "canyon_11",
+      "name": "Find_canyon_11",
+      "zone": "canyon",
+      "asset_id": "123056472150227",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_11",
+      "tag": "Assistant-009746c0-edb3-415c-84c3-27b59ac50889",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_11_01.png",
+      "generation_prompt": "One small wedge shaped dark stone tool. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.7415198683738708,
+        1.999975562095642,
+        0.7426757216453552
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "5547cbc5-fbd9-411c-bd6c-995169621cb9"
+    },
+    {
+      "id": "canyon_12",
+      "name": "Find_canyon_12",
+      "zone": "canyon",
+      "asset_id": "123717307864745",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_12",
+      "tag": "Assistant-95b8167a-1858-4fd9-ad3b-1afdb48e932a",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_12_01.png",
+      "generation_prompt": "One short thick wooden splitting wedge. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.1841763257980347,
+        2,
+        0.9805161356925964
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "86dca278-7e0e-460c-8d0f-d9767f6e6caf"
+    },
+    {
+      "id": "canyon_13",
+      "name": "Find_canyon_13",
+      "zone": "canyon",
+      "asset_id": "107390199270046",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_13",
+      "tag": "Assistant-a6ec00e3-b58d-4a86-9705-2597d6fe2845",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_13_01.png",
+      "generation_prompt": "One short charcoal iron chisel with broad head. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.8779205083847046,
+        0.8989593982696533,
+        2
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "b6494090-25f4-4277-9e1f-d3f0ded51f5d"
+    },
+    {
+      "id": "canyon_14",
+      "name": "Find_canyon_14",
+      "zone": "canyon",
+      "asset_id": "102445474231788",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_14",
+      "tag": "Assistant-d7e460d9-d56c-45de-a81b-5d7298e5002e",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_14_01.png",
+      "generation_prompt": "One small iron pickaxe head without handle. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.273531436920166,
+        2,
+        1.3655707836151123
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "53ba4db8-6978-4a14-b4b2-52257e98eba8"
+    },
+    {
+      "id": "canyon_15",
+      "name": "Find_canyon_15",
+      "zone": "canyon",
+      "asset_id": "102629640938268",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_15",
+      "tag": "Assistant-2b863ee2-b803-403d-abb8-ecb8a88e9335",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_15_01.png",
+      "generation_prompt": "One small bronze cage oil lantern. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.0632808208465576,
+        1.999975562095642,
+        0.9002506732940674
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "4b902143-0e91-4269-8ed6-72531334f6c0"
+    },
+    {
+      "id": "canyon_16",
+      "name": "Find_canyon_16",
+      "zone": "canyon",
+      "asset_id": "99199558754367",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_16",
+      "tag": "Assistant-bf7afc6d-6c52-46f6-9e50-39cf5c33e84e",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_16_01.png",
+      "generation_prompt": "One single chunky beige fossil vertebra. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.30441415309906,
+        2,
+        0.6842119097709656
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e771598e-4270-4757-a15b-29c031a86b76"
+    },
+    {
+      "id": "canyon_17",
+      "name": "Find_canyon_17",
+      "zone": "canyon",
+      "asset_id": "121282734117638",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_17",
+      "tag": "Assistant-2331b4db-623b-4cd1-8f64-843354a2042d",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_17_01.png",
+      "generation_prompt": "One curved short fossil rib bone. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.3628389835357666,
+        0.9133639335632324,
+        1.9999024868011475
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "0c572053-63a3-4013-873e-8d5c924adc0a"
+    },
+    {
+      "id": "canyon_18",
+      "name": "Find_canyon_18",
+      "zone": "canyon",
+      "asset_id": "115483871308243",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_18",
+      "tag": "Assistant-4f02b8e9-b2e1-42a5-9cc6-529281e50712",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_18_01.png",
+      "generation_prompt": "One large triangular fossil tooth. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.4011006355285645,
+        2,
+        0.7465969324111938
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "3ac4f6f9-574a-4f9f-b12f-d9225315e0e4"
+    },
+    {
+      "id": "canyon_19",
+      "name": "Find_canyon_19",
+      "zone": "canyon",
+      "asset_id": "128672070276568",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_19",
+      "tag": "Assistant-a431ea07-55bb-494f-b167-8a59c074aa92",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_19_01.png",
+      "generation_prompt": "One curved fossil claw on small stone base. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.1853564977645874,
+        1.9999827146530151,
+        1.2235124111175537
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "ed6cc4d3-eca7-446c-81f1-880d11fdbe0f"
+    },
+    {
+      "id": "canyon_20",
+      "name": "Find_canyon_20",
+      "zone": "canyon",
+      "asset_id": "77317802539433",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_20",
+      "tag": "Assistant-d43d44c5-8545-4a63-b0cd-56fa7921e4a8",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_20_01.png",
+      "generation_prompt": "One small broad fossil skull plate. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2,
+        1.5324978828430176,
+        1.9610059261322021
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "c220f2c6-0154-4b10-ba2d-b6fd5acd0d43"
+    },
+    {
+      "id": "canyon_22",
+      "name": "Find_canyon_22",
+      "zone": "canyon",
+      "asset_id": "127937451142773",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_22",
+      "tag": "Assistant-70bac119-3bed-495f-9a0f-01f228aee83a",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_22_01.png",
+      "generation_prompt": "One small oval sandstone grinding stone. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.8498071432113647,
+        0.3178827464580536,
+        1.9999761581420898
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "2923ea72-36a0-44f1-b2c3-69abce84f91b"
+    },
+    {
+      "id": "canyon_23",
+      "name": "Find_canyon_23",
+      "zone": "canyon",
+      "asset_id": "135226081662517",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_23",
+      "tag": "Assistant-f960b769-9772-452c-874f-022d65a52734",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_23_01.png",
+      "generation_prompt": "One small clay bowl holding red ochre lump. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        0.3690257668495178,
+        1.5831735134124756
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "4c38471f-e05b-4562-a100-be663593293d"
+    },
+    {
+      "id": "canyon_24",
+      "name": "Find_canyon_24",
+      "zone": "canyon",
+      "asset_id": "81190236862058",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_24",
+      "tag": "Assistant-da5d925e-a7ce-4e34-b153-204a28902c0b",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_24_01.png",
+      "generation_prompt": "One large simple iron climbing piton with ring. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.8053910732269287,
+        2.0000009536743164,
+        0.7415975332260132
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "c9e8b90d-4ea9-4548-9abf-a6071ba96634"
+    },
+    {
+      "id": "canyon_25",
+      "name": "Find_canyon_25",
+      "zone": "canyon",
+      "asset_id": "132109782853850",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_25",
+      "tag": "Assistant-512957c1-169b-4ccd-a830-bd0550997c81",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_25_01.png",
+      "generation_prompt": "One large amber chunk with simple leaf inclusion. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.358948826789856,
+        2.0000009536743164,
+        1.3536964654922485
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "9c0e23c6-0896-450f-a36c-316e1d460088"
+    },
+    {
+      "id": "canyon_26",
+      "name": "Find_canyon_26",
+      "zone": "canyon",
+      "asset_id": "101844955579571",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_26",
+      "tag": "Assistant-116bfac8-3b0e-4a46-a83c-e71b93cfda6e",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_26_01.png",
+      "generation_prompt": "One small round layered stone concretion. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.1912673711776733,
+        1.9906811714172363
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "b1a9cb26-35aa-4842-a8f9-a809d8298224"
+    },
+    {
+      "id": "canyon_27",
+      "name": "Find_canyon_27",
+      "zone": "canyon",
+      "asset_id": "122390998903540",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_27",
+      "tag": "Assistant-ab8a032d-ef61-4c80-93fa-f397f8205956",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_27_01.png",
+      "generation_prompt": "One split grey geode with pale blue crystal interior. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9965258836746216,
+        2.0000009536743164,
+        1.7876533269882202
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "62f5cf28-20e2-45db-bf65-851f4cc955b5"
+    },
+    {
+      "id": "canyon_28",
+      "name": "Find_canyon_28",
+      "zone": "canyon",
+      "asset_id": "87838882503337",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_28",
+      "tag": "Assistant-975792d7-d5f1-4387-8833-4dddfaa49e8e",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_28_01.png",
+      "generation_prompt": "One short faceted petrified wood log segment. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.6437016725540161,
+        2.0000009536743164,
+        1.6543667316436768
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "3ede0141-0a9c-4881-90dc-392db1c1e3b4"
+    },
+    {
+      "id": "canyon_29",
+      "name": "Find_canyon_29",
+      "zone": "canyon",
+      "asset_id": "104005430342772",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_29",
+      "tag": "Assistant-c87a8e2e-271e-4ee6-a458-3c91dfb55cd4",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_29_01.png",
+      "generation_prompt": "One dark faceted meteorite with shallow pits. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.8974660634994507,
+        1.7331537008285522
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "3681b802-191e-47e6-b3ed-f51a6bb5215c"
+    },
+    {
+      "id": "canyon_30",
+      "name": "Find_canyon_30",
+      "zone": "canyon",
+      "asset_id": "100328740774599",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_30",
+      "tag": "Assistant-389ada7b-978b-4a8a-9470-cb01daebbd2e",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_30_01.png",
+      "generation_prompt": "One large angular smoky teal crystal cluster. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.8706367015838623,
+        2.0000007152557373,
+        1.796730399131775
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "2f0aebad-ce96-4317-978a-7393b4502380"
+    },
+    {
+      "id": "salzsee_01",
+      "name": "Find_salzsee_01",
+      "zone": "salzsee",
+      "asset_id": "97127082985734",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_01",
+      "tag": "Assistant-8d92fb98-7156-455f-a76f-44231f485045",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_01_01.png",
+      "generation_prompt": "One single milky white halite cube. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.9869384765625,
+        1.9999029636383057
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "5d54ebbd-7306-4252-8794-1be2a3a246ec"
+    },
+    {
+      "id": "salzsee_02",
+      "name": "Find_salzsee_02",
+      "zone": "salzsee",
+      "asset_id": "120624917803078",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_02",
+      "tag": "Assistant-831cf98d-3432-47fd-8a8c-f10445bc488a",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_02_01.png",
+      "generation_prompt": "One small branching white salt crystal cluster. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.6901048421859741,
+        1.9999032020568848,
+        1.5572575330734253
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "994fbe5e-e610-4a7f-8414-c4e3412abcce"
+    },
+    {
+      "id": "salzsee_03",
+      "name": "Find_salzsee_03",
+      "zone": "salzsee",
+      "asset_id": "107133817196916",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_03",
+      "tag": "Assistant-4e041ec2-07e9-4446-a1ee-3f3c09c1c926",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_03_01.png",
+      "generation_prompt": "One chunky pale pink salt stone. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9897284507751465,
+        1.9444375038146973,
+        2.0000007152557373
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "888bc6c4-079e-4886-bba7-04bbda6e8a17"
+    },
+    {
+      "id": "salzsee_04",
+      "name": "Find_salzsee_04",
+      "zone": "salzsee",
+      "asset_id": "118192766773283",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_04",
+      "tag": "Assistant-02949912-1063-481a-a7a1-59f6f53ef3c8",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_04_01.png",
+      "generation_prompt": "One small beige gypsum desert rose crystal. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.052446722984314,
+        2.0000007152557373,
+        1.0832281112670898
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "7672796c-0e29-485f-8795-a777064f2f51"
+    },
+    {
+      "id": "salzsee_05",
+      "name": "Find_salzsee_05",
+      "zone": "salzsee",
+      "asset_id": "110493916534202",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_05",
+      "tag": "Assistant-66c3cde3-82b2-41fe-b334-015c4bb2f8b6",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_05_01.png",
+      "generation_prompt": "One cluster of three translucent cyan salt cubes. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.4401028156280518,
+        1.9999032020568848,
+        1.4416674375534058
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e7deb91c-7fe3-4cee-8810-18ebc7c4f014"
+    },
+    {
+      "id": "salzsee_06",
+      "name": "Find_salzsee_06",
+      "zone": "salzsee",
+      "asset_id": "119179278228958",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_06",
+      "tag": "Assistant-e6f08244-2f89-4f8d-b16b-52886e4f06fa",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_06_01.png",
+      "generation_prompt": "One thick irregular white salt ring. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.9577614068984985,
+        0.9698923826217651
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "48d487d9-721f-48a4-a5ce-cf8a5b8fc595"
+    },
+    {
+      "id": "salzsee_07",
+      "name": "Find_salzsee_07",
+      "zone": "salzsee",
+      "asset_id": "134604446932517",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_07",
+      "tag": "Assistant-966d3136-04d0-44b1-acda-7d5de865a10d",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_07_01.png",
+      "generation_prompt": "One short layered white salt column. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.0488450527191162,
+        2.0000009536743164,
+        1.049974799156189
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "27f1003a-ed83-4ff0-b239-5f6acb2b6a2a"
+    },
+    {
+      "id": "salzsee_09",
+      "name": "Find_salzsee_09",
+      "zone": "salzsee",
+      "asset_id": "139954034719645",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_09",
+      "tag": "Assistant-a992657d-e00f-410e-8631-2f5bc3c30742",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_09_01.png",
+      "generation_prompt": "One fan shaped pale cyan crystal formation. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9104920625686646,
+        1.9999765157699585,
+        1.9042794704437256
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "7b15a1f6-c6a9-4997-9229-e33e0e082909"
+    },
+    {
+      "id": "salzsee_08",
+      "name": "Find_salzsee_08",
+      "zone": "salzsee",
+      "asset_id": "108034528385742",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_08",
+      "tag": "Assistant-73b103da-2135-43ab-be2c-cd7512f0b267",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_08_01.png",
+      "generation_prompt": "One shallow natural white salt bowl. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999029636383057,
+        0.8066950440406799,
+        1.9638804197311401
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "228de052-0824-449d-be21-fd6483caf549"
+    },
+    {
+      "id": "salzsee_10",
+      "name": "Find_salzsee_10",
+      "zone": "salzsee",
+      "asset_id": "88591893862062",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_10",
+      "tag": "Assistant-c75dd7c7-de61-4985-bbff-640941ef8adb",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_10_01.png",
+      "generation_prompt": "One thick white natural spiral salt formation. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.8326361179351807,
+        2.0000007152557373,
+        0.8306964635848999
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "a053dd17-c492-4f0f-bcdb-ea29c9b939ac"
+    },
+    {
+      "id": "salzsee_11",
+      "name": "Find_salzsee_11",
+      "zone": "salzsee",
+      "asset_id": "73462671238629",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_11",
+      "tag": "Assistant-202f6f31-5bbf-4dea-ab2c-70af7dd6b62c",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_11_01.png",
+      "generation_prompt": "One short weathered wooden ship plank. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.6803900003433228,
+        0.5227597951889038,
+        2.0000007152557373
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "7b9466c9-5e20-4d70-bf65-661fb22b8c76"
+    },
+    {
+      "id": "salzsee_14",
+      "name": "Find_salzsee_14",
+      "zone": "salzsee",
+      "asset_id": "91900261635650",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_14",
+      "tag": "Assistant-5781d3fd-e12d-4896-a6a9-d59add0c3fab",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_14_01.png",
+      "generation_prompt": "One short broad wooden oar blade fragment. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.3140649795532227,
+        0.2794966697692871,
+        1.9999995231628418
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "1998a897-cbab-484f-b287-c5d3332b6334"
+    },
+    {
+      "id": "salzsee_12",
+      "name": "Find_salzsee_12",
+      "zone": "salzsee",
+      "asset_id": "127299584364311",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_12",
+      "tag": "Assistant-f401eb2b-484b-487a-afff-05e77b3acdc3",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_12_01.png",
+      "generation_prompt": "One two thick wooden ship pegs. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.657646656036377,
+        2.0000007152557373,
+        0.8223286271095276
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e2a4dc42-262e-436d-bac7-c913ce724b6e"
+    },
+    {
+      "id": "salzsee_13",
+      "name": "Find_salzsee_13",
+      "zone": "salzsee",
+      "asset_id": "127999736319476",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_13",
+      "tag": "Assistant-6385a253-e586-4423-b836-021d000968db",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_13_01.png",
+      "generation_prompt": "One small coiled brown nautical rope. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999761581420898,
+        0.5555354356765747,
+        1.4437448978424072
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "cf5dca4c-160a-4a10-a9b8-b13dad5736b3"
+    },
+    {
+      "id": "salzsee_15",
+      "name": "Find_salzsee_15",
+      "zone": "salzsee",
+      "asset_id": "134333458830308",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_15",
+      "tag": "Assistant-d20e1ab2-63bd-4e87-b6a3-3aa8b5127306",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_15_01.png",
+      "generation_prompt": "One small corroded iron anchor. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.5345643758773804,
+        2.0000007152557373,
+        0.4016558825969696
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "211a4504-8b34-4494-becc-bc95edac0498"
+    },
+    {
+      "id": "salzsee_16",
+      "name": "Find_salzsee_16",
+      "zone": "salzsee",
+      "asset_id": "71095804589802",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_16",
+      "tag": "Assistant-bbba3c03-afa2-44bf-90e4-8a494235255f",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_16_01.png",
+      "generation_prompt": "One thick corroded iron rigging ring. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9434690475463867,
+        1.9999765157699585,
+        0.6269717216491699
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "5e9b65da-5d79-4f88-922e-1dcaf0d5006a"
+    },
+    {
+      "id": "salzsee_17",
+      "name": "Find_salzsee_17",
+      "zone": "salzsee",
+      "asset_id": "118616779570608",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_17",
+      "tag": "Assistant-b65bdc79-21c6-4790-a4d0-008e8d008a8f",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_17_01.png",
+      "generation_prompt": "One small wooden nautical pulley block. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.6440430879592896,
+        2.0000009536743164,
+        0.8760671019554138
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "220f484d-cb3d-4b50-a26a-62aec065eee3"
+    },
+    {
+      "id": "salzsee_18",
+      "name": "Find_salzsee_18",
+      "zone": "salzsee",
+      "asset_id": "113117618210544",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_18",
+      "tag": "Assistant-deec2ce1-27c0-43f3-9cb5-04c11dfaad72",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_18_01.png",
+      "generation_prompt": "One small bronze ship bell with thick loop. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.4343767166137695,
+        2.0000009536743164,
+        1.4327912330627441
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "53c7bf92-c09b-4f8c-9b84-8f3575cbe3f5"
+    },
+    {
+      "id": "salzsee_19",
+      "name": "Find_salzsee_19",
+      "zone": "salzsee",
+      "asset_id": "135660438375733",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_19",
+      "tag": "Assistant-22e200af-1c6f-4588-b243-e5e8d88df54c",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_19_01.png",
+      "generation_prompt": "One small wooden ship steering wheel. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9906930923461914,
+        2.0000009536743164,
+        0.3801451027393341
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "c5b61746-3135-4c26-8052-51e8412014f9"
+    },
+    {
+      "id": "salzsee_20",
+      "name": "Find_salzsee_20",
+      "zone": "salzsee",
+      "asset_id": "109271617685907",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_20",
+      "tag": "Assistant-11f0034d-e35b-4c93-96ea-45b72e11bec4",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_20_01.png",
+      "generation_prompt": "One brass nautical sighting disc with needle no writing. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.9992049932479858,
+        0.5224128365516663
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "a4539f4e-67a2-4633-8eb9-8a08491d8f55"
+    },
+    {
+      "id": "salzsee_21",
+      "name": "Find_salzsee_21",
+      "zone": "salzsee",
+      "asset_id": "82927620848629",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_21",
+      "tag": "Assistant-a03bb097-513c-4269-b17c-02d08cc3a455",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_21_01.png",
+      "generation_prompt": "One plain square bronze cargo token with center hole. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999079704284668,
+        1.9981387853622437,
+        1.1611205339431763
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "ffcb5ad0-af67-498a-a5c8-e34b64b4269b"
+    },
+    {
+      "id": "salzsee_22",
+      "name": "Find_salzsee_22",
+      "zone": "salzsee",
+      "asset_id": "106360999445335",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_22",
+      "tag": "Assistant-8aac667a-c442-458b-86cd-b8ebbc214a05",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_22_01.png",
+      "generation_prompt": "One small cylindrical tin container with closed lid. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999029636383057,
+        1.5036966800689697,
+        1.9982237815856934
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "38eb775d-8fa3-4443-a0de-f17fbdcc6f55"
+    },
+    {
+      "id": "salzsee_23",
+      "name": "Find_salzsee_23",
+      "zone": "salzsee",
+      "asset_id": "120522387970734",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_23",
+      "tag": "Assistant-2218409b-3522-4177-b25f-504e10d31126",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_23_01.png",
+      "generation_prompt": "One small bronze hexagonal scale weight. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.5238224267959595,
+        1.9312574863433838
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e6122d3f-2f0a-45dd-8112-9bf92683b818"
+    },
+    {
+      "id": "salzsee_24",
+      "name": "Find_salzsee_24",
+      "zone": "salzsee",
+      "asset_id": "124326964881095",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_24",
+      "tag": "Assistant-fc027cf0-faab-4a52-9328-020f35adcf14",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_24_01.png",
+      "generation_prompt": "One small pale blue glass vial with cork. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.0997120141983032,
+        1.9999765157699585,
+        1.0999300479888916
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "c41a136b-5f69-4ccd-a89f-ebb8ff10ca18"
+    },
+    {
+      "id": "salzsee_25",
+      "name": "Find_salzsee_25",
+      "zone": "salzsee",
+      "asset_id": "115891432196556",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_25",
+      "tag": "Assistant-ba62d4d8-6cce-43cf-8c09-35ba82d809d8",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_25_01.png",
+      "generation_prompt": "One small closed cream inlaid wooden box. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999029636383057,
+        0.9039852023124695,
+        1.9987130165100098
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "a613d32e-60bb-4604-8ddd-6289b980de69"
+    },
+    {
+      "id": "salzsee_26",
+      "name": "Find_salzsee_26",
+      "zone": "salzsee",
+      "asset_id": "89212612166377",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_26",
+      "tag": "Assistant-312c0a64-5b20-4645-bfb1-276d8d8450b8",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_26_01.png",
+      "generation_prompt": "One large round cream ceramic jar stopper. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.5426862239837646,
+        1.9997358322143555
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "cf49a7ea-3230-4aac-9db7-4ee940041bb3"
+    },
+    {
+      "id": "salzsee_27",
+      "name": "Find_salzsee_27",
+      "zone": "salzsee",
+      "asset_id": "122973692068688",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_27",
+      "tag": "Assistant-88953d30-a978-437a-ab03-38008799b388",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_27_01.png",
+      "generation_prompt": "One small pale pink shell pendant with cord loop. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.9652565717697144,
+        1.9999765157699585,
+        0.7836792469024658
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "dd877760-1056-4ad0-8d55-3d1d95353c4d"
+    },
+    {
+      "id": "salzsee_29",
+      "name": "Find_salzsee_29",
+      "zone": "salzsee",
+      "asset_id": "101603426915959",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_29",
+      "tag": "Assistant-4119c395-7c28-485c-b321-d980aea59d26",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_29_01.png",
+      "generation_prompt": "One white stone seal with abstract wave relief. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999518394470215,
+        1.3323458433151245,
+        1.9980674982070923
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "08c0cb93-7044-47bd-986d-a8da1b11585d"
+    },
+    {
+      "id": "salzsee_28",
+      "name": "Find_salzsee_28",
+      "zone": "salzsee",
+      "asset_id": "99343775614772",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_28",
+      "tag": "Assistant-af431920-bed4-482f-8b6d-d42a9132ada3",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_28_01.png",
+      "generation_prompt": "One thick round pale cyan crystal lens. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.969756841659546,
+        1.999854326248169,
+        1.9704753160476685
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "769194db-ec55-40bb-ace8-1992b1ea09c7"
+    },
+    {
+      "id": "salzsee_30",
+      "name": "Find_salzsee_30",
+      "zone": "salzsee",
+      "asset_id": "101025940482803",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_salzsee_30",
+      "tag": "Assistant-d8a090fa-882c-4c39-b915-81c72f16efd6",
+      "source_icon": "assets/icons/finds/salzsee/icon_find_salzsee_30_01.png",
+      "generation_prompt": "One small octagonal polished silver mirror plate. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.000000476837158,
+        1.3098630905151367,
+        1.9981508255004883
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "00c8d296-dea8-4cb0-bec0-6e3ebde7874c"
+    },
+    {
+      "id": "ruinenstadt_01",
+      "name": "Find_ruinenstadt_01",
+      "zone": "ruinenstadt",
+      "asset_id": "136543427251596",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_01",
+      "tag": "Assistant-b10b52f4-2f8d-4d01-838a-9e2ab9dd3ddf",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_01_01.png",
+      "generation_prompt": "One small chipped sandstone building block. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.4459726810455322,
+        1.9998667240142822,
+        1.4473767280578613
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "28906ab8-0967-4fd5-9b3f-facd720d5da0"
+    },
+    {
+      "id": "ruinenstadt_02",
+      "name": "Find_ruinenstadt_02",
+      "zone": "ruinenstadt",
+      "asset_id": "124105508157162",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_02",
+      "tag": "Assistant-a825d90b-40a7-4ef1-9698-7dcb67e0227f",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_02_01.png",
+      "generation_prompt": "One small sandstone square with four teal mosaic tiles. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9339675903320312,
+        1.9999022483825684,
+        1.1142792701721191
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "90d8149d-c334-4338-a60b-565ddf1d1040"
+    },
+    {
+      "id": "ruinenstadt_03",
+      "name": "Find_ruinenstadt_03",
+      "zone": "ruinenstadt",
+      "asset_id": "71598367156192",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_03",
+      "tag": "Assistant-577b0ed4-e510-4aa6-9fce-09f1a336b011",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_03_01.png",
+      "generation_prompt": "One short broken sandstone column segment. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.865978717803955,
+        1.9999022483825684,
+        1.8724145889282227
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e4848a56-9b13-484b-a537-80a5ebc56183"
+    },
+    {
+      "id": "ruinenstadt_04",
+      "name": "Find_ruinenstadt_04",
+      "zone": "ruinenstadt",
+      "asset_id": "110361825607544",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_04",
+      "tag": "Assistant-a9e5f051-0a53-41ca-8070-271af7f22c4c",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_04_01.png",
+      "generation_prompt": "One sandstone fragment with raised geometric diamond. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9965670108795166,
+        2,
+        1.0192790031433105
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "bf5caa71-1279-4e6c-9a67-2a1ef602fa3b"
+    },
+    {
+      "id": "ruinenstadt_05",
+      "name": "Find_ruinenstadt_05",
+      "zone": "ruinenstadt",
+      "asset_id": "127015192916101",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_05",
+      "tag": "Assistant-70532118-0aa9-4fda-842e-3a418be15000",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_05_01.png",
+      "generation_prompt": "One small square sandstone column capital. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.7292174100875854,
+        1.9999998807907104,
+        1.738033652305603
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "cd72f2fc-c4c3-4180-a139-4b1e85d5fdaa"
+    },
+    {
+      "id": "ruinenstadt_07",
+      "name": "Find_ruinenstadt_07",
+      "zone": "ruinenstadt",
+      "asset_id": "89595166156664",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_07",
+      "tag": "Assistant-e4b72c73-115c-49ed-a3b9-732e775a70b4",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_07_01.png",
+      "generation_prompt": "One small round terracotta game token. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9999761581420898,
+        0.38815319538116455,
+        1.997873067855835
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "5febf443-db3a-4e45-adca-85be42825878"
+    },
+    {
+      "id": "ruinenstadt_08",
+      "name": "Find_ruinenstadt_08",
+      "zone": "ruinenstadt",
+      "asset_id": "78668435366127",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_08",
+      "tag": "Assistant-11727ba6-5f7a-49d1-9174-5fd7faa9e9be",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_08_01.png",
+      "generation_prompt": "One short simple bronze key with square bow. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.8490595817565918,
+        0.3395451307296753,
+        1.9999752044677734
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "0d9ee8de-a086-40f5-ad49-1f791e340407"
+    },
+    {
+      "id": "ruinenstadt_06",
+      "name": "Find_ruinenstadt_06",
+      "zone": "ruinenstadt",
+      "asset_id": "129392892657436",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_06",
+      "tag": "Assistant-64449a9e-212d-4e6c-b31d-a80e80b7b1ab",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_06_01.png",
+      "generation_prompt": "One shallow plain sandstone bowl. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9829010963439941,
+        0.9195196628570557,
+        1.9999995231628418
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "a376515d-18f0-4a4e-9c4b-7ce485edc520"
+    },
+    {
+      "id": "ruinenstadt_09",
+      "name": "Find_ruinenstadt_09",
+      "zone": "ruinenstadt",
+      "asset_id": "89483982687436",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_09",
+      "tag": "Assistant-26d5ed26-18bc-446d-9ec2-16fe8d42eb22",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_09_01.png",
+      "generation_prompt": "One small cream ceramic incense burner with vent holes. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.6602240800857544,
+        2,
+        1.6524713039398193
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "1719758c-91e9-439b-8f11-afc5ee6541aa"
+    },
+    {
+      "id": "ruinenstadt_10",
+      "name": "Find_ruinenstadt_10",
+      "zone": "ruinenstadt",
+      "asset_id": "86562752704971",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_10",
+      "tag": "Assistant-abfb9f3f-0d43-438c-b5db-250b7be2d31a",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_10_01.png",
+      "generation_prompt": "One small closed teal glazed ceramic box. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.000000476837158,
+        1.8572853803634644,
+        1.9975032806396484
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "75f306d4-3321-4420-a324-0986307d5451"
+    },
+    {
+      "id": "ruinenstadt_11",
+      "name": "Find_ruinenstadt_11",
+      "zone": "ruinenstadt",
+      "asset_id": "84210906574855",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_11",
+      "tag": "Assistant-01be61da-a523-4b50-9d4e-a19e7545aad7",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_11_01.png",
+      "generation_prompt": "One small terracotta stamp with cube handle. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9968318939208984,
+        1.7758238315582275,
+        1.9999752044677734
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "b941638e-598e-4882-9a19-9b3f81da77f6"
+    },
+    {
+      "id": "ruinenstadt_12",
+      "name": "Find_ruinenstadt_12",
+      "zone": "ruinenstadt",
+      "asset_id": "79876452682862",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_12",
+      "tag": "Assistant-7e1d4fd9-c62d-4d69-8260-0605cd37cfc1",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_12_01.png",
+      "generation_prompt": "One small rectangular bronze plate with arch relief. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.4515159130096436,
+        1.9999911785125732,
+        0.3180135190486908
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e5ad670e-72b9-440b-8771-39481b63009a"
+    },
+    {
+      "id": "ruinenstadt_13",
+      "name": "Find_ruinenstadt_13",
+      "zone": "ruinenstadt",
+      "asset_id": "82417102560164",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_13",
+      "tag": "Assistant-0ca700da-73f9-40c5-99fb-80ffe80ad2bb",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_13_01.png",
+      "generation_prompt": "One round sandstone stamp with abstract concentric rings. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9968535900115967,
+        1.6180826425552368,
+        1.9999995231628418
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "52e024d7-196e-4833-92a2-e9407dd9cce5"
+    },
+    {
+      "id": "ruinenstadt_14",
+      "name": "Find_ruinenstadt_14",
+      "zone": "ruinenstadt",
+      "asset_id": "97840363303586",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_14",
+      "tag": "Assistant-692f145d-19c7-4c32-b49c-c02dd7380237",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_14_01.png",
+      "generation_prompt": "One teal stone stamp with simple shield silhouette. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.9457952380180359,
+        1.9999266862869263,
+        0.9363971948623657
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "5d48c9f4-5837-4808-a7d7-8ac61891c9a9"
+    },
+    {
+      "id": "ruinenstadt_15",
+      "name": "Find_ruinenstadt_15",
+      "zone": "ruinenstadt",
+      "asset_id": "130295970677039",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_15",
+      "tag": "Assistant-543dd829-ad58-45f5-867a-c48e166e1807",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_15_01.png",
+      "generation_prompt": "One gold octagonal seal with plain central teal disc. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9952795505523682,
+        1.170875906944275,
+        1.9999017715454102
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "fe726182-1523-4964-a837-7ca762eb5551"
+    },
+    {
+      "id": "ruinenstadt_16",
+      "name": "Find_ruinenstadt_16",
+      "zone": "ruinenstadt",
+      "asset_id": "129729093084454",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_16",
+      "tag": "Assistant-c02eb13d-bca2-4fe0-8d8a-0ba44e53f0a6",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_16_01.png",
+      "generation_prompt": "One small blocky sandstone statue hand fragment. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.7255405187606812,
+        2,
+        1.237414002418518
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "591287d1-9d0a-4b2b-b3e2-7c9861f2e9de"
+    },
+    {
+      "id": "ruinenstadt_17",
+      "name": "Find_ruinenstadt_17",
+      "zone": "ruinenstadt",
+      "asset_id": "116164938817079",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_17",
+      "tag": "Assistant-7e42e08a-2c30-4461-97ec-78096d99fbb4",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_17_01.png",
+      "generation_prompt": "One small angular sandstone bird statuette. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.8277039527893066,
+        1.2784496545791626
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "077f6fe3-96eb-4028-8dc9-e8f822eb5238"
+    },
+    {
+      "id": "ruinenstadt_18",
+      "name": "Find_ruinenstadt_18",
+      "zone": "ruinenstadt",
+      "asset_id": "102298782806942",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_18",
+      "tag": "Assistant-1b9d7b47-affe-4cf3-a1fd-07da14757811",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_18_01.png",
+      "generation_prompt": "One small blocky sandstone guardian bust. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.1001124382019043,
+        1.9999030828475952,
+        1.1041793823242188
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "35a75099-aa2e-4649-97bd-7ebe8287504a"
+    },
+    {
+      "id": "ruinenstadt_19",
+      "name": "Find_ruinenstadt_19",
+      "zone": "ruinenstadt",
+      "asset_id": "139248752579260",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_19",
+      "tag": "Assistant-d289f8c5-0ff5-4e5a-9b15-5132681be398",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_19_01.png",
+      "generation_prompt": "One small seated sandstone figure with folded arms. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.9814134836196899,
+        2,
+        0.8875495195388794
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "740fb588-d1b1-4523-92d0-0b5617bb91fe"
+    },
+    {
+      "id": "ruinenstadt_20",
+      "name": "Find_ruinenstadt_20",
+      "zone": "ruinenstadt",
+      "asset_id": "82106689251624",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_20",
+      "tag": "Assistant-f130671d-babc-45f2-be56-2f5033413adf",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_20_01.png",
+      "generation_prompt": "One gold trimmed sandstone guardian statuette with teal chest inset. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.0338207483291626,
+        1.999975562095642,
+        1.2980862855911255
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "2e19d042-bd5a-4fa9-b95b-12356f939ffe"
+    },
+    {
+      "id": "ruinenstadt_21",
+      "name": "Find_ruinenstadt_21",
+      "zone": "ruinenstadt",
+      "asset_id": "90127919259216",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_21",
+      "tag": "Assistant-74af5d1a-45a2-4d4a-ae1c-d573f493b991",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_21_01.png",
+      "generation_prompt": "One short knotted measuring cord with stone weight. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9825196266174316,
+        0.6201700568199158,
+        1.9999992847442627
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "cfdf367b-9611-412a-bfec-93c810ce4a97"
+    },
+    {
+      "id": "ruinenstadt_22",
+      "name": "Find_ruinenstadt_22",
+      "zone": "ruinenstadt",
+      "asset_id": "91132373343682",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_22",
+      "tag": "Assistant-60074e21-a7cf-41cd-b477-8f28f5bf10e5",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_22_01.png",
+      "generation_prompt": "One bronze conical plumb bob with cord loop. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        0.9732770919799805,
+        1.999975562095642,
+        0.9773319959640503
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "90bb4d15-4cb1-42e5-b2b2-8de08e353568"
+    },
+    {
+      "id": "ruinenstadt_23",
+      "name": "Find_ruinenstadt_23",
+      "zone": "ruinenstadt",
+      "asset_id": "118530051938604",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_23",
+      "tag": "Assistant-886a634c-9b18-4e21-a33f-c6e41a62d997",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_23_01.png",
+      "generation_prompt": "One thick brass ring with four short radial tabs. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.8674545288085938,
+        1.999975562095642,
+        0.42455801367759705
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "3c8feeeb-158d-4b9d-9222-ba26fcbeb108"
+    },
+    {
+      "id": "ruinenstadt_24",
+      "name": "Find_ruinenstadt_24",
+      "zone": "ruinenstadt",
+      "asset_id": "127083152343971",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_24",
+      "tag": "Assistant-aa66440d-cd23-41da-a055-eca5176a7dc9",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_24_01.png",
+      "generation_prompt": "One bronze square frame holding circular teal lens. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9998784065246582,
+        1.9964959621429443,
+        0.9433398246765137
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "8f615d00-89be-446c-a295-bcb1c48c2f90"
+    },
+    {
+      "id": "ruinenstadt_25",
+      "name": "Find_ruinenstadt_25",
+      "zone": "ruinenstadt",
+      "asset_id": "79496740956545",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_25",
+      "tag": "Assistant-06430957-1b75-43c9-bae7-ef7318209e56",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_25_01.png",
+      "generation_prompt": "One gold radial disc with teal central stone no writing. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9983738660812378,
+        2,
+        1.3123050928115845
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "c9b186fa-9ae3-410c-ac17-f357cf36f48e"
+    },
+    {
+      "id": "ruinenstadt_27",
+      "name": "Find_ruinenstadt_27",
+      "zone": "ruinenstadt",
+      "asset_id": "138156297516468",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_27",
+      "tag": "Assistant-d8f1ae6b-e8a6-4435-9621-d5c52cdb148a",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_27_01.png",
+      "generation_prompt": "One small segmented sandstone colossus finger joint. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.5362831354141235,
+        1.6401368379592896
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "117dc147-fdb9-41db-8bd8-0a17a1afeeda"
+    },
+    {
+      "id": "ruinenstadt_26",
+      "name": "Find_ruinenstadt_26",
+      "zone": "ruinenstadt",
+      "asset_id": "127167473223329",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_26",
+      "tag": "Assistant-be78bded-c64e-4ed1-9b36-93c451241178",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_26_01.png",
+      "generation_prompt": "One short broad sandstone joining pin. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.2434722185134888,
+        1.999975562095642,
+        0.8514942526817322
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "ae5a03f6-bf08-470d-89d0-94a67eed21e3"
+    },
+    {
+      "id": "ruinenstadt_28",
+      "name": "Find_ruinenstadt_28",
+      "zone": "ruinenstadt",
+      "asset_id": "105252637161894",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_28",
+      "tag": "Assistant-28fa007b-58f2-4b9f-96c8-606bde3e6265",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_28_01.png",
+      "generation_prompt": "One curved sandstone armor plate with one teal stripe. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.933666467666626,
+        1.999975562095642,
+        0.5881201028823853
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "af621f82-104c-43bc-951e-72f2688f600d"
+    },
+    {
+      "id": "ruinenstadt_29",
+      "name": "Find_ruinenstadt_29",
+      "zone": "ruinenstadt",
+      "asset_id": "83406323408905",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_29",
+      "tag": "Assistant-92692f41-9edc-4d93-9661-5f0e6c74172c",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_29_01.png",
+      "generation_prompt": "One oval polished deep teal stone inset. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9685955047607422,
+        1.999975562095642,
+        1.4084844589233398
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "e695fba9-93bd-4bb6-8032-16dcacbc1efa"
+    },
+    {
+      "id": "ruinenstadt_30",
+      "name": "Find_ruinenstadt_30",
+      "zone": "ruinenstadt",
+      "asset_id": "71941662467920",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_ruinenstadt_30",
+      "tag": "Assistant-c53eb15e-5d5c-4d2c-9881-268261c26111",
+      "source_icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_30_01.png",
+      "generation_prompt": "One large faceted teal stone core in angular sandstone cradle. An inanimate archaeological collectible for a Roblox desert game. Single solid low-poly mesh, simple matte material colors, broad readable shapes, restrained wear. If a fragment is described, show only that fragment. Statues and fossils are objects, not living characters. No stand, ground, text, letters, logos or known characters.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        2.0000007152557373,
+        1.677361249923706,
+        1.9941073656082153
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "2e1bc543-6892-4a68-b24a-a36299b18674"
+    },
+    {
+      "id": "canyon_21",
+      "name": "Find_canyon_21",
+      "zone": "canyon",
+      "asset_id": "104773540812721",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_21",
+      "tag": "Assistant-2370b08a-e385-41ee-ac26-e2a133e10ded",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_21_01.png",
+      "generation_prompt": "A small irregular charcoal-gray natural stone flake with broad uneven facets. A matte low-poly rock collectible, no handle or manufactured tool, no stand, text or logo.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.976676106452942,
+        1.431596040725708,
+        2
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "1da0a9d5-ae8f-40cb-8df4-83d43f43faf3"
+    },
+    {
+      "id": "canyon_02",
+      "name": "Find_canyon_02",
+      "zone": "canyon",
+      "asset_id": "71580348238530",
+      "studio_path": "Workspace.DuneBaron_AssetTests.Find_canyon_02",
+      "tag": "Assistant-23a273b9-630c-41c8-978f-e7c6a22f4b8c",
+      "source_icon": "assets/icons/finds/canyon/icon_find_canyon_02_01.png",
+      "generation_prompt": "A flat dark gray slate stone bearing the fossil impression of a long fern frond, with paired narrow leaflets along one central stem. An inanimate museum fossil specimen, simple low-poly Roblox prop, matte stone. No stand, ground, text or logo.",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "script_count": 0,
+      "size_studs": [
+        1.9571118354797363,
+        0.4303165376186371,
+        2
+      ],
+      "status": "visual_prototype_art_review_pending",
+      "job_id": "cdcef2a4-dc4b-4c75-8180-31e7d2462fac"
+    }
+  ],
+  "pending_jobs": [],
+  "failures": [
+    {
+      "id": "canyon_02",
+      "job_id": "9aa47fec-8daf-4e43-868e-72b67189365c",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Moderation failed",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "recovery_status": "deferred_for_clearer_botanical_description",
+      "recovered": true
+    },
+    {
+      "id": "canyon_21",
+      "job_id": "08aba8b8-9ce6-41ff-a531-e78bab01e369",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Moderation failed",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "recovered": true
+    }
+  ],
+  "remaining_ids": [],
+  "deferred_ids": [],
+  "reviewed_zones": [
+    "salzsee",
+    "ruinenstadt",
+    "canyon"
+  ]
+}

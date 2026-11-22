@@ -1,0 +1,1280 @@
+{
+  "place_id": "135831532782380",
+  "place_name": "Every Last Grain",
+  "date": "2026-11-17",
+  "status": "prototype_catalog_complete",
+  "note_de": "Historisches Generierungsprotokoll mit früheren Kandidaten. Kanonische Fundmodelle stehen in find_model_map.json und die 14 Grundmodelle unter core_library. Alle Modelle sind statische Prototypen; keine Spielmechanik wurde implementiert.",
+  "models": [
+    {
+      "id": "shovel",
+      "name": "Shovel_Test01",
+      "asset_id": "79178358144090",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "size_studs": [
+        1.153936,
+        3.999998,
+        0.333082
+      ],
+      "reference": "assets/reference/tools/ref_shovel_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Shovel_Test01"
+    },
+    {
+      "id": "merchant_stall",
+      "name": "MerchantStall_Test01",
+      "asset_id": "119853655246500",
+      "requested_max_triangles": 6000,
+      "part_count": 3,
+      "size_studs": [
+        7.279967,
+        8.156647,
+        5.999852
+      ],
+      "reference": "assets/reference/props/ref_merchant_stall_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.MerchantStall_Test01"
+    },
+    {
+      "id": "bucket_chain",
+      "name": "BucketChain_Test01",
+      "asset_id": "121605866645657",
+      "requested_max_triangles": 5000,
+      "part_count": 3,
+      "size_studs": {
+        "1": 3.8372645378112793,
+        "2": 6.042969703674316,
+        "3": 4.999876499176025
+      },
+      "reference": "assets/reference/tools/ref_bucket_chain_01.png",
+      "anchored": true,
+      "status": "needs_visual_revision",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.BucketChain_Test01"
+    },
+    {
+      "id": "excavator",
+      "name": "Excavator_Test01",
+      "asset_id": "98480257603343",
+      "requested_max_triangles": 6000,
+      "part_count": 3,
+      "size_studs": {
+        "1": 5.006775379180908,
+        "2": 6,
+        "3": 8.279199600219727
+      },
+      "reference": "assets/reference/tools/ref_excavator_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Excavator_Test01"
+    },
+    {
+      "id": "suction_robot",
+      "name": "SuctionRobot_Test01",
+      "asset_id": "107938995311509",
+      "requested_max_triangles": 4500,
+      "part_count": 6,
+      "size_studs": {
+        "1": 2.9730114936828613,
+        "2": 3.744225263595581,
+        "3": 5.999961853027344
+      },
+      "reference": "assets/reference/tools/ref_suction_robot_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.SuctionRobot_Test01"
+    },
+    {
+      "id": "harvester",
+      "name": "Harvester_Test01",
+      "asset_id": "126472081241121",
+      "requested_max_triangles": 9000,
+      "reference": "assets/reference/tools/ref_harvester_01.png",
+      "anchored": true,
+      "status": "needs_visual_revision",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Harvester_Test01"
+    },
+    {
+      "id": "bucket_chain_v2",
+      "name": "BucketChain_Test02",
+      "asset_id": "135322818777452",
+      "requested_max_triangles": 7000,
+      "part_count": 3,
+      "size_studs": [
+        1.8899263143539429,
+        3.4676241874694824,
+        4.000000953674316
+      ],
+      "reference": "assets/reference/tools/ref_bucket_chain_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.BucketChain_Test02"
+    },
+    {
+      "id": "harvester_v2",
+      "name": "Harvester_Test02",
+      "asset_id": "96562752794230",
+      "requested_max_triangles": 12000,
+      "part_count": 3,
+      "size_studs": [
+        7.498473644256592,
+        8.000003814697266,
+        11.860304832458496
+      ],
+      "reference": "assets/reference/tools/ref_harvester_01.png",
+      "anchored": true,
+      "status": "needs_visual_revision",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Harvester_Test02"
+    },
+    {
+      "id": "crate_wood",
+      "name": "CrateWood_Test01",
+      "asset_id": "117696986984634",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "size_studs": [
+        2.993333101272583,
+        2.8083014488220215,
+        3.0000007152557373
+      ],
+      "reference": "assets/icons/crates/icon_crates_wood_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.CrateWood_Test01"
+    },
+    {
+      "id": "crate_iron",
+      "name": "CrateIron_Test01",
+      "asset_id": "116751219754977",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "size_studs": [
+        2.999927282333374,
+        2.488638401031494,
+        2.8336267471313477
+      ],
+      "reference": "assets/icons/crates/icon_crates_iron_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.CrateIron_Test01"
+    },
+    {
+      "id": "crate_gold",
+      "name": "CrateGold_Test01",
+      "asset_id": "120877558431711",
+      "requested_max_triangles": 2500,
+      "part_count": 2,
+      "size_studs": [
+        2.999972105026245,
+        2.5472025871276855,
+        2.7043983936309814
+      ],
+      "reference": "assets/icons/crates/icon_crates_gold_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.CrateGold_Test01"
+    },
+    {
+      "id": "crate_event",
+      "name": "CrateEvent_Test01",
+      "asset_id": "100268489246411",
+      "requested_max_triangles": 2500,
+      "part_count": 2,
+      "size_studs": [
+        3.0000007152557373,
+        2.7408039569854736,
+        2.9981749057769775
+      ],
+      "reference": "assets/icons/crates/icon_crates_event_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.CrateEvent_Test01"
+    },
+    {
+      "id": "fennec",
+      "name": "Fennec_Test01",
+      "asset_id": "121905406831310",
+      "requested_max_triangles": 4500,
+      "part_count": 7,
+      "size_studs": [
+        1.8481274843215942,
+        2.6999950408935547,
+        1.97754967212677
+      ],
+      "reference": "assets/reference/companions/ref_fennec_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Fennec_Test01"
+    },
+    {
+      "id": "scarab",
+      "name": "Scarab_Test01",
+      "asset_id": "83493058955154",
+      "requested_max_triangles": 4000,
+      "part_count": 3,
+      "size_studs": [
+        1.7410943508148193,
+        1.7000000476837158,
+        2.443331241607666
+      ],
+      "reference": "assets/reference/companions/ref_scarab_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Scarab_Test01"
+    },
+    {
+      "id": "desert_mouse",
+      "name": "DesertMouse_Test01",
+      "asset_id": "104895840791584",
+      "requested_max_triangles": 4000,
+      "part_count": 7,
+      "size_studs": [
+        1.561905860900879,
+        2,
+        1.8292495012283325
+      ],
+      "reference": "assets/reference/companions/ref_desert_mouse_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.DesertMouse_Test01"
+    },
+    {
+      "id": "colossus",
+      "name": "Colossus_Test01",
+      "asset_id": "80980372859253",
+      "requested_max_triangles": 12000,
+      "part_count": 5,
+      "size_studs": [
+        25.206268310546875,
+        25.999732971191406,
+        14.93411922454834
+      ],
+      "reference": "assets/reference/events/ref_colossus_01.png",
+      "anchored": true,
+      "status": "needs_pose_refinement",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Colossus_Test01"
+    },
+    {
+      "id": "duenenmeer_01",
+      "name": "Find_duenenmeer_01",
+      "asset_id": "125011530140669",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        2,
+        1.6905558109283447,
+        1.3795640468597412
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_01_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_01"
+    },
+    {
+      "id": "duenenmeer_02",
+      "name": "Find_duenenmeer_02",
+      "asset_id": "97814769981844",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        1.9967703819274902,
+        1.9148764610290527,
+        2.000000476837158
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_02_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_02"
+    },
+    {
+      "id": "duenenmeer_03",
+      "name": "Find_duenenmeer_03",
+      "asset_id": "91557393261393",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        1.7875556945800781,
+        2,
+        0.9678452014923096
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_03_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_03"
+    },
+    {
+      "id": "duenenmeer_04",
+      "name": "Find_duenenmeer_04",
+      "asset_id": "119457683155342",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        1.999971866607666,
+        1.7720025777816772,
+        1.844374418258667
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_04_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_04"
+    },
+    {
+      "id": "duenenmeer_05",
+      "name": "Find_duenenmeer_05",
+      "asset_id": "134058988699243",
+      "requested_max_triangles": 1500,
+      "part_count": 2,
+      "size_studs": [
+        1.9999761581420898,
+        1.9406312704086304,
+        1.3607871532440186
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_05_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_05"
+    },
+    {
+      "id": "duenenmeer_06",
+      "name": "Find_duenenmeer_06",
+      "asset_id": "91368506817676",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        2.000000476837158,
+        1.6134178638458252,
+        1.99546217918396
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_06_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_06"
+    },
+    {
+      "id": "duenenmeer_07",
+      "name": "Find_duenenmeer_07",
+      "asset_id": "84602462326169",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        1.3718780279159546,
+        1.9999765157699585,
+        1.2232365608215332
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_07_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_07"
+    },
+    {
+      "id": "duenenmeer_08",
+      "name": "Find_duenenmeer_08",
+      "asset_id": "129197285118467",
+      "requested_max_triangles": 1500,
+      "part_count": 1,
+      "size_studs": [
+        1.5192047357559204,
+        2.0000009536743164,
+        1.5293833017349243
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_08_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_08"
+    },
+    {
+      "id": "duenenmeer_09",
+      "name": "Find_duenenmeer_09",
+      "asset_id": "132614170071603",
+      "requested_max_triangles": 1500,
+      "part_count": 3,
+      "size_studs": [
+        0.8568241596221924,
+        1.0289583206176758,
+        2.000007152557373
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_09_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_09"
+    },
+    {
+      "id": "duenenmeer_10",
+      "name": "Find_duenenmeer_10",
+      "asset_id": "71776258476406",
+      "requested_max_triangles": 1500,
+      "part_count": 3,
+      "size_studs": [
+        1.6024816036224365,
+        2.0000011920928955,
+        1.4683959484100342
+      ],
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_10_01.png",
+      "anchored": true,
+      "status": "needs_reference_match",
+      "recorded_path_at_generation": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates.Find_duenenmeer_10"
+    },
+    {
+      "id": "harvester_procedural",
+      "name": "Harvester_Procedural_Test03",
+      "generation_id": "87913e0e-1ffa-418c-99b6-e010d94ce8ae",
+      "generation_method": "Roblox image-guided ProceduralModel",
+      "part_count": 89,
+      "reference": "assets/icons/tools/icon_node_collect_harvester_01.png",
+      "anchored": true,
+      "status": "visually_inspected",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Harvester_Procedural_Test03"
+    },
+    {
+      "id": "duenenmeer_11",
+      "name": "Find_duenenmeer_11",
+      "asset_id": "121407711706437",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_11_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_11"
+    },
+    {
+      "id": "duenenmeer_12",
+      "name": "Find_duenenmeer_12",
+      "asset_id": "136691310525071",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_12_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_12"
+    },
+    {
+      "id": "duenenmeer_13",
+      "name": "Find_duenenmeer_13",
+      "asset_id": "128520687121236",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_13_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_13"
+    },
+    {
+      "id": "duenenmeer_14",
+      "name": "Find_duenenmeer_14",
+      "asset_id": "102754079306957",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_14_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_14"
+    },
+    {
+      "id": "duenenmeer_15",
+      "name": "Find_duenenmeer_15",
+      "asset_id": "118858986586024",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_15_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_15"
+    },
+    {
+      "id": "duenenmeer_16",
+      "name": "Find_duenenmeer_16",
+      "asset_id": "77772706235033",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_16_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_16"
+    },
+    {
+      "id": "duenenmeer_17",
+      "name": "Find_duenenmeer_17",
+      "asset_id": "124922877678122",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_17_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_17"
+    },
+    {
+      "id": "duenenmeer_18",
+      "name": "Find_duenenmeer_18",
+      "asset_id": "140716497388333",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_18_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_18"
+    },
+    {
+      "id": "duenenmeer_19",
+      "name": "Find_duenenmeer_19",
+      "asset_id": "128750311207484",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_19_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_19"
+    },
+    {
+      "id": "duenenmeer_20",
+      "name": "Find_duenenmeer_20",
+      "asset_id": "90767622857220",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_20_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_20"
+    },
+    {
+      "id": "duenenmeer_21",
+      "name": "Find_duenenmeer_21",
+      "asset_id": "137330898616230",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_21_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_21"
+    },
+    {
+      "id": "duenenmeer_22",
+      "name": "Find_duenenmeer_22",
+      "asset_id": "85440707872565",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_22_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_22"
+    },
+    {
+      "id": "duenenmeer_23",
+      "name": "Find_duenenmeer_23",
+      "asset_id": "116640847710329",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_23_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_23"
+    },
+    {
+      "id": "duenenmeer_24",
+      "name": "Find_duenenmeer_24",
+      "asset_id": "118290790429786",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_24_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_24"
+    },
+    {
+      "id": "duenenmeer_25",
+      "name": "Find_duenenmeer_25",
+      "asset_id": "74398606599281",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_25_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_25"
+    },
+    {
+      "id": "duenenmeer_26",
+      "name": "Find_duenenmeer_26",
+      "asset_id": "113846846508182",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_26_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_26"
+    },
+    {
+      "id": "duenenmeer_27",
+      "name": "Find_duenenmeer_27",
+      "asset_id": "91201376724495",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_27_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_27"
+    },
+    {
+      "id": "duenenmeer_28",
+      "name": "Find_duenenmeer_28",
+      "asset_id": "124136556140762",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_28_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_28"
+    },
+    {
+      "id": "duenenmeer_29",
+      "name": "Find_duenenmeer_29",
+      "asset_id": "122013049137528",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_29_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_29"
+    },
+    {
+      "id": "duenenmeer_30",
+      "name": "Find_duenenmeer_30",
+      "asset_id": "107429554012975",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_30_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_30"
+    },
+    {
+      "id": "oase_01",
+      "name": "Find_oase_01",
+      "asset_id": "96453848485491",
+      "reference": "assets/icons/finds/oase/icon_find_oase_01_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_01"
+    },
+    {
+      "id": "oase_02",
+      "name": "Find_oase_02",
+      "asset_id": "79729810843364",
+      "reference": "assets/icons/finds/oase/icon_find_oase_02_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_02"
+    },
+    {
+      "id": "oase_03",
+      "name": "Find_oase_03",
+      "asset_id": "115739603691823",
+      "reference": "assets/icons/finds/oase/icon_find_oase_03_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_03"
+    },
+    {
+      "id": "oase_04",
+      "name": "Find_oase_04",
+      "asset_id": "109510031038253",
+      "reference": "assets/icons/finds/oase/icon_find_oase_04_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_04"
+    },
+    {
+      "id": "oase_05",
+      "name": "Find_oase_05",
+      "asset_id": "85210203598572",
+      "reference": "assets/icons/finds/oase/icon_find_oase_05_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_05"
+    },
+    {
+      "id": "oase_06",
+      "name": "Find_oase_06",
+      "asset_id": "111867210920659",
+      "reference": "assets/icons/finds/oase/icon_find_oase_06_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_06"
+    },
+    {
+      "id": "oase_07",
+      "name": "Find_oase_07",
+      "asset_id": "109685221526702",
+      "reference": "assets/icons/finds/oase/icon_find_oase_07_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_07"
+    },
+    {
+      "id": "oase_08",
+      "name": "Find_oase_08",
+      "asset_id": "95412276206046",
+      "reference": "assets/icons/finds/oase/icon_find_oase_08_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_08"
+    },
+    {
+      "id": "oase_09",
+      "name": "Find_oase_09",
+      "asset_id": "115656666649563",
+      "reference": "assets/icons/finds/oase/icon_find_oase_09_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_09"
+    },
+    {
+      "id": "oase_10",
+      "name": "Find_oase_10",
+      "asset_id": "104493704619693",
+      "reference": "assets/icons/finds/oase/icon_find_oase_10_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 3,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_10"
+    },
+    {
+      "id": "oase_11",
+      "name": "Find_oase_11",
+      "asset_id": "120977955928314",
+      "reference": "assets/icons/finds/oase/icon_find_oase_11_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_11"
+    },
+    {
+      "id": "oase_12",
+      "name": "Find_oase_12",
+      "asset_id": "102280296557613",
+      "reference": "assets/icons/finds/oase/icon_find_oase_12_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_12"
+    },
+    {
+      "id": "oase_17",
+      "name": "Find_oase_17",
+      "asset_id": "94186894413453",
+      "reference": "assets/icons/finds/oase/icon_find_oase_17_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_17"
+    },
+    {
+      "id": "oase_19",
+      "name": "Find_oase_19",
+      "asset_id": "121956831663747",
+      "reference": "assets/icons/finds/oase/icon_find_oase_19_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_19"
+    },
+    {
+      "id": "oase_20",
+      "name": "Find_oase_20",
+      "asset_id": "135002801318796",
+      "reference": "assets/icons/finds/oase/icon_find_oase_20_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_20"
+    },
+    {
+      "id": "oase_21",
+      "name": "Find_oase_21",
+      "asset_id": "94861202783531",
+      "reference": "assets/icons/finds/oase/icon_find_oase_21_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_21"
+    },
+    {
+      "id": "oase_22",
+      "name": "Find_oase_22",
+      "asset_id": "94621004288675",
+      "reference": "assets/icons/finds/oase/icon_find_oase_22_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_22"
+    },
+    {
+      "id": "oase_23",
+      "name": "Find_oase_23",
+      "asset_id": "109498722766993",
+      "reference": "assets/icons/finds/oase/icon_find_oase_23_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_23"
+    },
+    {
+      "id": "oase_24",
+      "name": "Find_oase_24",
+      "asset_id": "77003335311963",
+      "reference": "assets/icons/finds/oase/icon_find_oase_24_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_24"
+    },
+    {
+      "id": "oase_25",
+      "name": "Find_oase_25",
+      "asset_id": "97824032924111",
+      "reference": "assets/icons/finds/oase/icon_find_oase_25_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_25"
+    },
+    {
+      "id": "oase_26",
+      "name": "Find_oase_26",
+      "asset_id": "79336118475404",
+      "reference": "assets/icons/finds/oase/icon_find_oase_26_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_26"
+    },
+    {
+      "id": "oase_27",
+      "name": "Find_oase_27",
+      "asset_id": "135367687047497",
+      "reference": "assets/icons/finds/oase/icon_find_oase_27_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 3,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_27"
+    },
+    {
+      "id": "oase_28",
+      "name": "Find_oase_28",
+      "asset_id": "85112691711376",
+      "reference": "assets/icons/finds/oase/icon_find_oase_28_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_28"
+    },
+    {
+      "id": "oase_29",
+      "name": "Find_oase_29",
+      "asset_id": "97373132714145",
+      "reference": "assets/icons/finds/oase/icon_find_oase_29_01.png",
+      "requested_max_triangles": 1800,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_oase_29"
+    },
+    {
+      "id": "canyon_01",
+      "name": "Find_canyon_01",
+      "asset_id": "100909771071733",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_01_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_01"
+    },
+    {
+      "id": "canyon_03",
+      "name": "Find_canyon_03",
+      "asset_id": "72680463755629",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_03_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_03"
+    },
+    {
+      "id": "canyon_04",
+      "name": "Find_canyon_04",
+      "asset_id": "108841378500449",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_04_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_04"
+    },
+    {
+      "id": "canyon_05",
+      "name": "Find_canyon_05",
+      "asset_id": "103285169438728",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_05_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_05"
+    },
+    {
+      "id": "canyon_06",
+      "name": "Find_canyon_06",
+      "asset_id": "86504525850082",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_06_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_06"
+    },
+    {
+      "id": "canyon_07",
+      "name": "Find_canyon_07",
+      "asset_id": "85419277064755",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_07_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_07"
+    },
+    {
+      "id": "canyon_08",
+      "name": "Find_canyon_08",
+      "asset_id": "129562191156318",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_08_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 2,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_08"
+    },
+    {
+      "id": "canyon_09",
+      "name": "Find_canyon_09",
+      "asset_id": "79194890202375",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_09_01.png",
+      "requested_max_triangles": 2000,
+      "part_count": 1,
+      "status": "visual_prototype_art_review_pending",
+      "recorded_path_at_generation": "Workspace.DuneBaron_AssetTests.Find_canyon_09"
+    }
+  ],
+  "pending_jobs": [],
+  "procedural_find_candidates": [
+    {
+      "id": "duenenmeer_01",
+      "studio_generation_id": "db107864-4710-42a1-920d-70e96dbbb412",
+      "tag": "PrimitiveGen_db107864-4710-42a1-920d-70e96dbbb412",
+      "generation_name": "SeashellCharacter",
+      "status": "needs_reference_match",
+      "studio_parent": "Workspace.DuneBaron_AssetTests.EarlierCandidates"
+    },
+    {
+      "id": "duenenmeer_03",
+      "studio_generation_id": "92c7c48e-3156-4d64-9f4d-8e72886b2132",
+      "tag": "PrimitiveGen_92c7c48e-3156-4d64-9f4d-8e72886b2132",
+      "generation_name": "CoralAvatar",
+      "status": "needs_reference_match",
+      "studio_parent": "Workspace.DuneBaron_AssetTests.EarlierCandidates"
+    },
+    {
+      "id": "duenenmeer_06",
+      "studio_generation_id": "3e9a802c-edc7-49df-8c8f-2e7668a8be8b",
+      "tag": "PrimitiveGen_3e9a802c-edc7-49df-8c8f-2e7668a8be8b",
+      "generation_name": "SherdCharacter",
+      "status": "needs_reference_match",
+      "studio_parent": "Workspace.DuneBaron_AssetTests.EarlierCandidates"
+    },
+    {
+      "id": "duenenmeer_02",
+      "studio_generation_id": "50d65acd-cb2e-47ad-bb55-736bf2972fe4",
+      "tag": "PrimitiveGen_50d65acd-cb2e-47ad-bb55-736bf2972fe4",
+      "generation_name": "ConchShell",
+      "status": "retained_for_review",
+      "studio_parent": "Workspace.DuneBaron_AssetTests.EarlierCandidates"
+    },
+    {
+      "id": "duenenmeer_04",
+      "studio_generation_id": "d6ba6f0b-578c-499b-abde-edba66fb2ec7",
+      "tag": "PrimitiveGen_d6ba6f0b-578c-499b-abde-edba66fb2ec7",
+      "generation_name": "SandDollarCharacter",
+      "status": "needs_reference_match",
+      "studio_parent": "Workspace.DuneBaron_AssetTests.EarlierCandidates"
+    }
+  ],
+  "failed_jobs": [
+    {
+      "id": "duenenmeer_05",
+      "job_id": "1119ce9b-10f2-4524-b04a-8b45d2fa6b5c",
+      "reason": "TooManyConcurrentJobs: maximum 5",
+      "retry_status": "covered_by_final_canonical_model"
+    },
+    {
+      "id": "duenenmeer_07",
+      "job_id": "05faa7cd-23da-40fa-a5d0-0a25b126131b",
+      "reason": "TooManyConcurrentJobs: maximum 5",
+      "retry_status": "covered_by_final_canonical_model"
+    },
+    {
+      "id": "duenenmeer_08",
+      "job_id": "7470a075-fa58-4f19-90aa-2a19509b30f9",
+      "reason": "TooManyConcurrentJobs: maximum 5",
+      "retry_status": "covered_by_final_canonical_model"
+    },
+    {
+      "id": "duenenmeer_09",
+      "job_id": "4faab470-87ce-44c1-a66f-e8c5702eda88",
+      "reason": "TooManyConcurrentJobs: maximum 5",
+      "retry_status": "covered_by_final_canonical_model"
+    },
+    {
+      "id": "duenenmeer_10",
+      "job_id": "d9895364-5e02-4d8b-88e0-7192a34931a9",
+      "reason": "TooManyConcurrentJobs: maximum 5",
+      "retry_status": "covered_by_final_canonical_model"
+    }
+  ],
+  "corrected_shard": {
+    "generation_id": "7796cfa8-4a5c-4808-87f1-dd0c069214e4",
+    "studio_path": "Workspace.DuneBaron_AssetTests.Find_duenenmeer_06_Reference02",
+    "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_06_01.png",
+    "method": "ProceduralModel",
+    "status": "visually_inspected"
+  },
+  "generation_failures": [
+    {
+      "id": "oase_13",
+      "job_id": "12ee864a-f3eb-46fd-8a4b-a311dc553719",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "oase_14",
+      "job_id": "ab59b3a6-f258-4663-9139-24dcccd0d85d",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "oase_15",
+      "job_id": "8c73ab8c-2602-4b38-9f7d-27def3a43963",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "oase_16",
+      "job_id": "e7b43b8a-73ff-46e4-9247-f61951535a09",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "oase_18",
+      "job_id": "0ec8b94e-5d9b-4420-b140-c4043a8e23b4",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "oase_30",
+      "job_id": "30f9c2bb-a7cd-4326-960b-596113d9aa66",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "canyon_02",
+      "job_id": "2b597b6c-82f5-448a-b448-4dbc2b827d20",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Rate limit exceeded",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    },
+    {
+      "id": "canyon_10",
+      "job_id": "c1c6376d-be24-41bf-9945-3b5f96de3455",
+      "result": {
+        "content": [
+          {
+            "text": "Mesh generation failed with error: Schema definition must not contain duplicate part names",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "status": "awaiting_retry",
+      "final_model_present": true
+    }
+  ],
+  "error_recovery_notes": {
+    "procedural_limit": "At most 5 concurrent jobs",
+    "mesh_rate_limit": "Retry after existing jobs finish, smaller groups",
+    "schema_failures": "Find props now generated as individual unsegmented meshes, as expected by the original asset guide",
+    "uncompleted_find_zones": []
+  },
+  "core_library": [
+    {
+      "id": "shovel",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.shovel",
+      "class": "Model",
+      "parts": 2
+    },
+    {
+      "id": "merchant_stall",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.merchant_stall",
+      "class": "Model",
+      "parts": 3
+    },
+    {
+      "id": "bucket_chain",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.bucket_chain",
+      "class": "Model",
+      "parts": 3
+    },
+    {
+      "id": "excavator",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.excavator",
+      "class": "Model",
+      "parts": 3
+    },
+    {
+      "id": "suction_robot",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.suction_robot",
+      "class": "Model",
+      "parts": 6
+    },
+    {
+      "id": "harvester",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.harvester",
+      "class": "ProceduralModel",
+      "parts": 89
+    },
+    {
+      "id": "crate_wood",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_wood",
+      "class": "Model",
+      "parts": 2
+    },
+    {
+      "id": "crate_iron",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_iron",
+      "class": "Model",
+      "parts": 2
+    },
+    {
+      "id": "crate_gold",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_gold",
+      "class": "Model",
+      "parts": 2
+    },
+    {
+      "id": "crate_event",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_event",
+      "class": "Model",
+      "parts": 2
+    },
+    {
+      "id": "fennec",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.fennec",
+      "class": "Model",
+      "parts": 7
+    },
+    {
+      "id": "scarab",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.scarab",
+      "class": "Model",
+      "parts": 3
+    },
+    {
+      "id": "desert_mouse",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.desert_mouse",
+      "class": "Model",
+      "parts": 7
+    },
+    {
+      "id": "colossus",
+      "path": "ServerStorage.DuneBaronAssetLibrary.Core.colossus",
+      "class": "Model",
+      "parts": 5
+    }
+  ],
+  "find_count": 150,
+  "core_count": 14,
+  "canonical_find_catalog": "assets/studio/find_model_map.json",
+  "additional_generation_log": "assets/studio/additional_find_models.json",
+  "final_library": {
+    "core": "ServerStorage.DuneBaronAssetLibrary.Core",
+    "finds": "ServerStorage.DuneBaronAssetLibrary.Finds",
+    "earlier_candidates": "ServerStorage.DuneBaronAssetLibrary.EarlierCandidates",
+    "preview": "ServerStorage.DuneBaronWorldBackup.DuneBaron_AssetTests"
+  },
+  "last_checkpoint_save": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Saved: Saved to Roblox."
+      },
+      {
+        "type": "text",
+        "text": "{\"location\":\"TeamCreate\",\"status\":\"Saved\",\"version\":19,\"message\":\"Saved to Roblox.\"}"
+      }
+    ],
+    "isError": false
+  },
+  "final_save": {
+    "status": "Saved",
+    "version": 35,
+    "location": "TeamCreate",
+    "published": false
+  },
+  "world_scene": "Workspace.DuneBaronWorld",
+  "world_check": "assets/studio/dunes_zone_check.json",
+  "core_loop_check": "assets/studio/core_loop_check.json",
+  "equipment_check": "assets/studio/equipment_check.json",
+  "work_motion_check": "assets/studio/work_motion_check.json"
+}

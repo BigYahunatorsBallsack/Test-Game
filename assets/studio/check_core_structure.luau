@@ -1,0 +1,17 @@
+--!strict
+local shared=game.ReplicatedStorage:FindFirstChild("Shared")
+assert(shared and shared:IsA("Folder"),"Shared modules missing")
+local server=game.ServerScriptService:FindFirstChild("Server")
+assert(server and server:IsA("Script") and server.Enabled,"Server bootstrap missing or disabled")
+local client=game.StarterPlayer.StarterPlayerScripts:FindFirstChild("Client")
+assert(client and client:IsA("LocalScript") and client.Enabled,"Client bootstrap missing or disabled")
+assert(server:FindFirstChild("Services"):FindFirstChild("Sand"),"Sand service missing")
+assert(client:FindFirstChild("Controllers"):FindFirstChild("Hud"),"HUD controller missing")
+local w=workspace:FindFirstChild("DuneBaronWorld")
+assert(w,"First zone missing")
+local markers=w:FindFirstChild("IntegrationMarkers")
+assert(markers.SellStand:IsA("BasePart") and markers.SellStand:HasTag("SellStand"),"Merchant integration tag missing")
+assert(markers.SandField:HasTag("SandField") and not markers.SandField.CanQuery,"Sand marker blocks digging")
+local errors=require(shared.Logic.DataCheck).run()
+assert(#errors==0,table.concat(errors,"\n"))
+return {status="passed",dataErrors=#errors}

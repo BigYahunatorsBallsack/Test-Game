@@ -1,0 +1,86 @@
+{
+  "package": "2.4 visual equipment",
+  "date": "2026-11-18",
+  "place_id": 135831532782380,
+  "save_version": 32,
+  "published": false,
+  "status": "prototype_equipment_integrated",
+  "hand": {
+    "model": false,
+    "passed": true
+  },
+  "stages": [
+    {
+      "tool": "shovel",
+      "minZoom": 0.5,
+      "health": 100,
+      "parts": 2,
+      "cameraDistance": 12.5
+    },
+    {
+      "tool": "bucket_chain",
+      "minZoom": 10,
+      "health": 100,
+      "parts": 3,
+      "cameraDistance": 12.5
+    },
+    {
+      "tool": "mini_digger",
+      "minZoom": 18,
+      "health": 100,
+      "parts": 3,
+      "cameraDistance": 17.999996185302734
+    },
+    {
+      "tool": "vacuum_robot",
+      "minZoom": 12,
+      "health": 100,
+      "parts": 6,
+      "cameraDistance": 18.000001907348633
+    },
+    {
+      "tool": "mega_machine",
+      "minZoom": 34,
+      "health": 100,
+      "parts": 89,
+      "cameraDistance": 33.999996185302734
+    }
+  ],
+  "red_test": "Shovel purchase succeeded, but check_equipment.luau failed: Equipment model missing",
+  "checks": {
+    "actual_upgrade_purchases": true,
+    "studio_test_funds": true,
+    "replicated_server_equipment": true,
+    "client_attribute_forgery": "Local change did not replace shovel; server stage remained shovel",
+    "respawn": "One model after respawn, 89 parts for mega_machine",
+    "movement": "Navigation successful with largest model",
+    "character_mass_before": 13.940256118774414,
+    "character_mass_after": 13.940256118774414,
+    "assembly_root": "HumanoidRootPart",
+    "digging": "Ray hits Terrain; tank fills; 4 modified chunks with largest stage",
+    "source_library": {
+      "core": 14,
+      "finds": 150
+    },
+    "source_sync_count": 6,
+    "lune": {
+      "files_passed": 14,
+      "failed": 0,
+      "log": "assets/studio/equipment_lune.log"
+    },
+    "selene": {
+      "modified_source_errors": 0,
+      "warnings": 0,
+      "parse_errors": 0,
+      "cached_api_dump": true
+    }
+  },
+  "limits": [
+    "Machines are attached visual models, not drivable vehicles",
+    "No digging/skeletal or mechanical animation yet",
+    "No physical phone or second-player view test",
+    "R15 tested; R6 fallback implemented but not playtested",
+    "Persistency remains unverified while Studio API access is disabled"
+  ],
+  "camera_fix": "Side placement and minimum zoom per stage; largest stage uses 34 studs"
+}
