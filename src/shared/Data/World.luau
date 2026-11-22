@@ -17,7 +17,8 @@ export type ZoneArea = {
 }
 
 -- Reihenfolge von Westen nach Osten. Jede Zone muss in Zones stehen.
-local ZONE_ORDER = { "dunes", "oasis", "canyon", "salt_lake", "ruins" }
+-- Die Event-Zone der Saison (Paket 5.5) liegt östlich der Ruinenstadt.
+local ZONE_ORDER = { "dunes", "oasis", "canyon", "salt_lake", "ruins", "season_camp" }
 local ZONE_WIDTH = 192 -- Breite einer Zone in Studs, ein Vielfaches von 4
 local ZONE_MIN_Z = -60 -- südliche Grenze (der Stand liegt bei z = -20)
 local ZONE_MAX_Z = 120 -- nördliche Grenze

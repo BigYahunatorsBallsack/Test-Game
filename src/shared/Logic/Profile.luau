@@ -19,6 +19,7 @@ local ProductsData = require("../Data/Products")
 local OffersData = require("../Data/Offers")
 local Equipment = require("./Equipment")
 local Offers = require("./Offers")
+local SeasonPass = require("./SeasonPass")
 
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -70,6 +71,10 @@ export type Profile = {
     -- Eingelöste Codes (Paket 5.2, Logic/Codes): Code-ID aus der Server-Tabelle -> true. Nur der Server
     -- schreibt. Profile.migrate füllt das Feld bei alten Spielständen mit {} auf (keine neue Version).
     codes: { [string]: boolean },
+    -- Saison-Pass (Paket 5.5, Logic/SeasonPass): Saison-ID -> { seconds (Sammelzeit in der Event-Zone),
+    -- premium, claimed }. Nur der Server schreibt. Profile.migrate füllt das Feld bei alten Spielständen
+    -- mit {} auf (keine neue Version).
+    seasons: { [string]: SeasonPass.Entry },
     tutorial: { step: number }, -- Fortschritt der ersten 2 Minuten (Paket 1.6)
     lastSeen: number, -- Unix-Zeit des letzten Speicherns (Offline-Ertrag)
     createdAt: number,
@@ -153,6 +158,8 @@ function Profile.default(now: number?): Profile
         daily = { streak = 0, lastDay = 0 },
         -- Codes (Paket 5.2): eingelöste Code-IDs, nur der Server schreibt (Logic/Codes).
         codes = {},
+        -- Saison-Pass (Paket 5.5): Punkte und Abholungen je Saison, nur der Server schreibt.
+        seasons = {},
         tutorial = { step = 1 },
         lastSeen = time,
         createdAt = time,
@@ -214,7 +221,7 @@ end
 
 -- Felder, deren Standardtabelle zwar Einträge hat, deren Schlüssel aber beliebige IDs sind.
 -- Sie werden wie Listen behandelt (nur Einträge säubern, siehe scrubFree).
-local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true, codes = true }
+local FREE_KEY_FIELDS: { [string]: boolean } = { pity = true, zones = true, tankMix = true, codes = true, seasons = true }
 -- Felder im Zahlentyp {m, e}: Ist ein Teil kaputt, wird das ganze Feld auf 0 gesetzt.
 local BIGNUM_FIELDS: { [string]: boolean } = { coins = true, tank = true, runEarned = true }
 -- Echte Listen (Paket 4.1). Sie haben eigene Regeln (repairPurchaseLog, repairReceipts), weil der
@@ -714,6 +721,14 @@ function Profile.sanitize(profile: Profile, now: number?, options: SanitizeOptio
             warn(warnings, `codes.{tostring(codeId)}`, "Schlüssel kein Text oder Wert nicht true, entfernt")
             data.codes[codeId] = nil
         end
+    end
+    -- Saison-Pass (Paket 5.5): Logic/SeasonPass.cleanSeasons säubert Einträge und Abholmerker.
+    if type(data.seasons) == "table" then
+        local clean, problems = SeasonPass.cleanSeasons(data.seasons)
+        for _, text in problems do
+            warn(warnings, "seasons", text)
+        end
+        data.seasons = clean -- immer: füllt auch fehlende Felder je Eintrag auf
     end
     -- Angebote (Paket 4.5): je Eintrag { since, bought }, `since` endliche Zahl ab 0 (sonst 0, also
     -- nicht gestartet), `bought` Boolean (sonst false), weitere Felder und Nicht-Text-Schlüssel fallen

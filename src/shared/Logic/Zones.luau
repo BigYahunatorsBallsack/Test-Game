@@ -12,6 +12,7 @@
 local Zones = require("../Data/Zones")
 local WorldData = require("../Data/World")
 local TreeEffects = require("./TreeEffects")
+local Seasons = require("./Seasons")
 
 export type Vec3 = { x: number, y: number, z: number }
 
@@ -32,9 +33,15 @@ function Zone.requirementMet(profile: any, zoneId: string): boolean
     return zone.requires == "start" or TreeEffects.owns(profile, zone.requires)
 end
 
-function Zone.isUnlocked(profile: any, zoneId: string): boolean
+-- `unixNow` (Server-Uhr) braucht nur die Event-Zone (Paket 5.5): Sie ist offen, solange ihre Saison
+-- läuft, die Woche `zoneOpen` hat und der Knoten gekauft ist. Ohne `unixNow` ist sie zu (sicherer
+-- Standard). Sie steht nie in `profile.zones`, ein Eintrag dort zählt nicht.
+function Zone.isUnlocked(profile: any, zoneId: string, unixNow: number?): boolean
     if Zones.byId[zoneId] == nil then
         return false
+    end
+    if Zones.eventById[zoneId] ~= nil then
+        return unixNow ~= nil and Zone.requirementMet(profile, zoneId) and Seasons.zoneOpen(unixNow, zoneId)
     end
     local stored = profile.zones
     if type(stored) == "table" and stored[zoneId] == true then
@@ -60,10 +67,15 @@ function Zone.unlockNew(profile: any): { string }
 end
 
 -- Alle freien Zonen als Menge (ID -> true) für die Anzeige beim Client.
-function Zone.unlockedMap(profile: any): { [string]: boolean }
+function Zone.unlockedMap(profile: any, unixNow: number?): { [string]: boolean }
     local result: { [string]: boolean } = {}
     for _, zone in Zones.list do
         if Zone.isUnlocked(profile, zone.id) then
+            result[zone.id] = true
+        end
+    end
+    for _, zone in Zones.events do
+        if Zone.isUnlocked(profile, zone.id, unixNow) then
             result[zone.id] = true
         end
     end
@@ -111,9 +123,9 @@ end
 --   blocked  gesperrte Zone betreten: zurück in die aktuelle Zone (`pushTo`), sie bleibt aktuell
 --   reset    die aktuelle Zone selbst ist gesperrt oder unbekannt (zum Beispiel nach einem
 --            Sandsturm oder einem Daten-Update): zurück auf die erste Zone am Spawn
-function Zone.resolve(profile: any, position: Vec3, world: any?): Resolution
+function Zone.resolve(profile: any, position: Vec3, world: any?, unixNow: number?): Resolution
     local current = profile.currentZone
-    if type(current) ~= "string" or not Zone.isUnlocked(profile, current) then
+    if type(current) ~= "string" or not Zone.isUnlocked(profile, current, unixNow) then
         local first = Zones.list[1].id
         local area = (world or WorldData).zonesById[first]
         return { kind = "reset", zoneId = first, pushTo = if area ~= nil then area.spawn else nil }
@@ -122,7 +134,7 @@ function Zone.resolve(profile: any, position: Vec3, world: any?): Resolution
     if zoneId == nil or zoneId == current then
         return { kind = "none" }
     end
-    if Zone.isUnlocked(profile, zoneId) then
+    if Zone.isUnlocked(profile, zoneId, unixNow) then
         return { kind = "enter", zoneId = zoneId }
     end
     return { kind = "blocked", zoneId = zoneId, pushTo = Zone.clampInto(position, current, world) }
@@ -130,7 +142,7 @@ end
 
 -- Darf der Spieler jetzt in die Zone reisen? Gibt true oder false plus Grund zurück:
 -- "unknown", "same", "locked", "cooldown". `lastTravelAt` ist die Zeit der letzten Reise (oder nil).
-function Zone.canTravel(profile: any, zoneId: string, now: number, lastTravelAt: number?, world: any?): (boolean, string?)
+function Zone.canTravel(profile: any, zoneId: string, now: number, lastTravelAt: number?, world: any?, unixNow: number?): (boolean, string?)
     local source = world or WorldData
     if Zones.byId[zoneId] == nil or source.zonesById[zoneId] == nil then
         return false, "unknown"
@@ -138,7 +150,7 @@ function Zone.canTravel(profile: any, zoneId: string, now: number, lastTravelAt:
     if profile.currentZone == zoneId then
         return false, "same"
     end
-    if not Zone.isUnlocked(profile, zoneId) then
+    if not Zone.isUnlocked(profile, zoneId, unixNow) then
         return false, "locked"
     end
     if lastTravelAt ~= nil and now - lastTravelAt < source.travelCooldownSeconds then

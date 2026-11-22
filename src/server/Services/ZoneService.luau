@@ -40,6 +40,7 @@ local SandTypes = loadShared("Data", "SandTypes")
 local TerrainData = loadShared("Data", "Terrain")
 
 local servicesFolder = script.Parent
+local SeasonClock = require(servicesFolder:WaitForChild("SeasonClock") :: ModuleScript) :: any -- Saison-Uhr für die Event-Zone (Paket 5.5)
 local PlayerData: any = nil
 local Sand: any = nil
 local Net: any = nil
@@ -191,7 +192,7 @@ local function tickPlayer(player: Player, t: number)
         return
     end
     local p = root.Position
-    local result = Zone.resolve(profile, { x = p.X, y = p.Y, z = p.Z })
+    local result = Zone.resolve(profile, { x = p.X, y = p.Y, z = p.Z }, nil, SeasonClock.timeFor(player))
     if result.kind == "enter" and result.zoneId ~= nil then
         if Sand.setZone(player, result.zoneId) then
             notifyEntered(player, result.zoneId, t)
@@ -233,7 +234,7 @@ local function onTravelZone(player: Player, zoneId: string): any
         return { ok = false, reason = "dead" }
     end
     local t = now()
-    local ok, reason = Zone.canTravel(profile, zoneId, t, lastTravelAt[player])
+    local ok, reason = Zone.canTravel(profile, zoneId, t, lastTravelAt[player], nil, SeasonClock.timeFor(player))
     if not ok then
         return { ok = false, reason = reason }
     end

@@ -22,6 +22,7 @@ export type Phase = {
     id: string, -- "start", "koloss", "items", "finale" (spätere Pakete hängen Schalter daran)
     name: string, -- Anzeigename der Woche
     crateOpen: boolean, -- in dieser Woche darf die Event-Kiste der Saison geöffnet werden
+    zoneOpen: boolean, -- in dieser Woche ist die Event-Zone der Saison offen (Paket 5.5)
     hint: string?, -- Hinweis in der Kistenzeile für diese Woche (optional)
 }
 
@@ -30,21 +31,21 @@ export type Season = {
     name: string, -- Anzeigename
     startDate: string, -- "JJJJ-MM-TT", ein Montag, 0 Uhr UTC
     crateId: string, -- Event-Kiste aus Data/Crates (eventOnly = true)
-    zoneId: string?, -- Event-Zone aus Data/Zones (Paket 5.5)
+    zoneId: string?, -- Event-Zone aus Data/Zones (`Zones.events`, Paket 5.5)
     passId: string?, -- Saison-Pass aus Data/Products (Paket 5.5)
 }
 
 -- Die vier Wochen einer Saison, in der Reihenfolge der Wochen.
 local phases: { Phase } = {
-    { id = "start", name = "Saisonstart", crateOpen = true },
-    { id = "koloss", name = "Koloss-Woche", crateOpen = true },
-    { id = "items", name = "Event-Items", crateOpen = true },
-    { id = "finale", name = "Finale", crateOpen = true, hint = "Letzte Woche: letzte Chance auf die Event-Kiste" },
+    { id = "start", name = "Saisonstart", crateOpen = true, zoneOpen = true },
+    { id = "koloss", name = "Koloss-Woche", crateOpen = true, zoneOpen = true },
+    { id = "items", name = "Event-Items", crateOpen = true, zoneOpen = true },
+    { id = "finale", name = "Finale", crateOpen = true, zoneOpen = true, hint = "Letzte Woche: letzte Chance auf die Event-Kiste" },
 }
 
 local list: { Season } = {
     -- Platzhalter-Startdatum: vor dem Launch auf den echten Saisonstart (Montag) setzen.
-    { id = "season_1", name = "Saison 1", startDate = "2027-01-04", crateId = "event" },
+    { id = "season_1", name = "Saison 1", startDate = "2027-01-04", crateId = "event", zoneId = "season_camp" },
 }
 
 return {

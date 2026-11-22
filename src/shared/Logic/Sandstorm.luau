@@ -82,6 +82,7 @@ Sandstorm.KEEP_FIELDS = {
     "offers", -- Angebote: Fenster und Merker "gekauft" (Paket 4.5)
     "daily",
     "codes", -- eingelöste Codes (Paket 5.2): ein Sturm macht keinen Code wieder einlösbar
+    "seasons", -- Saison-Punkte und Abholungen (Paket 5.5): ein Sturm setzt den Pass nie zurück
     "tutorial",
     "lastSeen",
     "createdAt",

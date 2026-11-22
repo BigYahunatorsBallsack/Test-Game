@@ -98,6 +98,7 @@ export type DataSet = {
     Screen: any,
     Offers: any,
     Seasons: any,
+    SeasonPass: any,
 }
 
 local DataCheck = {}
@@ -130,6 +131,7 @@ function DataCheck.defaults(): DataSet
         Screen = require("../Data/Screen"),
         Offers = require("../Data/Offers"),
         Seasons = require("../Data/Seasons"),
+        SeasonPass = require("../Data/SeasonPass"),
     }
 end
 
@@ -400,6 +402,16 @@ local function checkCrateItems(errors: { string }, data: DataSet)
         if not isInt(item.effectBp) or item.effectBp < 0 or item.effectBp > maxEffect then
             table.insert(errors, `{label}: effectBp muss eine ganze Zahl von 0 bis Economy.items.maxEffectBp ({maxEffect}) sein`)
         end
+        if item.passOnly ~= nil and type(item.passOnly) ~= "boolean" then
+            table.insert(errors, `{label}: passOnly muss true oder false sein`)
+        end
+        if item.passOnly == true then
+            -- Pass-Items (Paket 5.5) stehen in keiner Kiste und kommen nur über den Saison-Pass.
+            if type(item.crates) ~= "table" or #item.crates ~= 0 then
+                table.insert(errors, `{label}: ein Pass-Item steht in keiner Kiste (crates = \{\})`)
+            end
+            continue
+        end
         if type(item.crates) ~= "table" or #item.crates == 0 then
             table.insert(errors, `{label}: crates muss mindestens eine Kiste nennen`)
             continue
@@ -654,6 +666,59 @@ local function checkZones(errors: { string }, data: DataSet)
     -- Der Sandsturm und Zones.resolve setzen den Spieler auf die erste Zone der Liste zurück.
     if isList(zones.list) and type(zones.list[1]) == "table" and zones.list[1].requires ~= "start" then
         table.insert(errors, "Zones: die erste Zone der Liste muss die Startzone sein (requires = \"start\")")
+    end
+    -- Event-Zonen (Paket 5.5): eigene Liste, nicht Teil von `list`. Jede gehört zu genau einer Saison,
+    -- hat eine bekannte Sandsorte und verlangt einen kaufbaren Knoten (nie "start", nie einen vergebenen).
+    local events = zones.events
+    if not isList(events) or type(zones.eventById) ~= "table" then
+        table.insert(errors, "Zones: events und eventById fehlen")
+        return
+    end
+    local seasons = data.Seasons
+    local seasonRows = if type(seasons) == "table" and isList(seasons.list) then seasons.list else {}
+    for index, zone in events do
+        local label = `Zones.events[{index}]`
+        if type(zone) ~= "table" or type(zone.id) ~= "string" or zone.id == "" then
+            table.insert(errors, `{label}: id muss ein nicht leerer Text sein`)
+            continue
+        end
+        label = `Zones.events "{zone.id}"`
+        if zones.eventById[zone.id] ~= zone or zones.byId[zone.id] ~= zone then
+            table.insert(errors, `{label}: byId oder eventById passt nicht`)
+        end
+        for _, fixed in zones.list do
+            if type(fixed) == "table" and fixed.id == zone.id then
+                table.insert(errors, `{label}: id steht auch in Zones.list`)
+            end
+        end
+        if type(zone.name) ~= "string" or zone.name == "" then
+            table.insert(errors, `{label}: name muss ein nicht leerer Text sein`)
+        end
+        if type(sandTypes) ~= "table" or type(sandTypes.byId) ~= "table" or sandTypes.byId[zone.sandTypeId] == nil then
+            table.insert(errors, `{label}: unbekannte Sandsorte "{tostring(zone.sandTypeId)}"`)
+        end
+        if zone.requires == "start" or type(zone.requires) ~= "string" then
+            table.insert(errors, `{label}: requires muss eine Knoten-ID sein (nicht "start")`)
+        elseif type(tree) ~= "table" or type(tree.byId) ~= "table" or tree.byId[zone.requires] == nil then
+            table.insert(errors, `{label}: Knoten "{zone.requires}" fehlt in UpgradeTree`)
+        else
+            local required = tree.byId[zone.requires]
+            if type(required) == "table" and (required.granted == true or (type(required.effect) == "table" and required.effect.kind == "grantedBySandstorm")) then
+                table.insert(errors, `{label}: verlangt den vergebenen Knoten "{zone.requires}", eine Zone braucht einen kaufbaren Knoten`)
+            end
+        end
+        local owners = 0
+        for _, season in seasonRows do
+            if type(season) == "table" and season.zoneId == zone.id then
+                owners += 1
+                if zone.seasonId ~= season.id then
+                    table.insert(errors, `{label}: seasonId "{tostring(zone.seasonId)}" passt nicht zur Saison "{tostring(season.id)}"`)
+                end
+            end
+        end
+        if owners ~= 1 then
+            table.insert(errors, `{label}: muss die zoneId von genau einer Saison in Seasons sein (gefunden: {owners})`)
+        end
     end
 end
 
@@ -980,6 +1045,8 @@ local function checkOffers(errors: { string }, data: DataSet)
                 table.insert(errors, `{label}: Item "{tostring(itemId)}" steht nicht in CrateItems`)
             elseif type(item.kind) ~= "string" or Equipment.INVENTORY_FIELDS[item.kind] == nil then
                 table.insert(errors, `{label}: Item "{itemId}" hat keine bekannte Art`)
+            elseif item.passOnly == true then
+                table.insert(errors, `{label}: "{itemId}" ist ein Pass-Item und nur über den Saison-Pass erhältlich`)
             elseif kinds[item.kind] ~= nil then
                 table.insert(errors, `{label}: höchstens ein Item je Art ("{kinds[item.kind]}" und "{itemId}" sind beide {item.kind})`)
             else
@@ -1294,6 +1361,144 @@ local function isEventOnlyItem(item: any, crates: any): boolean
     return true
 end
 
+-- Saison-Pass (Paket 5.5): Economy.seasonPass und die Stufen je Saison. Belohnungen sind fest (Gems,
+-- Boosts, Pass-Items), nie Kisten oder Zufall.
+-- Obergrenze für Boost-Belohnungen im Saison-Pass (Sekunden), gegen Tippfehler: 4 Stunden.
+local MAX_BOOST_REWARD_SECONDS = 4 * 3600
+
+local function checkSeasonPass(errors: { string }, data: DataSet)
+    local economy = data.Economy
+    local config = if type(economy) == "table" then economy.seasonPass else nil
+    local maxGems = if type(economy) == "table" and type(economy.purchases) == "table" and isFinite(economy.purchases.maxGems) then economy.purchases.maxGems else math.huge
+    if type(config) ~= "table" then
+        table.insert(errors, "Economy.seasonPass fehlt")
+    else
+        if not isFinite(config.secondsPerPoint) or config.secondsPerPoint <= 0 then
+            table.insert(errors, "Economy.seasonPass: secondsPerPoint muss endlich und größer als 0 sein")
+        end
+        if not isInt(config.claimGraceDays) or config.claimGraceDays < 0 or config.claimGraceDays > 30 then
+            table.insert(errors, "Economy.seasonPass: claimGraceDays muss eine ganze Zahl von 0 bis 30 sein")
+        end
+        if not isInt(config.duplicateGems) or config.duplicateGems < 0 or config.duplicateGems > maxGems then
+            table.insert(errors, "Economy.seasonPass: duplicateGems muss eine ganze Zahl von 0 bis maxGems sein")
+        end
+        if not isFinite(config.premiumGemsMaxPercent) or config.premiumGemsMaxPercent <= 0 or config.premiumGemsMaxPercent > 100 then
+            table.insert(errors, "Economy.seasonPass: premiumGemsMaxPercent muss größer als 0 und höchstens 100 sein")
+        end
+    end
+    local passData = data.SeasonPass
+    if type(passData) ~= "table" or type(passData.bySeason) ~= "table" then
+        table.insert(errors, "SeasonPass: bySeason fehlt")
+        return
+    end
+    local seasons = data.Seasons
+    local seasonRows: { [string]: any } = {}
+    if type(seasons) == "table" and isList(seasons.list) then
+        for _, season in seasons.list do
+            if type(season) == "table" and type(season.id) == "string" then
+                seasonRows[season.id] = season
+            end
+        end
+    end
+    local items = if type(data.CrateItems) == "table" then data.CrateItems.byId else nil
+    -- Gem-Gegenwert des Pass-Preises zum schlechtesten Paketkurs (kleinstes Paket), für die Obergrenze
+    -- der Premium-Gems.
+    local products = if type(data.Products) == "table" then data.Products.byId else nil
+    local function passRobuxOf(season: any): number?
+        local productId = if type(season) == "table" and type(season.passId) == "string" then season.passId else "season_pass"
+        local product = if products ~= nil then products[productId] else nil
+        if type(product) == "table" and isFinite(product.priceRobux) then
+            return product.priceRobux
+        end
+        return nil
+    end
+    local worstRate: number? = nil
+    if type(data.GemPacks) == "table" and isList(data.GemPacks.list) then
+        for _, pack in data.GemPacks.list do
+            if type(pack) == "table" and isFinite(pack.gems) and isFinite(pack.robux) and pack.robux > 0 then
+                local rate = pack.gems / pack.robux
+                if worstRate == nil or rate < worstRate then
+                    worstRate = rate
+                end
+            end
+        end
+    end
+    for seasonId, row in passData.bySeason do
+        local label = `SeasonPass "{tostring(seasonId)}"`
+        if type(seasonId) ~= "string" or seasonRows[seasonId] == nil then
+            table.insert(errors, `{label}: steht nicht in Seasons`)
+            continue
+        end
+        if type(row) ~= "table" or not isList(row.tiers) or #row.tiers < 1 then
+            table.insert(errors, `{label}: tiers braucht mindestens eine Stufe`)
+            continue
+        end
+        local last = 0
+        local premiumGems = 0
+        for index, tier in row.tiers do
+            local tierLabel = `{label} Stufe {index}`
+            if type(tier) ~= "table" then
+                table.insert(errors, `{tierLabel}: muss eine Tabelle sein`)
+                continue
+            end
+            if not isInt(tier.points) or tier.points < 1 or tier.points <= last then
+                table.insert(errors, `{tierLabel}: points muss eine ganze Zahl ab 1 sein und über der vorigen Stufe liegen`)
+            else
+                last = tier.points
+            end
+            for _, track in { "free", "premium" } do
+                local reward = tier[track]
+                local rewardLabel = `{tierLabel} {track}`
+                if type(reward) ~= "table" then
+                    table.insert(errors, `{rewardLabel}: Belohnung fehlt`)
+                elseif reward.kind == "gems" then
+                    if not isInt(reward.amount) or reward.amount < 1 or reward.amount > maxGems then
+                        table.insert(errors, `{rewardLabel}: amount muss eine ganze Zahl von 1 bis maxGems sein`)
+                    elseif track == "premium" then
+                        premiumGems += reward.amount
+                    end
+                elseif reward.kind == "coinBoost" or reward.kind == "luck" then
+                    if not isInt(reward.seconds) or reward.seconds < 1 or reward.seconds > MAX_BOOST_REWARD_SECONDS then
+                        table.insert(errors, `{rewardLabel}: seconds muss eine ganze Zahl von 1 bis {MAX_BOOST_REWARD_SECONDS} sein`)
+                    end
+                elseif reward.kind == "item" then
+                    local item = if items ~= nil and type(reward.itemId) == "string" then items[reward.itemId] else nil
+                    if item == nil then
+                        table.insert(errors, `{rewardLabel}: unbekanntes Item "{tostring(reward.itemId)}"`)
+                    elseif item.passOnly ~= true then
+                        table.insert(errors, `{rewardLabel}: Item "{reward.itemId}" ist kein Pass-Item (passOnly)`)
+                    end
+                else
+                    table.insert(errors, `{rewardLabel}: unbekannte Art "{tostring(reward.kind)}" (erlaubt: gems, coinBoost, luck, item)`)
+                end
+            end
+        end
+        local percent = if type(config) == "table" and isFinite(config.premiumGemsMaxPercent) then config.premiumGemsMaxPercent else nil
+        local passRobux = passRobuxOf(seasonRows[seasonId])
+        if percent ~= nil then
+            if passRobux == nil or worstRate == nil then
+                -- Ohne Preis oder Paketkurs wäre die Obergrenze still weggefallen.
+                table.insert(errors, `{label}: Obergrenze der Premium-Gems nicht prüfbar (Pass-Produkt mit priceRobux oder GemPacks fehlt)`)
+            else
+                local limit = percent / 100 * passRobux * worstRate
+                if premiumGems > limit then
+                    table.insert(errors, `{label}: Premium-Gems {premiumGems} liegen über der Obergrenze {math.floor(limit)} (premiumGemsMaxPercent)`)
+                end
+            end
+        end
+        local seasonRow = seasonRows[seasonId]
+        if type(seasonRow) == "table" and type(seasonRow.zoneId) ~= "string" then
+            table.insert(errors, `{label}: die Saison hat keine zoneId, es gäbe nie Punkte`)
+        end
+    end
+    -- Jede Saison mit passId braucht Stufen.
+    for seasonId, season in seasonRows do
+        if season.passId ~= nil and passData.bySeason[seasonId] == nil then
+            table.insert(errors, `Seasons "{seasonId}": hat eine passId, aber keine Stufen in SeasonPass`)
+        end
+    end
+end
+
 -- Event-Kalender (Paket 5.4): Phasen, Saisonzeilen, Montag-Start, keine Überlappung, Kisten.
 local function checkSeasons(errors: { string }, data: DataSet)
     local seasons = data.Seasons
@@ -1321,16 +1526,19 @@ local function checkSeasons(errors: { string }, data: DataSet)
         if type(phase.crateOpen) ~= "boolean" then
             table.insert(errors, `{label}: crateOpen muss true oder false sein`)
         end
+        if type(phase.zoneOpen) ~= "boolean" then
+            table.insert(errors, `{label}: zoneOpen muss true oder false sein`)
+        end
         if phase.hint ~= nil and (type(phase.hint) ~= "string" or phase.hint == "") then
             table.insert(errors, `{label}: hint muss ein nicht leerer Text sein`)
         end
     end
     local crates = if type(data.Crates) == "table" then data.Crates.byId else nil
-    local zones = if type(data.Zones) == "table" then data.Zones.byId else nil
     local products = if type(data.Products) == "table" then data.Products.byId else nil
     local length = #seasons.phases * Seasons.WEEK_SECONDS
     local ids: { [string]: boolean } = {}
     local crateUsers: { [string]: string } = {}
+    local zoneUsers: { [string]: string } = {}
     local ranges: { { id: string, startAt: number } } = {}
     for index, season in seasons.list do
         local label = `Seasons.list[{index}]`
@@ -1370,8 +1578,15 @@ local function checkSeasons(errors: { string }, data: DataSet)
             end
             crateUsers[season.crateId] = id
         end
-        if season.zoneId ~= nil and (type(season.zoneId) ~= "string" or zones == nil or zones[season.zoneId] == nil) then
-            table.insert(errors, `{label}: zoneId "{tostring(season.zoneId)}" steht nicht in Zones`)
+        if season.zoneId ~= nil then
+            local eventZones = if type(data.Zones) == "table" then data.Zones.eventById else nil
+            if type(season.zoneId) ~= "string" or type(eventZones) ~= "table" or eventZones[season.zoneId] == nil then
+                table.insert(errors, `{label}: zoneId "{tostring(season.zoneId)}" steht nicht in Zones.events`)
+            elseif zoneUsers[season.zoneId] ~= nil then
+                table.insert(errors, `{label}: Zone "{season.zoneId}" gehört schon zu Saison "{zoneUsers[season.zoneId]}"`)
+            else
+                zoneUsers[season.zoneId] = id
+            end
         end
         if season.passId ~= nil and (type(season.passId) ~= "string" or products == nil or products[season.passId] == nil) then
             table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
@@ -1413,8 +1628,8 @@ local function checkDirectShop(errors: { string }, data: DataSet)
         local item = if type(itemId) == "string" and type(items) == "table" and type(items.byId) == "table" then items.byId[itemId] else nil
         if item == nil then
             table.insert(errors, `Economy.daily.day7FallbackItemId "{tostring(itemId)}" steht nicht in CrateItems`)
-        elseif isEventOnlyItem(item, crates) then
-            table.insert(errors, `Economy.daily.day7FallbackItemId "{itemId}" ist ein Event-Item`)
+        elseif isEventOnlyItem(item, crates) or item.passOnly == true then
+            table.insert(errors, `Economy.daily.day7FallbackItemId "{itemId}" ist ein Event-Item oder Pass-Item`)
         end
     end
 
@@ -2204,7 +2419,17 @@ local function checkWorldZones(errors: { string }, data: DataSet)
     if type(world.gateTag) ~= "string" or world.gateTag == "" then
         table.insert(errors, "World.gateTag fehlt")
     end
-    local zones = if type(data.Zones) == "table" and type(data.Zones.list) == "table" then data.Zones.list else {}
+    local zones: { any } = {}
+    local knownZones = if type(data.Zones) == "table" and type(data.Zones.byId) == "table" then data.Zones.byId else {}
+    if type(data.Zones) == "table" then
+        for _, group in { data.Zones.list, data.Zones.events } do
+            if type(group) == "table" then
+                for _, zone in group do
+                    table.insert(zones, zone)
+                end
+            end
+        end
+    end
     local present: { [string]: boolean } = {}
     for index, area in world.zones do
         local label = `World.zones[{index}]`
@@ -2213,6 +2438,9 @@ local function checkWorldZones(errors: { string }, data: DataSet)
             continue
         end
         label = `World.zones "{area.id}"`
+        if knownZones[area.id] == nil then
+            table.insert(errors, `{label}: Zone fehlt in Zones (list oder events)`)
+        end
         if present[area.id] then
             table.insert(errors, `{label} ist doppelt`)
         end
@@ -2667,6 +2895,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkPurchases(errors, data)
     checkDirectShop(errors, data)
     checkSeasons(errors, data)
+    checkSeasonPass(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

@@ -43,10 +43,12 @@ local FindRoll = loadShared("Logic", "FindRoll")
 local Collection = loadShared("Logic", "Collection")
 local BigNum = loadShared("Logic", "BigNum")
 local FindsData = loadShared("Data", "Finds")
+local ZonesData = loadShared("Data", "Zones")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
 local Sand: any = nil
+local Events: any = nil
 local Net: any = nil
 
 local Finds = {}
@@ -125,21 +127,36 @@ local function tickPlayer(player: Player)
     local taken = Sand.takeFindSeconds(player)
     for zoneId, seconds in taken do
         local clamped = math.min(seconds, MAX_SECONDS_PER_TICK)
-        local total = (sessionSeconds[player] or 0) + clamped
-        sessionSeconds[player] = total
-        local roll = FindRoll.roll({
-            profile = profile,
-            zoneId = zoneId,
-            seconds = clamped,
-            serverTime = serverTime(),
-            unixTime = os.time(), -- Glücks-Boost (boosts.luckUntil), Paket 5.1
-            sessionSeconds = total,
-            random = function(): number
-                return random:NextNumber()
-            end,
-        })
-        if roll ~= nil then
-            award(player, profile, roll, zoneId)
+        if ZonesData.eventById[zoneId] ~= nil then
+            -- Event-Zonen (Paket 5.5) haben keine Fundstücke: ihre Sammelzeit zählt Saison-Punkte.
+            local counted, err = pcall(Events.addZoneSeconds, player, zoneId, clamped)
+            if not counted then
+                warn(`[Finds] Saison-Punkte für {player.Name} fehlgeschlagen: {tostring(err)}`)
+            end
+            continue
+        end
+        -- Jede Zone für sich in pcall: ein Fehler in einer Zone darf die Sekunden der nächsten (zum
+        -- Beispiel der Event-Zone nach einem Zonenwechsel im selben Takt) nicht verwerfen.
+        local rolled, rollErr = pcall(function()
+            local total = (sessionSeconds[player] or 0) + clamped
+            sessionSeconds[player] = total
+            local roll = FindRoll.roll({
+                profile = profile,
+                zoneId = zoneId,
+                seconds = clamped,
+                serverTime = serverTime(),
+                unixTime = os.time(), -- Glücks-Boost (boosts.luckUntil), Paket 5.1
+                sessionSeconds = total,
+                random = function(): number
+                    return random:NextNumber()
+                end,
+            })
+            if roll ~= nil then
+                award(player, profile, roll, zoneId)
+            end
+        end)
+        if not rolled then
+            warn(`[Finds] Fehler beim Würfeln für {player.Name} in {zoneId}: {tostring(rollErr)}`)
         end
     end
 end
@@ -193,6 +210,7 @@ end
 function Finds.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    Events = require(servicesFolder:WaitForChild("Events") :: ModuleScript)
     Net = require(servicesFolder.Parent:WaitForChild("Net"):WaitForChild("Net") :: ModuleScript)
 end
 

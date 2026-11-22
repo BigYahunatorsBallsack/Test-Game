@@ -174,6 +174,27 @@ function Seasons.inSeason(unixNow: any, crateId: any, data: Data?): boolean
     return position.active.crateId == crateId and position.phase.crateOpen == true
 end
 
+-- Ist die Event-Zone jetzt offen? Nur die Zone der aktiven Saison, nur in einer Phase mit `zoneOpen`.
+-- Kaputte Zeit, andere Saison, Pause oder kein Text ergeben false (Paket 5.5).
+function Seasons.zoneOpen(unixNow: any, zoneId: any, data: Data?): boolean
+    if type(zoneId) ~= "string" then
+        return false
+    end
+    local position = Seasons.at(unixNow, data)
+    if position.active == nil or position.phase == nil then
+        return false
+    end
+    return position.active.zoneId == zoneId and position.phase.zoneOpen == true
+end
+
+-- Die laufende Saison, wenn `zoneId` ihre Event-Zone ist und die Zone offen ist, sonst nil.
+function Seasons.activeForZone(unixNow: any, zoneId: any, data: Data?): any?
+    if not Seasons.zoneOpen(unixNow, zoneId, data) then
+        return nil
+    end
+    return Seasons.at(unixNow, data).active
+end
+
 -- Anzeigeform für den StateSync (`season`). Nur Texte, Zahlen und Wahrheitswerte.
 function Seasons.state(unixNow: any, data: Data?): { [string]: any }
     local position = Seasons.at(unixNow, data)
@@ -189,6 +210,8 @@ function Seasons.state(unixNow: any, data: Data?): { [string]: any }
             secondsLeft = position.secondsLeft,
             crateId = position.active.crateId,
             crateOpen = position.phase.crateOpen == true,
+            zoneId = position.active.zoneId,
+            zoneOpen = position.phase.zoneOpen == true,
         }
     end
     local result: { [string]: any } = { active = false }
@@ -197,6 +220,7 @@ function Seasons.state(unixNow: any, data: Data?): { [string]: any }
             id = position.nextSeason.id,
             name = position.nextSeason.name,
             crateId = position.nextSeason.crateId,
+            zoneId = position.nextSeason.zoneId,
             secondsToNext = position.secondsToNext,
         }
     end

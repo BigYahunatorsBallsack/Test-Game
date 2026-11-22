@@ -113,6 +113,8 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
         if not isFinite(rate) or rate <= 0 or not isFinite(pass) or pass <= 0 then
             return nil
         end
+        -- Die Event-Zone gilt hier immer als gesperrt (isUnlocked ohne Zeit): wer dort abmeldet, bekommt offline den
+        -- Preis der ersten Zone (nie zu viel, bewusst).
         -- Eine gesperrte aktuelle Zone zahlt nie (der Sand-Service setzt sie beim Laden zurück, hier zur Sicherheit).
         local sandTypeId = if ZoneLogic.isUnlocked(profile, profile.currentZone) then Collecting.sandTypeOf(profile) else ZoneData.list[1].sandTypeId
         local price = Collecting.priceOf(profile, sandTypeId, { coinMultiplier = pass })
