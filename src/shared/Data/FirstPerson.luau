@@ -172,6 +172,17 @@ return {
         defaultEyeHeight = 4.5,
     },
 
+    -- Zielen beim Graben: Das Loch entsteht dort, wohin Fadenkreuz (oder bei freier Maus der
+    -- Mauszeiger) zeigt, nicht mehr fest vor dem Charakter. Der Abstand zum Charakter (waagrecht)
+    -- wird begrenzt: mindestens so weit, dass das Loch den Charakter nicht erreicht
+    -- (Lochradius + Charakter-Quader + `marginStuds`), höchstens Arbeitsspitze + `extraReachStuds`.
+    -- Zielt man in den Himmel, gräbt das Werkzeug an seiner Arbeitsspitze in Blickrichtung.
+    aim = {
+        rayLengthStuds = 80, -- so weit reicht der Strahl aus der Kamera
+        extraReachStuds = 6,
+        marginStuds = 0.2,
+    },
+
     -- Eigene Kosmetik am Körper (Umhang, Schärpe), die in der Ego-Perspektive den Blick stört.
     hiddenItemParts = { "Cape", "Sash" },
 }
