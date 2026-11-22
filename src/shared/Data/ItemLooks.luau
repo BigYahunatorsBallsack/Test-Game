@@ -74,6 +74,11 @@ local list: { ItemLook } = {
     { id = "skin_mythic_2", kind = "skin", colorHex = "#FFE9A8", accentHex = "#FF6F00", material = "Neon" },
     { id = "companion_mythic_2", kind = "companion", colorHex = "#4A2C17", accentHex = "#FFB84D", material = "SmoothPlastic", shape = "Ball", size = 2.2 },
     { id = "toolVariant_mythic_2", kind = "toolVariant", colorHex = "#FF3D7F", accentHex = "#33FFD1", material = "Neon" },
+
+    -- Pass-Items Saison 1 (Paket 5.5)
+    { id = "skin_rare_4", kind = "skin", colorHex = "#C77D3A", accentHex = "#F2D9A0", material = "Fabric" },
+    { id = "companion_epic_3", kind = "companion", colorHex = "#B8863B", accentHex = "#F4E6C0", material = "SmoothPlastic", shape = "Block", size = 1.4 },
+    { id = "toolVariant_epic_3", kind = "toolVariant", colorHex = "#D9A441", accentHex = "#FFF2C4", material = "Metal" },
 }
 
 local byId: { [string]: ItemLook } = {}

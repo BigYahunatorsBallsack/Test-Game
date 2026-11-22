@@ -583,6 +583,42 @@ Plan: Claude-Dokument "Paket 5.4: Event-Kalender als Daten, Plan". Fertig, wenn:
 - [ ] [Studio] `DebugSeason` "week:4": Die Zeile zeigt "Letzte Woche: letzte Chance auf die Event-Kiste". Ein Wechsel des Attributs aktualisiert die Anzeige ohne Neustart innerhalb weniger Sekunden.
 - [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 
+## 5.5 Saison-Pass, Event-Kiste, Event-Zone
+
+Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". Fertig, wenn: Saison 1 ist komplett spielbar und kaufbar. Zwei Pull Requests: 5.5a (Event-Zone, Saison-Punkte, Event-Kiste) und 5.5b (Saison-Pass).
+
+5.5a Event-Zone, Punkte, Event-Kiste
+
+- [x] [Lune] Die Event-Zone ist nur offen, wenn ihre Saison läuft, die Woche `zoneOpen` hat und der Knoten (Vorgabe `collect_tool_2`) gekauft ist; vor dem Start und nach dem Ende ist sie gesperrt, Besitz und Funde bleiben.
+- [x] [Lune] Die Event-Zone steht nie in `profile.zones`; der Sandsturm und die Sammlung (Funde, Sets) bleiben bei den fünf festen Zonen unverändert.
+- [x] [Lune] Steht ein Spieler beim Saisonende in der Event-Zone, setzt der Server ihn zurück an den Spawn der ersten Zone.
+- [x] [Lune] Saison-Punkte zählen nur aus der vom Server gerechneten Sammelzeit in der Event-Zone, nur in einer laufenden Saison, nie ohne Zone, mit Obergrenze (Summe aller Stufen); der Client sendet keinen Wert.
+- [x] [Lune] Der Punktestand liegt in `profile.seasons[seasonId]`, überlebt Laden und Sandsturm und wird beim Laden repariert (kaputte Zahlen, unbekannte Saison).
+- [x] [Lune] DataCheck: Event-Zone mit gültiger Sandsorte und Knoten, genau eine Zone je Saison-Zeile, Event-Sand mit Preisfaktor, `Economy.seasonPass` vollständig.
+- [x] [Lune] Event-Kiste: Saison-1-Pool vollständig (je Seltenheit gefüllt), Quoten wie die Goldkiste, die Simulation aus 4.7 enthält die Event-Kiste und bleibt innerhalb der Abweichung.
+- [x] [Lune] DataCheck verbietet Pass-Items in Angeboten und als Tag-7-Ersatz, meldet eine nicht prüfbare Gem-Obergrenze, eine Saison mit Stufen ohne Zone und zu lange Boost-Belohnungen; unbekannte Felder in `profile.seasons` bleiben beim Säubern erhalten.
+- [x] [Shell] `security-reviewer` (Event-Zone, Punkte, Profil, DebugSeason) ohne offenen kritischen, hohen oder mittleren Befund; die niedrigen Befunde sind bis auf die unten genannten behoben.
+- [ ] [Studio] `DebugSeason` "week:1": die Event-Zone erscheint im Zonen-Menü, Hinfahren und Graben zählt "Saison-Punkte x von y"; mit "off" in der Zone: Rücksetzen an den Spawn und im Menü "Nur in der Saison".
+
+5.5b Saison-Pass
+
+- [ ] [Lune] Punkte zu Stufe: Stufe n ist ab ihrem Punktestand erreicht, nie früher; ein Sprung über mehrere Stufen erreicht alle.
+- [ ] [Lune] Abholen: nur erreichte Stufen, jede Stufe je Spur genau einmal, die Premium-Spur nur mit Pass; Belohnung und "abgeholt" werden in einem Zug gebucht (Fehler bucht nichts).
+- [ ] [Lune] Belohnungen sind fest (Gems, Boosts, feste Items), nie Kisten oder Zufall; sie gelten auch bei `ArePaidRandomItemsRestricted`. DataCheck verbietet Kisten und Zufall in den Stufen.
+- [ ] [Lune] Kauf: Dieselbe PurchaseId zweimal ergibt genau eine Gutschrift (idempotent), `PurchaseGranted` erst nach dem Speichern; unbekanntes Produkt oder kaputte Daten gewähren nichts.
+- [ ] [Lune] Doppelkauf derselben Saison: der Server sperrt den Kauf-Aufruf; trifft ein Kauf trotzdem ein, gibt es die Ersatz-Gems aus `Economy.seasonPass` statt eines zweiten Passes.
+- [ ] [Lune] Kauf außerhalb der Saison: der Server startet den Kauf-Aufruf nicht; trifft eine Zahlung innerhalb der Abholfrist nach dem Ende ein, gilt sie für die zuletzt beendete Saison.
+- [ ] [Lune] Abholfrist: Belohnungen sind bis zum Ende der Frist (Tage in den Daten) nach dem Saisonende abholbar, danach nicht mehr; Punkte zählen nach dem Ende nicht mehr.
+- [ ] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
+- [ ] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
+- [ ] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
+- [ ] [Shell] `balance-analyst`: Simulation der Punkte-Kurve (Gelegenheitsspieler schafft rund zwei Drittel der Spur, Vielspieler die ganze Spur vor Woche 4) und Wert der Premium-Spur in `docs/balance/season_5_5.md`.
+- [ ] [Shell] `security-reviewer` (Käufe, Abholen, Remotes) ohne offenen kritischen oder hohen Befund.
+- [ ] [Studio] `DebugSeason` "week:1": Event-Zone erscheint im Zonen-Menü, Hinfahren und Graben zählt Punkte im Pass-Fenster, ein Gratis-Preis lässt sich abholen.
+- [ ] [Studio] Testkauf des Saison-Passes schaltet die Premium-Spur frei, Abholen gibt Gems und feste Items; ein zweiter Kauf-Knopf ist gesperrt.
+- [ ] [Studio] `DebugSeason` "off" während man in der Event-Zone steht: Der Spieler wird zurückgesetzt, die Zone ist gesperrt, das Pass-Fenster zeigt die Abholfrist.
+- [ ] [Studio] Das Pass-Fenster ist am Handy-Bildschirm bedienbar.
+
 ## 5.6 Server-Event "Der Koloss"
 
 - [ ] [Lune] Der Fortschritt zählt nur serverseitig gemeldeten Sand aus der Event-Zone.

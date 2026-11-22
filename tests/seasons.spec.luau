@@ -353,18 +353,16 @@ T.describe("DataCheck", function()
 
     T.it("zoneId und passId werden nur geprüft, wenn sie gesetzt sind", function()
         T.expect(broken(function(d)
-            d.Seasons.list[1].zoneId = nil
             d.Seasons.list[1].passId = nil
         end)).toEqual({})
         expectError(broken(function(d)
             d.Seasons.list[1].zoneId = "nirgends"
-        end), 'zoneId "nirgends" steht nicht in Zones')
+        end), 'zoneId "nirgends" steht nicht in Zones.events')
         expectError(broken(function(d)
             d.Seasons.list[1].passId = "nirgends"
         end), 'passId "nirgends" steht nicht in Products')
         T.expect(broken(function(d)
             d.Seasons.list[1].passId = "season_pass"
-            d.Seasons.list[1].zoneId = d.Zones.list[1].id
         end)).toEqual({})
     end)
 

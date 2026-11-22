@@ -183,6 +183,19 @@ local Economy = {
         -- (docs/balance/directshop_4_6.md, "Tag 7"). DataCheck: bekanntes Item, kein Event-Item.
         day7FallbackItemId = "toolVariant_uncommon_1",
     },
+
+    -- Saison-Pass (Paket 5.5, Logic/SeasonPass, Stufen in Data/SeasonPass). Werte: docs/balance/season_5_5.md.
+    seasonPass = {
+        -- Je so viele Sekunden Graben in der Event-Zone (vom Server gezählt) gibt es einen Saison-Punkt.
+        secondsPerPoint = 10,
+        -- So viele Tage nach dem Saisonende lassen sich Belohnungen noch abholen (5.5b).
+        claimGraceDays = 3,
+        -- Ersatz-Gems, wenn ein zweiter Pass derselben Saison bezahlt wird (5.5b).
+        duplicateGems = 850, -- Gem-Gegenwert von 399 Robux (beste Paketkombination), docs/balance/season_5_5.md
+        -- Höchstanteil der Premium-Gems am Gem-Gegenwert des Pass-Preises (Kurs des kleinsten Pakets), in
+        -- Prozent. DataCheck prüft die Summe aller Premium-Gems dagegen: der Pass ist kein Gem-Rabatt.
+        premiumGemsMaxPercent = 50,
+    },
 }
 
 return Economy

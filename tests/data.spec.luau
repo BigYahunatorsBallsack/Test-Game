@@ -162,7 +162,7 @@ T.describe("Datentabellen (0.1)", function()
             for _ in module.byId do
                 count += 1
             end
-            T.expect(count).toBe(#module.list)
+            T.expect(count).toBe(#module.list + (if module.events ~= nil then #module.events else 0)) -- Zones.byId kennt auch die Event-Zonen (5.5)
             T.expect(name ~= "").toBe(true)
         end
 

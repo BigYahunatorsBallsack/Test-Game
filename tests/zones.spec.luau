@@ -234,8 +234,11 @@ T.describe("Daten der Welt und der Sandsorten", function()
 
     T.it("jede Zone hat Bereich, Spawn, Stand und Feld im Bereich, Bereiche überlappen nicht", function()
         T.expect(errorsFor(function(data: any) end)).toBe("")
-        T.expect(#World.zones).toBe(#Zones.list)
+        T.expect(#World.zones).toBe(#Zones.list + #Zones.events) -- feste Zonen und Event-Zonen (5.5)
         for _, zone in Zones.list do
+            T.expect(World.zonesById[zone.id] ~= nil).toBe(true)
+        end
+        for _, zone in Zones.events do
             T.expect(World.zonesById[zone.id] ~= nil).toBe(true)
         end
     end)

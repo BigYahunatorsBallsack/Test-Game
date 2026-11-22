@@ -62,6 +62,20 @@ local function requirementText(zone: any): string
     return `Benötigt: {if node ~= nil then node.name else zone.requires}`
 end
 
+-- Läuft die Saison dieser Event-Zone gerade (Snapshot `season`, Paket 5.5)?
+local function seasonRunning(snapshot: any?, zone: any): boolean
+    local season = if snapshot ~= nil then snapshot.season else nil
+    return type(season) == "table" and season.active == true and season.id == zone.seasonId and season.zoneOpen == true
+end
+
+-- Text für eine gesperrte Zone: Knoten, bei einer Event-Zone außerhalb der Saison der Hinweis darauf.
+local function lockedText(zone: any, snapshot: any?): string
+    if zone.seasonId ~= nil and not seasonRunning(snapshot, zone) then
+        return "Nur in der Saison"
+    end
+    return requirementText(zone)
+end
+
 local function isUnlocked(snapshot: any?, zoneId: string): boolean
     return snapshot ~= nil and type(snapshot.zonesUnlocked) == "table" and snapshot.zonesUnlocked[zoneId] == true
 end
@@ -93,7 +107,7 @@ local function refreshGate(part: BasePart, snapshot: any?)
     local open = isUnlocked(snapshot, zoneId)
     part.Transparency = if open then GATE_OPEN_TRANSPARENCY else GATE_LOCKED_TRANSPARENCY
     entry.sign.Enabled = not open
-    entry.label.Text = `{zone.name}\n{requirementText(zone)}`
+    entry.label.Text = `{zone.name}\n{lockedText(zone, snapshot)}`
 end
 
 local function addGate(part: Instance)
@@ -155,8 +169,16 @@ function ZoneMenu.Start()
     message.Parent = window.footer
 
     local busy = false
-    local rows: { [string]: { status: TextLabel, go: TextButton } } = {}
-    for index, zone in Zones.list do
+    local rows: { [string]: { row: Frame, status: TextLabel, go: TextButton } } = {}
+    -- Feste Zonen, danach die Event-Zonen der Saisons (Paket 5.5, nur sichtbar, solange ihre Saison läuft).
+    local allZones: { any } = {}
+    for _, zone in Zones.list do
+        table.insert(allZones, zone)
+    end
+    for _, zone in Zones.events do
+        table.insert(allZones, zone)
+    end
+    for index, zone in allZones do
         local row = Instance.new("Frame")
         row.Name = zone.id
         row.LayoutOrder = index
@@ -199,7 +221,8 @@ function ZoneMenu.Start()
         go.Parent = row
         Instance.new("UICorner").Parent = go
 
-        rows[zone.id] = { status = status, go = go }
+        rows[zone.id] = { row = row, status = status, go = go }
+        row.Visible = zone.seasonId == nil
         go.Activated:Connect(function()
             if busy then
                 return -- ein Aufruf läuft noch (Doppelklick)
@@ -228,11 +251,19 @@ function ZoneMenu.Start()
     end
 
     refresh = function(snapshot: any?)
-        for _, zone in Zones.list do
+        for _, zone in allZones do
             local row = rows[zone.id]
             local open = isUnlocked(snapshot, zone.id)
             local current = snapshot ~= nil and snapshot.zoneId == zone.id
-            row.status.Text = if current then "Hier bist du" elseif open then "Frei" else requirementText(zone)
+            if zone.seasonId ~= nil then
+                row.row.Visible = open or seasonRunning(snapshot, zone) or current
+            end
+            local points = ""
+            local pass = if snapshot ~= nil then snapshot.seasonPass else nil
+            if zone.seasonId ~= nil and type(pass) == "table" and pass.seasonId == zone.seasonId then
+                points = ` · Saison-Punkte {pass.points} von {pass.maxPoints}`
+            end
+            row.status.Text = (if current then "Hier bist du" elseif open then "Frei" else lockedText(zone, snapshot)) .. points
             row.go.Visible = open and not current
             row.go.BackgroundColor3 = if open then GO_COLOR else DISABLED_COLOR
         end

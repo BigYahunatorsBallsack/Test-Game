@@ -32,8 +32,10 @@ local DEBUG_ATTRIBUTE = "DebugSeason"
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local SeasonsLogic = require(shared:WaitForChild("Logic"):WaitForChild("Seasons") :: ModuleScript) :: any
+local SeasonPassLogic = require(shared:WaitForChild("Logic"):WaitForChild("SeasonPass") :: ModuleScript) :: any
 
 local servicesFolder = script.Parent
+local SeasonClock = require(servicesFolder:WaitForChild("SeasonClock") :: ModuleScript) :: any
 local IS_STUDIO = RunService:IsStudio()
 
 local Events = {}
@@ -41,8 +43,6 @@ local Events = {}
 local PlayerData: any = nil
 local Sand: any = nil
 
--- Studio-Hilfe je Spieler: { action = "off" | "week", week = number? }. Leer = echte Zeit.
-local debugOverrides: { [Player]: { action: string, week: number? } } = {}
 -- Letzter gesendeter Stand je Spieler (Saison-ID und Woche), damit der Takt nur bei Wechseln sendet.
 local lastKey: { [Player]: string } = {}
 local handled: { [Player]: boolean } = {}
@@ -51,25 +51,10 @@ local function log(message: string)
     warn(`[Events] {message}`)
 end
 
--- Server-Uhr in Unix-Sekunden (dieselbe wie Daily, Angebote und Kaufprotokoll).
-local function unixNow(): number
-    return os.time()
-end
-
--- Zeit, nach der der Kalender für diesen Spieler rechnet: die Server-Uhr, in Studio mit
+-- Zeit, nach der der Kalender für diesen Spieler rechnet: die Server-Uhr (SeasonClock), in Studio mit
 -- Debug-Einstellung die gewählte Woche.
 local function timeFor(player: Player): number
-    local now = unixNow()
-    if IS_STUDIO then
-        local override = debugOverrides[player]
-        if override ~= nil then
-            local shifted = SeasonsLogic.debugTime(override.action, override.week, now)
-            if shifted ~= nil then
-                return shifted
-            end
-        end
-    end
-    return now
+    return SeasonClock.timeFor(player)
 end
 
 local function keyOf(state: { [string]: any }): string
@@ -104,7 +89,16 @@ local function snapshotFor(player: Player): { [string]: any }
     if player.Parent == Players then
         lastKey[player] = keyOf(state)
     end
-    return { season = state }
+    local result: { [string]: any } = { season = state }
+    -- Saison-Punkte (Paket 5.5): nur während einer laufenden Saison, wenn sie Stufen hat.
+    local profile = PlayerData.get(player)
+    if profile ~= nil and state.active == true and SeasonPassLogic.tiersOf(state.id) ~= nil then
+        local okPass, passState = pcall(SeasonPassLogic.state, profile, state.id)
+        if okPass then
+            result.seasonPass = passState
+        end
+    end
+    return result
 end
 
 local function refresh(player: Player)
@@ -112,6 +106,25 @@ local function refresh(player: Player)
     if not ok then
         log(`Anzeige für {player.Name} fehlgeschlagen: {tostring(err)}`)
     end
+end
+
+-- Sammelzeit in der Event-Zone gutschreiben (Aufruf aus dem Finds-Takt, Sekunden vom Server gerechnet).
+-- Zählt nur für die laufende Saison, deren Zone `zoneId` ist und gerade offen ist (SeasonClock). Gibt
+-- die neu gewonnenen Punkte zurück.
+function Events.addZoneSeconds(player: Player, zoneId: string, seconds: number): number
+    local profile = PlayerData.get(player)
+    if profile == nil or not PlayerData.isActive(player.UserId) then
+        return 0
+    end
+    local season = SeasonsLogic.activeForZone(timeFor(player), zoneId)
+    if season == nil then
+        return 0
+    end
+    local gained = SeasonPassLogic.addSeconds(profile, season.id, seconds)
+    if gained > 0 then
+        refresh(player)
+    end
+    return gained
 end
 
 -- Takt: bei Saison- oder Wochenwechsel allen geladenen Spielern den Zustand neu senden.
@@ -141,9 +154,9 @@ local function connectStudioHelper(player: Player)
             return
         end
         if action == "clear" then
-            debugOverrides[player] = nil
+            SeasonClock.set(player, nil, nil)
         else
-            debugOverrides[player] = { action = action, week = week }
+            SeasonClock.set(player, action, week)
         end
         refresh(player)
     end)
@@ -175,7 +188,6 @@ function Events.Start()
         end
     end
     Players.PlayerRemoving:Connect(function(player: Player)
-        debugOverrides[player] = nil
         lastKey[player] = nil
         handled[player] = nil
     end)
