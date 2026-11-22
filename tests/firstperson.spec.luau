@@ -1,5 +1,5 @@
 --!strict
--- Ego-Perspektive: Armhaltung, Maus, Sicht auf die eigene Maschine und Tabellenprüfung.
+-- Ego-Perspektive: Hände vor der Kamera, Eimer, Maus, Sicht auf die eigene Maschine und Tabellenprüfung.
 
 local T = require("./lib/expect")
 local FirstPerson = require("../src/shared/Logic/FirstPerson")
@@ -24,25 +24,28 @@ local function errorsFor(change: (any) -> ()): string
     return table.concat(FirstPerson.check(data), "\n")
 end
 
-local still = { pitch = 0, t = 0, collecting = false, speed = 0 }
+local still = { t = 0, collecting = false, speed = 0 }
 
 T.describe("Tabelle FirstPerson", function()
     T.it("die mitgelieferte Tabelle ist fehlerfrei", function()
         T.expect(table.concat(FirstPerson.check(), "\n")).toBe("")
     end)
 
-    T.it("jedes Werkzeug hat eine Armhaltung, sonst meldet die Prüfung es", function()
+    T.it("jedes Werkzeug hat einen Eintrag, sonst meldet die Prüfung es", function()
         for _, tool in Tools.list do
-            T.expect(Data.arms[tool.id] ~= nil).toBeTruthy()
+            T.expect(Data.tools[tool.id] ~= nil).toBeTruthy()
         end
         T.expect(errorsFor(function(d)
-            d.arms.shovel = nil
+            d.tools.shovel = nil
         end)).toContain("shovel")
     end)
 
-    T.it("meldet unbekannten Grabstil, falsches Sichtfeld, leere Tasten und fehlenden Standard", function()
+    T.it("meldet unbekanntes Teil, Grabstil, falsches Sichtfeld, leere Tasten und fehlenden Standard", function()
         T.expect(errorsFor(function(d)
-            d.arms.hand.dig = "gibtsnicht"
+            d.tools.hand.item = "gibtsnicht"
+        end)).toContain("unbekanntes Teil")
+        T.expect(errorsFor(function(d)
+            d.tools.hand.dig = "gibtsnicht"
         end)).toContain("Grabstil")
         T.expect(errorsFor(function(d)
             d.camera.fieldOfView = 200
@@ -51,8 +54,8 @@ T.describe("Tabelle FirstPerson", function()
             d.cursor.toggleKeys = {}
         end)).toContain("toggleKeys")
         T.expect(errorsFor(function(d)
-            d.defaultArms = "weg"
-        end)).toContain("defaultArms")
+            d.defaultTool = "weg"
+        end)).toContain("defaultTool")
         T.expect(errorsFor(function(d)
             d.digStyles.scoop.period = 0
         end)).toContain("period")
@@ -60,102 +63,154 @@ T.describe("Tabelle FirstPerson", function()
             d.toolView.fadeTo = 2
         end)).toContain("fadeTo")
     end)
-end)
 
-T.describe("Armhaltung", function()
-    T.it("im Stand ohne Blickneigung gilt die Grundhaltung, der linke Arm gespiegelt", function()
-        local pose = FirstPerson.armPose("shovel", still)
-        local style = Data.arms.shovel
-        T.expect(pose.right.x).toBeCloseTo(style.right.x)
-        T.expect(pose.right.y).toBeCloseTo(style.right.y)
-        T.expect(pose.left.x).toBeCloseTo(style.left.x)
-        T.expect(pose.left.y).toBeCloseTo(-style.left.y)
-        T.expect(pose.left.z).toBeCloseTo(-style.left.z)
+    T.it("meldet kaputte Teile: Form, Größe, Farbe, Bemalung", function()
+        T.expect(errorsFor(function(d)
+            d.viewmodel.items.shovel.parts[1].shape = "Kegel"
+        end)).toContain("Form")
+        T.expect(errorsFor(function(d)
+            d.viewmodel.bucket[1].size.x = 0
+        end)).toContain("size")
+        T.expect(errorsFor(function(d)
+            d.viewmodel.rightArm[1].colorHex = "rot"
+        end)).toContain("colorHex")
+        T.expect(errorsFor(function(d)
+            d.viewmodel.leftArm[1].paint = "glitzer"
+        end)).toContain("paint")
+        T.expect(errorsFor(function(d)
+            d.viewmodel.fill.maxHeight = 0.01
+        end)).toContain("fill")
     end)
 
-    T.it("die Arme liegen in der Grundhaltung vorn im Bild (zwischen 45 und 135 Grad gehoben)", function()
-        for id, style in Data.arms do
-            for _, side in { "right", "left" } do
-                local x = style[side].x
-                if x < 45 or x > 135 then
-                    error(`arms.{id}.{side}.x = {x}`)
-                end
-            end
+    T.it("die Hände liegen vor der Kamera, rechts die Werkzeughand, links der Eimer", function()
+        T.expect(Data.viewmodel.right.offset.z < 0).toBeTruthy()
+        T.expect(Data.viewmodel.left.offset.z < 0).toBeTruthy()
+        T.expect(Data.viewmodel.right.offset.x > 0).toBeTruthy()
+        T.expect(Data.viewmodel.left.offset.x < 0).toBeTruthy()
+        T.expect(errorsFor(function(d)
+            d.viewmodel.right.offset.z = 1
+        end)).toContain("vor der Kamera")
+    end)
+
+    T.it("Hand und Schaufel ersetzen das Weltmodell, Maschinen bleiben in der Welt", function()
+        T.expect(Data.tools.hand.hideWorldTool).toBe(true)
+        T.expect(Data.tools.shovel.hideWorldTool).toBe(true)
+        T.expect(Data.tools.shovel.item).toBe("shovel")
+        for _, id in { "bucket_chain", "mini_digger", "vacuum_robot", "mega_machine" } do
+            T.expect(Data.tools[id].hideWorldTool).toBe(false)
+            T.expect(Data.tools[id].item).toBe("remote")
+        end
+    end)
+end)
+
+T.describe("Bewegung der Hände", function()
+    T.it("im Stand ohne Graben bleiben beide Hände am Anker", function()
+        local pose = FirstPerson.viewPose("shovel", still)
+        T.expect(pose.right.move).toEqual({ x = 0, y = 0, z = 0 })
+        T.expect(pose.right.turn).toEqual({ x = 0, y = 0, z = 0 })
+        T.expect(pose.left.move).toEqual({ x = 0, y = 0, z = 0 })
+    end)
+
+    T.it("unbekanntes oder fehlendes Werkzeug verhält sich wie der Standard", function()
+        local state = { t = 0.3, collecting = true, speed = 0 }
+        local fallback = FirstPerson.viewPose(Data.defaultTool, state)
+        T.expect(FirstPerson.viewPose("gibtsnicht", state)).toEqual(fallback)
+        T.expect(FirstPerson.viewPose(nil, state)).toEqual(fallback)
+    end)
+
+    T.it("Schaufel: auf dem Höhepunkt des Stichs ganz vorn, der Eimer wippt mit", function()
+        local dig = Data.digStyles.stab
+        local pose = FirstPerson.viewPose("shovel", { t = dig.period / 4, collecting = true, speed = 0 })
+        T.expect(pose.right.move.z).toBeCloseTo(dig.move.z)
+        T.expect(pose.right.move.y).toBeCloseTo(dig.move.y)
+        T.expect(pose.right.turn.x).toBeCloseTo(dig.turn.x)
+        T.expect(pose.left.move.y).toBeCloseTo(dig.move.y * dig.leftFactor)
+    end)
+
+    T.it("in der zweiten Hälfte der Periode ist die Hand zurück (kein Rückwärts-Stich)", function()
+        local dig = Data.digStyles.stab
+        local pose = FirstPerson.viewPose("shovel", { t = dig.period * 3 / 4, collecting = true, speed = 0 })
+        T.expect(pose.right.move.z).toBeCloseTo(0)
+    end)
+
+    T.it("Hand greift beim Graben nach vorn unten", function()
+        local dig = Data.digStyles.scoop
+        local pose = FirstPerson.viewPose("hand", { t = dig.period / 4, collecting = true, speed = 0 })
+        T.expect(pose.right.move.z < 0).toBeTruthy()
+        T.expect(pose.right.move.y < 0).toBeTruthy()
+    end)
+
+    T.it("Fernsteuerung zittert nur wenig (unter 0,1 Studs)", function()
+        for i = 0, 20 do
+            local pose = FirstPerson.viewPose("mega_machine", { t = i * 0.037, collecting = true, speed = 0 })
+            T.expect(math.abs(pose.right.move.x) < 0.1).toBeTruthy()
+            T.expect(math.abs(pose.right.move.y) < 0.1).toBeTruthy()
         end
     end)
 
-    T.it("unbekanntes oder fehlendes Werkzeug bekommt die Standardhaltung", function()
-        local fallback = FirstPerson.armPose(Data.defaultArms, still)
-        T.expect(FirstPerson.armPose("gibtsnicht", still)).toEqual(fallback)
-        T.expect(FirstPerson.armPose(nil, still)).toEqual(fallback)
-    end)
-
-    T.it("Blick nach oben hebt die Arme, nach unten senkt sie, begrenzt durch min/maxPitch", function()
-        local base = FirstPerson.armPose("hand", still).right.x
-        local up = FirstPerson.armPose("hand", { pitch = 30, t = 0, collecting = false, speed = 0 }).right.x
-        local down = FirstPerson.armPose("hand", { pitch = -30, t = 0, collecting = false, speed = 0 }).right.x
-        T.expect(up > base).toBeTruthy()
-        T.expect(down < base).toBeTruthy()
-        local extreme = FirstPerson.armPose("hand", { pitch = 89, t = 0, collecting = false, speed = 0 }).right.x
-        T.expect(extreme).toBeCloseTo(base + Data.camera.maxPitch * Data.camera.pitchFollow)
-    end)
-
-    T.it("beim Sammeln schwingen die Arme, ohne Sammeln nicht", function()
-        local quarter = Data.digStyles.scoop.period / 4
-        local idle = FirstPerson.armPose("hand", { pitch = 0, t = quarter, collecting = false, speed = 0 })
-        local digging = FirstPerson.armPose("hand", { pitch = 0, t = quarter, collecting = true, speed = 0 })
-        T.expect(idle.right.x).toBeCloseTo(Data.arms.hand.right.x)
-        T.expect(digging.right.x).toBeCloseTo(Data.arms.hand.right.x + Data.digStyles.scoop.swing.x)
-        -- Gegentakt: der linke Arm schwingt zur selben Zeit in die andere Richtung.
-        T.expect(digging.left.x).toBeCloseTo(Data.arms.hand.left.x - Data.digStyles.scoop.swing.x)
-    end)
-
-    T.it("die Schaufel sticht mit beiden Armen gleichzeitig", function()
-        local quarter = Data.digStyles.stab.period / 4
-        local pose = FirstPerson.armPose("shovel", { pitch = 0, t = quarter, collecting = true, speed = 0 })
-        T.expect(pose.right.x - Data.arms.shovel.right.x).toBeCloseTo(pose.left.x - Data.arms.shovel.left.x)
-    end)
-
-    T.it("Wippen beim Laufen wächst mit der Geschwindigkeit und ist bei 0 aus", function()
+    T.it("Wippen beim Laufen wächst mit der Geschwindigkeit und ist im Stand aus", function()
         local t = 1 / (4 * Data.walk.bobHz)
-        local stand = FirstPerson.armPose("hand", { pitch = 0, t = t, collecting = false, speed = 0 })
-        local slow = FirstPerson.armPose("hand", { pitch = 0, t = t, collecting = false, speed = Data.walk.fullSpeed / 2 })
-        local fast = FirstPerson.armPose("hand", { pitch = 0, t = t, collecting = false, speed = Data.walk.fullSpeed * 3 })
-        T.expect(stand.right.x).toBeCloseTo(Data.arms.hand.right.x)
-        T.expect(slow.right.x - stand.right.x).toBeCloseTo(Data.walk.bobDegrees / 2)
-        T.expect(fast.right.x - stand.right.x).toBeCloseTo(Data.walk.bobDegrees)
+        local stand = FirstPerson.viewPose("hand", { t = t, collecting = false, speed = 0 })
+        local slow = FirstPerson.viewPose("hand", { t = t, collecting = false, speed = Data.walk.fullSpeed / 2 })
+        local fast = FirstPerson.viewPose("hand", { t = t, collecting = false, speed = Data.walk.fullSpeed * 3 })
+        T.expect(stand.right.move.y).toBeCloseTo(0)
+        T.expect(slow.right.move.y).toBeCloseTo(Data.walk.bobStuds / 2)
+        T.expect(fast.right.move.y).toBeCloseTo(Data.walk.bobStuds)
+        T.expect(fast.left.move.y).toBeCloseTo(-Data.walk.bobStuds)
     end)
 
-    T.it("ungültige Zahlen (NaN, unendlich) ergeben die Grundhaltung und keinen Fehler", function()
-        local pose = FirstPerson.armPose("hand", { pitch = 0 / 0, t = math.huge, collecting = false, speed = 0 / 0 })
-        T.expect(pose.right.x).toBeCloseTo(Data.arms.hand.right.x)
+    T.it("ungültige Zahlen (NaN, unendlich) ergeben keine Bewegung und keinen Fehler", function()
+        local pose = FirstPerson.viewPose("hand", { t = math.huge, collecting = false, speed = 0 / 0 })
+        T.expect(pose.right.move).toEqual({ x = 0, y = 0, z = 0 })
     end)
 
-    T.it("pitchFromLook rechnet Grad aus der Blickrichtung", function()
-        T.expect(FirstPerson.pitchFromLook(0)).toBeCloseTo(0)
-        T.expect(FirstPerson.pitchFromLook(1)).toBeCloseTo(90)
-        T.expect(FirstPerson.pitchFromLook(-0.5)).toBeCloseTo(-30)
-        T.expect(FirstPerson.pitchFromLook(5)).toBeCloseTo(90)
+    T.it("Nachziehen: gegen die Drehung, begrenzt, und es klingt ab", function()
+        local s = FirstPerson.swayStep({ yaw = 0, pitch = 0 }, 0.05, 0, 1 / 60)
+        T.expect(s.yaw < 0).toBeTruthy()
+        local big = { yaw = 0, pitch = 0 }
+        for _ = 1, 200 do
+            big = FirstPerson.swayStep(big, 10, -10, 1 / 60)
+        end
+        T.expect(big.yaw).toBeCloseTo(-Data.sway.maxDegrees, 1e-3)
+        T.expect(big.pitch).toBeCloseTo(Data.sway.maxDegrees, 1e-3)
+        local calm = big
+        for _ = 1, 600 do
+            calm = FirstPerson.swayStep(calm, 0, 0, 1 / 60)
+        end
+        T.expect(math.abs(calm.yaw) < 0.01).toBeTruthy()
     end)
 
-    T.it("Glättung geht weich aufs Ziel und bleibt zwischen 0 und 1", function()
-        local a = FirstPerson.smoothAlpha(1 / 60, Data.smoothing)
+    T.it("Glättung bleibt zwischen 0 und 1", function()
+        local a = FirstPerson.smoothAlpha(1 / 60, 12)
         T.expect(a > 0 and a < 1).toBeTruthy()
-        T.expect(FirstPerson.smoothAlpha(10, Data.smoothing)).toBeCloseTo(1, 1e-3)
-        T.expect(FirstPerson.smoothAlpha(0, Data.smoothing)).toBe(0)
-        local p = FirstPerson.approachPose({ x = 0, y = 0, z = 0 }, { x = 10, y = -10, z = 4 }, 0.5)
-        T.expect(p).toEqual({ x = 5, y = -5, z = 2 })
+        T.expect(FirstPerson.smoothAlpha(10, 12)).toBeCloseTo(1, 1e-3)
+        T.expect(FirstPerson.smoothAlpha(0, 12)).toBe(0)
+        T.expect(FirstPerson.smoothAlpha(0 / 0, 12)).toBe(0)
     end)
 end)
 
-T.describe("Körperteile", function()
-    T.it("nur die Arme von R15 und R6 bleiben sichtbar", function()
-        for _, name in { "RightUpperArm", "RightLowerArm", "RightHand", "LeftUpperArm", "LeftLowerArm", "LeftHand", "Left Arm", "Right Arm" } do
-            T.expect(FirstPerson.isArmPart(name)).toBe(true)
-        end
-        for _, name in { "Head", "UpperTorso", "Torso", "LeftFoot", "HumanoidRootPart", "Handle" } do
-            T.expect(FirstPerson.isArmPart(name)).toBe(false)
-        end
+T.describe("Eimer zeigt den Tank", function()
+    local fill = Data.viewmodel.fill
+    T.it("leer: dünne Schicht am Boden, voll: bis knapp unter den Rand", function()
+        local empty = FirstPerson.bucketFill(0)
+        T.expect(empty.height).toBeCloseTo(fill.minHeight)
+        T.expect(empty.centerY - empty.height / 2).toBeCloseTo(fill.bottomY)
+        local full = FirstPerson.bucketFill(1)
+        T.expect(full.height).toBeCloseTo(fill.maxHeight)
+        T.expect(full.centerY - full.height / 2).toBeCloseTo(fill.bottomY)
+    end)
+    T.it("halb voll liegt in der Mitte, Werte außerhalb werden begrenzt", function()
+        T.expect(FirstPerson.bucketFill(0.5).height).toBeCloseTo((fill.minHeight + fill.maxHeight) / 2)
+        T.expect(FirstPerson.bucketFill(7).height).toBeCloseTo(fill.maxHeight)
+        T.expect(FirstPerson.bucketFill(-1).height).toBeCloseTo(fill.minHeight)
+        T.expect(FirstPerson.bucketFill(0 / 0).height).toBeCloseTo(fill.minHeight)
+    end)
+    T.it("tankRatio: Anteil, begrenzt, Kapazität 0 oder NaN ergibt leer", function()
+        T.expect(FirstPerson.tankRatio(25, 100)).toBeCloseTo(0.25)
+        T.expect(FirstPerson.tankRatio(500, 100)).toBe(1)
+        T.expect(FirstPerson.tankRatio(5, 0)).toBe(0)
+        T.expect(FirstPerson.tankRatio(0 / 0, 100)).toBe(0)
+        T.expect(FirstPerson.tankRatio(math.huge, 100)).toBe(0)
     end)
 end)
 

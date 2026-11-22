@@ -1,13 +1,15 @@
 --!strict
--- FirstPerson-Controller: Ego-Perspektive mit sichtbaren Armen.
+-- FirstPerson-Controller: Ego-Perspektive mit Händen im Bild.
 -- * Kamera: Roblox-Modus LockFirstPerson, Sichtfeld und Kamera-Versatz aus Data/FirstPerson.
--- * Arme: Roblox blendet in der Ego-Perspektive den eigenen Körper aus. Die Arme (R15 und R6) werden
---   jedes Bild wieder sichtbar gemacht und über die Schultergelenke (C0) nach vorn ins Bild gedreht.
---   Die Haltung (Grundhaltung je Werkzeug, Blickneigung, Wippen beim Laufen, Schwung beim Sammeln)
---   rechnet das reine Modul Logic/FirstPerson. Änderungen an C0 bleiben auf diesem Client, andere
---   Spieler sehen den Charakter unverändert, die Lauf-Animationen von Roblox laufen weiter.
--- * Eigene Maschine: Teile direkt vor den Augen werden für den eigenen Blick durchscheinend
---   (LocalTransparencyModifier), Umhang und Schärpe des eigenen Skins werden ausgeblendet.
+-- * Hände (Viewmodel): Zwei Gruppen aus einfachen Teilen hängen an der Kamera, nur auf diesem
+--   Client (Ordner unter workspace.CurrentCamera). Rechts die Hand mit dem Werkzeug (Schaufel, bei
+--   Maschinen die Fernsteuerung), links die Hand mit dem Eimer. Der Sand im Eimer zeigt den Tank.
+--   Beim Sammeln sticht die Schaufel, beim Laufen wippen die Hände, beim Umsehen ziehen sie nach.
+--   Die Rechnung steht im reinen Modul Logic/FirstPerson, die Teile in Data/FirstPerson.
+-- * Eigene Maschine: Hält die Hand das Werkzeug schon (Hand, Schaufel), wird das Weltmodell vor dem
+--   eigenen Charakter ausgeblendet. Bei Maschinen werden nur die Teile direkt vor den Augen
+--   durchscheinend. Umhang und Schärpe des eigenen Skins werden ausgeblendet. Andere Spieler sehen
+--   Avatar, Skin und Werkzeug unverändert.
 -- * Maus am PC: Sie ist zur Bildmitte gesperrt (Fadenkreuz). Offene Fenster, der Baum, Karten mit
 --   Knöpfen (Data/FirstPerson cursorGuis) und die Alt-Taste geben sie frei (unsichtbarer Modal-Knopf).
 -- Der Server merkt davon nichts, er rechnet Sand und Münzen unabhängig von der Kamera.
@@ -24,11 +26,14 @@ local CROSSHAIR_STROKE_COLOR = Color3.fromRGB(40, 32, 24)
 local HINT_COLOR = Color3.fromRGB(255, 248, 230)
 local HINT_TEXT_SIZE = 14
 local HINT_OFFSET_Y = 18 -- Pixel unter dem Fadenkreuz
+local SKIN_REFRESH_SECONDS = 1 -- so oft wird die Hautfarbe vom Avatar übernommen
 local RENDER_STEP_NAME = "DuneBaronFirstPerson"
+local VIEWMODEL_NAME = "DuneBaronViewmodel"
 local TOOL_MODELS_FOLDER = "ToolModels" -- Controllers/ToolVisual
 local ITEM_MODELS_FOLDER = "ItemModels" -- Controllers/ItemVisual
 local TOOL_PART_PREFIX = "Part" -- ToolVisual benennt die Teile "Part1", "Part2", ...
 local EYE_ROUNDING = 0.25 -- Augenhöhe auf so viele Studs gerundet, bevor die Sicht neu gerechnet wird
+local SKIN_PART_NAMES = { "RightHand", "Right Arm", "RightLowerArm", "LeftHand", "Left Arm" }
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -37,74 +42,158 @@ end
 local Data = loadShared("Data", "FirstPerson")
 local Logic = loadShared("Logic", "FirstPerson")
 local ToolLook = loadShared("Logic", "ToolLook")
+local BigNum = loadShared("Logic", "BigNum")
+local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local FirstPerson = {}
 
-type Shoulder = { motor: Motor6D, original: CFrame, sign: number, pose: any }
+type Piece = { part: BasePart, cf: CFrame, paint: string? }
+type Group = { pieces: { Piece } }
 
 local player = Players.LocalPlayer
-local shoulders: { Shoulder } = {}
-local armParts: { BasePart } = {}
 local cursorToggled = false
 local guiNeedsCursor = false
 local cursorFree = false
 local fadeKey = ""
 local fadeSet: { [string]: boolean } = {}
 
-local function poseRotation(pose: any): CFrame
-    -- erst nach vorn heben (x), dann zur Seite spreizen (z), dann zur Mitte drehen (y)
-    return CFrame.Angles(0, math.rad(pose.y), 0) * CFrame.Angles(0, 0, math.rad(pose.z)) * CFrame.Angles(math.rad(pose.x), 0, 0)
+local model: Model? = nil
+local rightGroup: Group = { pieces = {} }
+local leftGroup: Group = { pieces = {} }
+local itemPieces: { Piece } = {}
+local itemId = ""
+local fillPart: BasePart? = nil
+local skinColor: Color3? = nil
+local nextSkinRefresh = 0
+local sway = { yaw = 0, pitch = 0 }
+local lastYaw: number? = nil
+local lastPitch: number? = nil
+
+local function colorOf(hex: string): Color3
+    local r = tonumber(string.sub(hex, 2, 3), 16) or 255
+    local g = tonumber(string.sub(hex, 4, 5), 16) or 255
+    local b = tonumber(string.sub(hex, 6, 7), 16) or 255
+    return Color3.fromRGB(r, g, b)
 end
 
-local function setupCharacter(character: Model)
-    table.clear(shoulders)
-    table.clear(armParts)
-    fadeKey = ""
-    local humanoid = character:WaitForChild("Humanoid", 10)
-    if humanoid ~= nil and humanoid:IsA("Humanoid") then
-        local o = Data.camera.offset
-        humanoid.CameraOffset = Vector3.new(o.x, o.y, o.z)
-    end
-    local function addPart(part: Instance)
-        if part:IsA("BasePart") and part.Parent == character and Logic.isArmPart(part.Name) then
-            if table.find(armParts, part) == nil then
-                table.insert(armParts, part)
-            end
-        end
-    end
-    local function addMotor(motor: Instance)
-        if not motor:IsA("Motor6D") then
-            return
-        end
-        local name = motor.Name
-        local right = name == "RightShoulder" or name == "Right Shoulder"
-        local left = name == "LeftShoulder" or name == "Left Shoulder"
-        if not right and not left then
-            return
-        end
-        for _, entry in shoulders do
-            if entry.motor == motor then
-                return
-            end
-        end
-        table.insert(shoulders, {
-            motor = motor,
-            original = motor.C0,
-            sign = if right then 1 else -1,
-            pose = nil,
-        })
-    end
-    for _, d in character:GetDescendants() do
-        addPart(d)
-        addMotor(d)
-    end
-    -- R15-Teile kommen manchmal nach CharacterAdded an.
-    character.DescendantAdded:Connect(function(d: Instance)
-        addPart(d)
-        addMotor(d)
+local function materialOf(name: string): Enum.Material
+    local ok, value = pcall(function()
+        return (Enum.Material :: any)[name]
     end)
+    return if ok and value ~= nil then value else Enum.Material.SmoothPlastic
+end
+
+local function angles(rotation: any): CFrame
+    if rotation == nil then
+        return CFrame.new()
+    end
+    return CFrame.Angles(math.rad(rotation.x), math.rad(rotation.y), math.rad(rotation.z))
+end
+
+local function localFrame(spec: any): CFrame
+    return CFrame.new(spec.offset.x, spec.offset.y, spec.offset.z) * angles(spec.rotation)
+end
+
+local function newPart(name: string, shape: string, size: Vector3, color: Color3, material: Enum.Material): BasePart
+    local part = Instance.new("Part")
+    part.Name = name
+    part.Anchored = true
+    part.CanCollide = false
+    part.CanQuery = false
+    part.CanTouch = false
+    part.CastShadow = false
+    part.Massless = true
+    part.Shape = if shape == "Ball" then Enum.PartType.Ball elseif shape == "Cylinder" then Enum.PartType.Cylinder else Enum.PartType.Block
+    part.Size = size
+    part.Color = color
+    part.Material = material
+    part.Parent = model
+    return part
+end
+
+local function paintColor(spec: any): Color3
+    if spec.paint == "skin" and skinColor ~= nil then
+        return skinColor :: Color3
+    elseif spec.paint == "sleeve" then
+        return colorOf(Data.viewmodel.sleeveHex)
+    end
+    return colorOf(spec.colorHex)
+end
+
+local function addPieces(target: { Piece }, specs: { any })
+    for index, spec in specs do
+        local part = newPart(spec.name or `Part{index}`, spec.shape, Vector3.new(spec.size.x, spec.size.y, spec.size.z), paintColor(spec), materialOf(spec.material))
+        table.insert(target, { part = part, cf = localFrame(spec), paint = spec.paint })
+    end
+end
+
+local function destroyPieces(list: { Piece })
+    for _, piece in list do
+        piece.part:Destroy()
+    end
+    table.clear(list)
+end
+
+local function buildViewmodel(camera: Camera)
+    if model ~= nil then
+        model:Destroy()
+    end
+    local m = Instance.new("Model")
+    m.Name = VIEWMODEL_NAME
+    model = m
+    rightGroup = { pieces = {} }
+    leftGroup = { pieces = {} }
+    table.clear(itemPieces)
+    itemId = ""
+    local vm = Data.viewmodel
+    addPieces(rightGroup.pieces, vm.rightArm)
+    addPieces(leftGroup.pieces, vm.leftArm)
+    addPieces(leftGroup.pieces, vm.bucket)
+    local fill = vm.fill
+    fillPart = newPart("Fill", "Cylinder", Vector3.new(fill.minHeight, fill.diameter, fill.diameter), colorOf(fill.colorHex), materialOf(fill.material))
+    m.Parent = camera
+end
+
+-- Werkzeug in der rechten Hand wechseln, wenn sich das Werkzeug geändert hat.
+local function ensureItem(view: any)
+    if view.item == itemId then
+        return
+    end
+    destroyPieces(itemPieces)
+    itemId = view.item
+    local item = Data.viewmodel.items[view.item]
+    if item ~= nil then
+        addPieces(itemPieces, item.parts)
+    end
+end
+
+local function refreshSkin(character: Model)
+    for _, name in SKIN_PART_NAMES do
+        local part = character:FindFirstChild(name)
+        if part ~= nil and part:IsA("BasePart") then
+            skinColor = part.Color
+            break
+        end
+    end
+    for _, list in { rightGroup.pieces, leftGroup.pieces, itemPieces } do
+        for _, piece in list do
+            if piece.paint == "skin" and skinColor ~= nil then
+                piece.part.Color = skinColor :: Color3
+            end
+        end
+    end
+end
+
+local function setViewmodelVisible(visible: boolean)
+    local m = model
+    if m ~= nil then
+        local parent: Instance? = if visible then workspace.CurrentCamera else nil
+        if m.Parent ~= parent then
+            m.Parent = parent
+        end
+    end
 end
 
 -- Ist der Knopf wirklich zu sehen (alle Eltern bis zur ScreenGui sichtbar)?
@@ -142,81 +231,138 @@ local function groundY(character: Model): number?
     return root.Position.Y - root.Size.Y / 2 - humanoid.HipHeight
 end
 
--- Eigene Maschine: Teile im Sicht-Gang durchscheinend.
-local function updateToolFade(camera: Camera, character: Model)
+-- Eigenes Werkzeug-Modell in der Welt: ganz ausblenden (die Hand hält es) oder nur die Teile vor
+-- den Augen durchscheinend machen (Maschinen).
+local function updateWorldTool(camera: Camera, character: Model, toolId: string?, view: any)
     local folder = workspace:FindFirstChild(TOOL_MODELS_FOLDER)
-    local model = if folder ~= nil then folder:FindFirstChild(player.Name) else nil
-    if model == nil then
+    local worldModel = if folder ~= nil then folder:FindFirstChild(player.Name) else nil
+    if worldModel == nil then
         return
     end
-    local toolId = player:GetAttribute("ToolId")
-    local ground = groundY(character)
-    local eye = if ground ~= nil then camera.CFrame.Position.Y - ground else Data.toolView.defaultEyeHeight
-    eye = math.floor(eye / EYE_ROUNDING + 0.5) * EYE_ROUNDING
-    local key = `{tostring(toolId)}|{eye}`
-    if key ~= fadeKey then
-        fadeKey = key
-        table.clear(fadeSet)
-        local look = ToolLook.of(if type(toolId) == "string" then toolId else nil)
-        for _, index in Logic.blockingParts(look, eye, Data) do
-            fadeSet[TOOL_PART_PREFIX .. index] = true
+    if not view.hideWorldTool then
+        local ground = groundY(character)
+        local eye = if ground ~= nil then camera.CFrame.Position.Y - ground else Data.toolView.defaultEyeHeight
+        eye = math.floor(eye / EYE_ROUNDING + 0.5) * EYE_ROUNDING
+        local key = `{tostring(toolId)}|{eye}`
+        if key ~= fadeKey then
+            fadeKey = key
+            table.clear(fadeSet)
+            for _, index in Logic.blockingParts(ToolLook.of(toolId), eye, Data) do
+                fadeSet[TOOL_PART_PREFIX .. index] = true
+            end
         end
     end
-    for _, part in model:GetChildren() do
+    for _, part in worldModel:GetChildren() do
         if part:IsA("BasePart") then
-            part.LocalTransparencyModifier = if fadeSet[part.Name] then Data.toolView.fadeTo else 0
+            part.LocalTransparencyModifier = if view.hideWorldTool then 1 elseif fadeSet[part.Name] then Data.toolView.fadeTo else 0
         end
     end
 end
 
 local function hideOwnItems()
     local folder = workspace:FindFirstChild(ITEM_MODELS_FOLDER)
-    local model = if folder ~= nil then folder:FindFirstChild(player.Name) else nil
-    if model == nil then
+    local itemModel = if folder ~= nil then folder:FindFirstChild(player.Name) else nil
+    if itemModel == nil then
         return
     end
     for _, name in Data.hiddenItemParts do
-        local part = model:FindFirstChild(name)
+        local part = itemModel:FindFirstChild(name)
         if part ~= nil and part:IsA("BasePart") then
             part.LocalTransparencyModifier = 1
         end
     end
 end
 
+local function tankRatio(): number
+    local snapshot = State.get()
+    if snapshot == nil then
+        return 0
+    end
+    local ok, tank = pcall(function()
+        return BigNum.toNumber(BigNum.deserialize(snapshot.tank))
+    end)
+    return Logic.tankRatio(if ok then tank else 0, snapshot.capacity)
+end
+
+local function wrapAngle(a: number): number
+    return (a + math.pi) % (2 * math.pi) - math.pi
+end
+
 local function onRender(dt: number)
     local character = player.Character
     local camera = workspace.CurrentCamera
-    if character == nil or camera == nil then
+    local humanoid = if character ~= nil then character:FindFirstChildOfClass("Humanoid") else nil
+    if character == nil or camera == nil or humanoid == nil or humanoid.Health <= 0 then
+        setViewmodelVisible(false)
         return
     end
-    -- Arme sichtbar (Roblox setzt sie in der Ego-Perspektive jedes Bild auf unsichtbar).
-    for _, part in armParts do
-        part.LocalTransparencyModifier = 0
+    if model == nil then
+        buildViewmodel(camera)
     end
+    setViewmodelVisible(true)
+
+    local now = os.clock()
+    if now >= nextSkinRefresh then
+        nextSkinRefresh = now + SKIN_REFRESH_SECONDS
+        refreshSkin(character)
+    end
+
+    local toolAttribute = player:GetAttribute("ToolId")
+    local toolId: string? = if type(toolAttribute) == "string" then toolAttribute else nil
+    local view = Logic.toolView(toolId, Data)
+    ensureItem(view)
+
+    -- Nachziehen beim Umsehen.
+    local camCF = camera.CFrame
+    local look = camCF.LookVector
+    local yaw = math.atan2(-look.X, -look.Z)
+    local pitch = math.asin(math.clamp(look.Y, -1, 1))
+    local yawDelta = if lastYaw ~= nil then wrapAngle(yaw - lastYaw) else 0
+    local pitchDelta = if lastPitch ~= nil then pitch - lastPitch else 0
+    lastYaw, lastPitch = yaw, pitch
+    sway = Logic.swayStep(sway, yawDelta, pitchDelta, dt, Data)
+    local base = camCF * CFrame.Angles(math.rad(sway.pitch), math.rad(sway.yaw), 0)
 
     local root = character:FindFirstChild("HumanoidRootPart")
     local velocity = if root ~= nil and root:IsA("BasePart") then root.AssemblyLinearVelocity else Vector3.zero
-    local collecting = player:GetAttribute("Collecting") == true or Input.isHolding()
-    local poses = Logic.armPose(player:GetAttribute("ToolId"), {
-        pitch = Logic.pitchFromLook(camera.CFrame.LookVector.Y),
-        t = os.clock(),
-        collecting = collecting,
+    local pose = Logic.viewPose(toolId, {
+        t = now,
+        collecting = player:GetAttribute("Collecting") == true or Input.isHolding(),
         speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude,
     }, Data)
-    local alpha = Logic.smoothAlpha(dt, Data.smoothing)
-    local shift = Data.camera.shoulderShift
-    for _, entry in shoulders do
-        if entry.motor.Parent == nil then
-            continue
-        end
-        local target = if entry.sign > 0 then poses.right else poses.left
-        entry.pose = if entry.pose == nil then target else Logic.approachPose(entry.pose, target, alpha)
-        local original = entry.original
-        local position = original.Position + Vector3.new(-entry.sign * shift.inward, shift.up, -shift.forward)
-        entry.motor.C0 = CFrame.new(position) * poseRotation(entry.pose) * original.Rotation
-    end
 
-    updateToolFade(camera, character)
+    local vm = Data.viewmodel
+    local function groupFrame(anchor: any, groupPose: any): CFrame
+        local m, t = groupPose.move, groupPose.turn
+        return base * localFrame(anchor) * CFrame.new(m.x, m.y, m.z) * angles(t)
+    end
+    local rightCF = groupFrame(vm.right, pose.right)
+    local leftCF = groupFrame(vm.left, pose.left)
+
+    local parts: { BasePart } = {}
+    local frames: { CFrame } = {}
+    for _, piece in rightGroup.pieces do
+        table.insert(parts, piece.part)
+        table.insert(frames, rightCF * piece.cf)
+    end
+    for _, piece in itemPieces do
+        table.insert(parts, piece.part)
+        table.insert(frames, rightCF * piece.cf)
+    end
+    for _, piece in leftGroup.pieces do
+        table.insert(parts, piece.part)
+        table.insert(frames, leftCF * piece.cf)
+    end
+    local fp = fillPart
+    if fp ~= nil then
+        local fill = Logic.bucketFill(tankRatio(), Data)
+        fp.Size = Vector3.new(fill.height, vm.fill.diameter, vm.fill.diameter)
+        table.insert(parts, fp)
+        table.insert(frames, leftCF * CFrame.new(0, fill.centerY, 0) * CFrame.Angles(0, 0, math.rad(90)))
+    end
+    workspace:BulkMoveTo(parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
+
+    updateWorldTool(camera, character, toolId, view)
     hideOwnItems()
 end
 
@@ -286,31 +432,37 @@ function FirstPerson.Start()
     player.CameraMode = Enum.CameraMode.LockFirstPerson
     player.CameraMinZoomDistance = 0.5
     player.CameraMaxZoomDistance = 0.5
-    local function applyFov()
+    local function applyCamera()
         local camera = workspace.CurrentCamera
         if camera ~= nil then
             camera.FieldOfView = Data.camera.fieldOfView
+            if model ~= nil then
+                (model :: Model).Parent = camera
+            end
         end
     end
-    applyFov()
-    workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(applyFov)
+    applyCamera()
+    workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(applyCamera)
 
     local modal, crosshair, hint = buildGui()
     local hintUntil = 0
-    local function showHint()
+    local function onCharacter(character: Model)
+        nextSkinRefresh = 0
+        fadeKey = ""
+        lastYaw, lastPitch = nil, nil
         if UserInputService.KeyboardEnabled and not Screen.isTouch() then
             hintUntil = os.clock() + Data.cursor.hintSeconds
         end
+        local humanoid = character:WaitForChild("Humanoid", 10)
+        if humanoid ~= nil and humanoid:IsA("Humanoid") then
+            local o = Data.camera.offset
+            humanoid.CameraOffset = Vector3.new(o.x, o.y, o.z)
+        end
     end
-
     if player.Character ~= nil then
-        task.spawn(setupCharacter, player.Character)
-        showHint()
+        task.spawn(onCharacter, player.Character)
     end
-    player.CharacterAdded:Connect(function(character: Model)
-        setupCharacter(character)
-        showHint()
-    end)
+    player.CharacterAdded:Connect(onCharacter)
 
     UserInputService.InputBegan:Connect(function(input: InputObject, _processed: boolean)
         if input.UserInputType == Enum.UserInputType.Keyboard and Logic.isToggleKey(input.KeyCode.Name, Data) then

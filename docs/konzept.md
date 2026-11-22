@@ -180,7 +180,7 @@ Bezahlte Zufallsitems sind erlaubt, wenn die Quoten offengelegt und regionale Sp
 **Entscheidungen:**
 
 - [x] Name: Dune Baron (Markenprüfung vor dem Launch noch offen)
-- [x] Perspektive: Ego-Perspektive mit sichtbaren Armen (geändert am 22.11.2026, vorher dritte Person). Die Arme schaufeln, stechen oder halten die Hebel je nach Werkzeug, große Maschinen werden vor den Augen durchscheinend. Andere Spieler sehen weiter den ganzen Avatar mit Skin und Werkzeug
+- [x] Perspektive: Ego-Perspektive mit sichtbaren Armen (geändert am 22.11.2026, vorher dritte Person). Rechts unten die Hand mit dem Werkzeug (Schaufel, bei Maschinen eine Fernsteuerung), links unten die Hand mit dem Eimer, der den Tank zeigt. Große Maschinen werden vor den Augen durchscheinend. Andere Spieler sehen weiter den ganzen Avatar mit Skin und Werkzeug
 - [x] Optik: weich-realistisch wie im Teaser, mit Future-Beleuchtung, weichen Schatten, Bloom und Farbkorrektur. Am Handy läuft eine schlankere Stufe
 - [x] Terrain-Verformung: ja, auf dem Client (siehe Technik)
 - [x] Ads-Budget: kein Blocker, wird nach dem Soft-Launch festgelegt
