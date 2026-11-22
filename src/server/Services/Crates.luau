@@ -145,7 +145,7 @@ local function openNow(player: Player, crateId: string, count: number): any
     return CrateOpen.open(profile, crateId, count, {
         random = nextRandom,
         restricted = restrictedOf(player),
-        inSeason = Events.inSeason(player, crateId), -- Saison-Kalender (Paket 5.4), Server-Uhr
+        inSeason = Events.inSeason(player, crateId), -- Saison-Kalender (Events nutzt die Saison-Uhr) (Paket 5.4), Server-Uhr
     })
 end
 

@@ -13,6 +13,7 @@ export type CrateItem = {
     rarity: string, -- Seltenheits-ID aus Rarities
     crates: { string }, -- Kisten-IDs, in deren Pool das Item vorkommt
     effectBp: number, -- Sammelraten-Bonus bei ★1 in Hundertstel-Prozent (Paket 4.3), je Seltenheit
+    passOnly: boolean?, -- Pass-Item (Paket 5.5): nur über den Saison-Pass, in keiner Kiste (`crates = {}`)
 }
 
 local list: { CrateItem } = {
@@ -72,6 +73,12 @@ local list: { CrateItem } = {
     { id = "skin_mythic_2", kind = "skin", name = "Saison-Sandgott-Skin", rarity = "mythic", crates = { "event" }, effectBp = 2500 },
     { id = "companion_mythic_2", kind = "companion", name = "Saison-Sandwurm", rarity = "mythic", crates = { "event" }, effectBp = 2500 },
     { id = "toolVariant_mythic_2", kind = "toolVariant", name = "Saison-Weltenschaufel", rarity = "mythic", crates = { "event" }, effectBp = 2500 },
+
+    -- Pass-Items Saison 1 (Paket 5.5, Belohnungen der Premium-Spur in Data/SeasonPass): nur über den
+    -- Saison-Pass, in keiner Kiste und nie im Direktkauf. Namen sind Platzhalter (data-worker).
+    { id = "skin_rare_4", kind = "skin", name = "Dünenpionier-Skin", rarity = "rare", crates = {}, effectBp = 1000, passOnly = true },
+    { id = "companion_epic_3", kind = "companion", name = "Wüstenkarakal", rarity = "epic", crates = {}, effectBp = 1400, passOnly = true },
+    { id = "toolVariant_epic_3", kind = "toolVariant", name = "Baronsschaufel", rarity = "epic", crates = {}, effectBp = 1400, passOnly = true },
 }
 
 local byId: { [string]: CrateItem } = {}

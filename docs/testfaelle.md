@@ -589,13 +589,16 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 5.5a Event-Zone, Punkte, Event-Kiste
 
-- [ ] [Lune] Die Event-Zone ist nur offen, wenn ihre Saison läuft, die Woche `zoneOpen` hat und der Knoten (Vorgabe `collect_tool_2`) gekauft ist; vor dem Start und nach dem Ende ist sie gesperrt, Besitz und Funde bleiben.
-- [ ] [Lune] Die Event-Zone steht nie in `profile.zones`; der Sandsturm und die Sammlung (Funde, Sets) bleiben bei den fünf festen Zonen unverändert.
-- [ ] [Lune] Steht ein Spieler beim Saisonende in der Event-Zone, setzt der Server ihn zurück an den Spawn der ersten Zone.
-- [ ] [Lune] Saison-Punkte zählen nur aus der vom Server gerechneten Sammelzeit in der Event-Zone, nur in einer laufenden Saison, nie ohne Zone, mit Obergrenze (Summe aller Stufen); der Client sendet keinen Wert.
-- [ ] [Lune] Der Punktestand liegt in `profile.seasons[seasonId]`, überlebt Laden und Sandsturm und wird beim Laden repariert (kaputte Zahlen, unbekannte Saison).
-- [ ] [Lune] DataCheck: Event-Zone mit gültiger Sandsorte und Knoten, genau eine Zone je Saison-Zeile, Event-Sand mit Preisfaktor, `Economy.seasonPass` vollständig.
-- [ ] [Lune] Event-Kiste: Saison-1-Pool vollständig (je Seltenheit gefüllt), Quoten wie die Goldkiste, die Simulation aus 4.7 enthält die Event-Kiste und bleibt innerhalb der Abweichung.
+- [x] [Lune] Die Event-Zone ist nur offen, wenn ihre Saison läuft, die Woche `zoneOpen` hat und der Knoten (Vorgabe `collect_tool_2`) gekauft ist; vor dem Start und nach dem Ende ist sie gesperrt, Besitz und Funde bleiben.
+- [x] [Lune] Die Event-Zone steht nie in `profile.zones`; der Sandsturm und die Sammlung (Funde, Sets) bleiben bei den fünf festen Zonen unverändert.
+- [x] [Lune] Steht ein Spieler beim Saisonende in der Event-Zone, setzt der Server ihn zurück an den Spawn der ersten Zone.
+- [x] [Lune] Saison-Punkte zählen nur aus der vom Server gerechneten Sammelzeit in der Event-Zone, nur in einer laufenden Saison, nie ohne Zone, mit Obergrenze (Summe aller Stufen); der Client sendet keinen Wert.
+- [x] [Lune] Der Punktestand liegt in `profile.seasons[seasonId]`, überlebt Laden und Sandsturm und wird beim Laden repariert (kaputte Zahlen, unbekannte Saison).
+- [x] [Lune] DataCheck: Event-Zone mit gültiger Sandsorte und Knoten, genau eine Zone je Saison-Zeile, Event-Sand mit Preisfaktor, `Economy.seasonPass` vollständig.
+- [x] [Lune] Event-Kiste: Saison-1-Pool vollständig (je Seltenheit gefüllt), Quoten wie die Goldkiste, die Simulation aus 4.7 enthält die Event-Kiste und bleibt innerhalb der Abweichung.
+- [x] [Lune] DataCheck verbietet Pass-Items in Angeboten und als Tag-7-Ersatz, meldet eine nicht prüfbare Gem-Obergrenze, eine Saison mit Stufen ohne Zone und zu lange Boost-Belohnungen; unbekannte Felder in `profile.seasons` bleiben beim Säubern erhalten.
+- [x] [Shell] `security-reviewer` (Event-Zone, Punkte, Profil, DebugSeason) ohne offenen kritischen, hohen oder mittleren Befund; die niedrigen Befunde sind bis auf die unten genannten behoben.
+- [ ] [Studio] `DebugSeason` "week:1": die Event-Zone erscheint im Zonen-Menü, Hinfahren und Graben zählt "Saison-Punkte x von y"; mit "off" in der Zone: Rücksetzen an den Spawn und im Menü "Nur in der Saison".
 
 5.5b Saison-Pass
 

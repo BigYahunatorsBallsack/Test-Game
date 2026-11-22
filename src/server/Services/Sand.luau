@@ -52,6 +52,7 @@ local Perks = loadShared("Logic", "Perks")
 local Passes = loadShared("Logic", "Passes")
 
 local servicesFolder = script.Parent
+local SeasonClock = require(servicesFolder:WaitForChild("SeasonClock") :: ModuleScript) :: any -- Saison-Uhr für die Event-Zone (Paket 5.5)
 local PlayerData: any = nil
 local Net: any = nil
 
@@ -166,7 +167,7 @@ function Sand.snapshot(player: Player): any?
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile, options), -- mit Münz-Faktor (Paket 4.4)
         nodes = Collecting.ownedNodes(profile),
-        zonesUnlocked = Zones.unlockedMap(profile),
+        zonesUnlocked = Zones.unlockedMap(profile, SeasonClock.timeFor(player)), -- Event-Zone je nach Saison (Paket 5.5)
         sellBonusBp = effects.sellBonusBp,
         luckBonusBp = effects.luckBonusBp,
         collectionBonusBp = Collection.bonusBp(profile), -- Summe der fertigen Sets (Paket 2.6)
@@ -266,7 +267,7 @@ end
 -- gesperrt ist.
 function Sand.setZone(player: Player, zoneId: string): boolean
     local profile = PlayerData.get(player)
-    if profile == nil or not Zones.isUnlocked(profile, zoneId) then
+    if profile == nil or not Zones.isUnlocked(profile, zoneId, SeasonClock.timeFor(player)) then
         return false
     end
     Collecting.setZone(stateOf(player), profile, zoneId, now(), optionsOf(profile))
@@ -462,7 +463,7 @@ function Sand.Start()
         autoDig[player] = nil
         -- Zonen, deren Knoten schon gekauft sind (alte Spielstände), still freischalten.
         Zones.unlockNew(profile)
-        if not Zones.isUnlocked(profile, profile.currentZone) then
+        if not Zones.isUnlocked(profile, profile.currentZone, SeasonClock.timeFor(player)) then
             profile.currentZone = "dunes" -- eine gesperrte aktuelle Zone nie übernehmen
         end
         Sand.refresh(player)

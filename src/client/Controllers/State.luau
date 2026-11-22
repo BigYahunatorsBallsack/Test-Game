@@ -39,7 +39,8 @@ export type Snapshot = {
     offline: { id: number, ok: boolean, reason: string?, seconds: number, awaySeconds: number, capSeconds: number, capped: boolean, coins: { m: number, e: number }? }?, -- Offline-Bericht (Paket 5.3)
     luckBoostSeconds: number?, -- Restzeit des Glücks-Boosts in Sekunden (Paket 5.1)
     daily: { started: boolean, day: number, canClaim: boolean, secondsLeft: number, streak: number }?, -- Daily Reward (Paket 5.1)
-    season: { active: boolean, id: string?, name: string?, week: number?, phaseId: string?, phaseName: string?, hint: string?, secondsLeft: number?, crateId: string?, crateOpen: boolean?, next: { id: string, name: string, crateId: string, secondsToNext: number }? }?, -- Event-Kalender (Paket 5.4)
+    season: { active: boolean, id: string?, name: string?, week: number?, phaseId: string?, phaseName: string?, hint: string?, secondsLeft: number?, crateId: string?, crateOpen: boolean?, zoneId: string?, zoneOpen: boolean?, next: { id: string, name: string, crateId: string, zoneId: string?, secondsToNext: number }? }?, -- Event-Kalender (Paket 5.4)
+    seasonPass: { seasonId: string, points: number, maxPoints: number, tier: number, tiers: number, premium: boolean }?, -- Saison-Punkte und Stufen der laufenden Saison (Paket 5.5)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 
