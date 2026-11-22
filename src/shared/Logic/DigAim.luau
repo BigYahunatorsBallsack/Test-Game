@@ -76,4 +76,14 @@ function DigAim.target(root: Point, forward: Point, hit: Point?, reach: Reach): 
     return { x = root.x + ux * d, z = root.z + uz * d }
 end
 
+-- Geschwindigkeit des Sandflusses, damit die Körner vom Grabpunkt in ihrer Lebenszeit bis zur
+-- Maschine kommen: mindestens die Grundgeschwindigkeit des Werkzeugs.
+function DigAim.flowSpeed(distance: number, lifetime: number, baseSpeed: number): number
+    local base = if isFinite(baseSpeed) and baseSpeed > 0 then baseSpeed else 0
+    if not isFinite(distance) or distance <= 0 or not isFinite(lifetime) or lifetime <= 0 then
+        return base
+    end
+    return math.max(base, distance / lifetime)
+end
+
 return DigAim

@@ -77,6 +77,14 @@ local AIR = Enum.Material.Air
 
 local Dig = {}
 
+-- Stelle, an der gerade gegraben wird (nil, wenn nicht gegraben wird). ToolVisual lässt den
+-- Sandfluss der eigenen Maschine dort beginnen.
+local currentAim: Vector3? = nil
+
+function Dig.aimPoint(): Vector3?
+    return currentAim
+end
+
 local player = Players.LocalPlayer
 local terrain = workspace.Terrain
 local digState: any = nil
@@ -448,11 +456,13 @@ function Dig.Start()
             for _, action in SandDig.update(digState, t, if root ~= nil then vec(root.Position) else nil) do
                 regrowChunk(action)
             end
+            currentAim = nil
             if root ~= nil and wantsDig() then
                 local snapshot = State.get()
                 local toolId = if snapshot ~= nil then snapshot.toolId else nil
                 local hit = findGround(root, toolId)
                 if hit ~= nil then
+                    currentAim = hit.Position
                     if mode == "full" then
                         digTerrain(t, hit, toolId, if snapshot ~= nil then snapshot.zoneId else nil)
                     else
