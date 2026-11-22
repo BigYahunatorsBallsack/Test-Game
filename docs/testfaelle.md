@@ -587,3 +587,24 @@ Plan: Claude-Dokument "Paket 5.4: Event-Kalender als Daten, Plan". Fertig, wenn:
 
 - [ ] [Lune] Der Fortschritt zählt nur serverseitig gemeldeten Sand aus der Event-Zone.
 - [ ] [Lune] Die Belohnung wird pro Spieler einmal vergeben und nach Beitrag gestaffelt.
+
+## Ego-Perspektive (Umstellung von dritter Person)
+
+Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, die eigenen Arme sind im Bild und bewegen sich beim Graben, alle Menüs bleiben bedienbar.
+
+- [x] [Lune] Die Tabelle `Data/FirstPerson` ist fehlerfrei, jedes Werkzeug aus `Data/Tools` hat eine Armhaltung, und `check` meldet fehlende Haltung, unbekannten Grabstil, falsches Sichtfeld, leere Tasten, fehlenden Standard, Periode 0 und `fadeTo` außerhalb 0 bis 1.
+- [x] [Lune] Armhaltung: Grundhaltung im Stand, linker Arm gespiegelt, alle Grundhaltungen zwischen 45 und 135 Grad gehoben (vorn im Bild), unbekanntes Werkzeug bekommt den Standard.
+- [x] [Lune] Blick nach oben hebt die Arme, nach unten senkt sie, begrenzt durch `minPitch` und `maxPitch`.
+- [x] [Lune] Beim Sammeln schwingen die Arme (Hand im Gegentakt, Schaufel gleichzeitig), ohne Sammeln nicht. Wippen beim Laufen wächst mit der Geschwindigkeit, im Stand aus. NaN und unendlich ergeben die Grundhaltung.
+- [x] [Lune] Nur Arm-Teile von R15 und R6 bleiben sichtbar (Kopf, Oberkörper, Füße nicht).
+- [x] [Lune] Maus: gesperrt ohne Fenster, Baum, Karte und Taste, jeder einzelne Grund gibt sie frei, nur Alt schaltet um.
+- [x] [Lune] Eigene Maschine: Hand und Schaufel verdecken nichts, der Körper von Saugroboter und Mega-Maschine wird durchscheinend, Ketten neben dem Charakter bleiben sichtbar, Teile hinter oder hoch über dem Charakter zählen nicht, Drehungen werden mitgerechnet.
+- [ ] [Studio] Spawn: Die Kamera sitzt im Kopf, Mausrad zoomt nicht heraus, beide Arme sind unten im Bild (R15 und R6-Avatar testen).
+- [ ] [Studio] Linke Maustaste halten (und Graben-Knopf am Handy): Die Arme schaufeln (Hand), stechen (Schaufel) oder zittern an den Hebeln (Maschinen). Der Sand im Tank steigt wie bisher.
+- [ ] [Studio] Laufen und Springen: Arme wippen leicht, nichts flackert, kein Blick ins Innere des Körpers. Umhang und Schärpe des eigenen Skins sind nicht im Bild, der Begleiter schon.
+- [ ] [Studio] Werkzeug-Wechsel bis zur Mega-Maschine: Die Kamera bleibt im Kopf, der Teil der Maschine direkt vor den Augen ist durchscheinend, das Loch vorn ist zu sehen.
+- [ ] [Studio] PC: Fadenkreuz in der Mitte, Hinweis "Alt: Maus frei" für 10 Sekunden. Alt gibt die Maus frei, Menüleiste anklickbar, Alt sperrt wieder. Fenster (Zonen, Shop, Sammlung ...), Baum, Offline-Karte und Kisten-Reveal geben die Maus von selbst frei und sperren sie beim Schließen wieder. Fund-Karten beim Graben lassen die Maus gesperrt.
+- [ ] [Studio] Handy (Emulator): Wischen dreht die Kamera, Steuerknüppel, Sprung- und Graben-Knopf und Menüleiste funktionieren wie vorher.
+- [ ] [Studio] Händlerstand: Der Prompt "Verkaufen" erscheint in der Ego-Perspektive und E verkauft.
+- [ ] [Studio] Zweiter Spieler (Test mit 2 Spielern): Der andere sieht den Charakter normal (Arme hängen, kein Versatz der Schultern).
+

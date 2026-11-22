@@ -180,7 +180,7 @@ Bezahlte Zufallsitems sind erlaubt, wenn die Quoten offengelegt und regionale Sp
 **Entscheidungen:**
 
 - [x] Name: Dune Baron (Markenprüfung vor dem Launch noch offen)
-- [x] Perspektive: dritte Person, wie in Roblox üblich. Sie zeigt Werkzeug und Größe der Maschinen gut, und Avatar-Skins sind ein Kaufanreiz
+- [x] Perspektive: Ego-Perspektive mit sichtbaren Armen (geändert am 22.11.2026, vorher dritte Person). Die Arme schaufeln, stechen oder halten die Hebel je nach Werkzeug, große Maschinen werden vor den Augen durchscheinend. Andere Spieler sehen weiter den ganzen Avatar mit Skin und Werkzeug
 - [x] Optik: weich-realistisch wie im Teaser, mit Future-Beleuchtung, weichen Schatten, Bloom und Farbkorrektur. Am Handy läuft eine schlankere Stufe
 - [x] Terrain-Verformung: ja, auf dem Client (siehe Technik)
 - [x] Ads-Budget: kein Blocker, wird nach dem Soft-Launch festgelegt
