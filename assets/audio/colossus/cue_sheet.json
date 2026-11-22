@@ -1,0 +1,13 @@
+{
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "cues": [
+    { "phase": "opened", "file": "koloss_grabungsstart.wav", "previewAtSeconds": 0.1 },
+    { "phase": "sectionRevealed", "file": "koloss_freilegung.wav", "previewAtSeconds": 1.95 },
+    { "phase": "completed", "file": "koloss_abschluss.wav", "previewAtSeconds": 4.05 }
+  ]
+}

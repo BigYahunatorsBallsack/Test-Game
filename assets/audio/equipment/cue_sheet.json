@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "machines": {
+    "bucket_chain": {
+      "clip": "WorkLoop",
+      "durationSeconds": 2.96,
+      "loopFile": "foerderband_loop.wav",
+      "cues": {
+        "Discharge": {
+          "file": "foerderband_auswurf.wav",
+          "markerTimesSeconds": [
+            0.246667,
+            0.555,
+            0.863333,
+            1.233333,
+            1.541667,
+            1.85,
+            2.22,
+            2.528333,
+            2.836667
+          ]
+        }
+      }
+    },
+    "mini_digger": {
+      "clip": "WorkLoop",
+      "durationSeconds": 3.24,
+      "loopFile": "bagger_loop.wav",
+      "cues": {
+        "BucketCut": {
+          "file": "bagger_sandkontakt.wav",
+          "markerTimesSeconds": [
+            0.55
+          ]
+        },
+        "BucketLoaded": {
+          "file": "bagger_ladung.wav",
+          "markerTimesSeconds": [
+            1.08
+          ]
+        },
+        "BucketDump": {
+          "file": "bagger_auskippen.wav",
+          "markerTimesSeconds": [
+            2.16
+          ]
+        }
+      }
+    },
+    "vacuum_robot": {
+      "clip": "WorkLoop",
+      "durationSeconds": 1.86,
+      "loopFile": "sauger_loop.wav",
+      "cues": {
+        "IntakeEngage": {
+          "file": "sauger_ansaugen.wav",
+          "markerTimesSeconds": [
+            0.42
+          ]
+        },
+        "IntakeSweep": {
+          "file": "sauger_duese.wav",
+          "markerTimesSeconds": [
+            1.05
+          ]
+        },
+        "IntakeRelease": {
+          "file": "sauger_ventil.wav",
+          "markerTimesSeconds": [
+            1.59
+          ]
+        }
+      }
+    },
+    "mega_machine": {
+      "clip": "WorkLoop",
+      "durationSeconds": 1.58,
+      "loopFile": "harvester_loop.wav",
+      "cues": {
+        "CutterLoad": {
+          "file": "harvester_walzenlast.wav",
+          "markerTimesSeconds": [
+            0.263333,
+            1.053333
+          ]
+        }
+      }
+    }
+  }
+}

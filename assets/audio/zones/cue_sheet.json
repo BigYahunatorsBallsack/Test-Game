@@ -1,0 +1,40 @@
+{
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "loops": [
+    {
+      "zoneId": "dunes",
+      "file": "ambiente_duenenmeer.wav",
+      "durationSeconds": 20.0,
+      "previewAtSeconds": 0.1
+    },
+    {
+      "zoneId": "oasis",
+      "file": "ambiente_oase.wav",
+      "durationSeconds": 22.0,
+      "previewAtSeconds": 4.75
+    },
+    {
+      "zoneId": "canyon",
+      "file": "ambiente_canyon.wav",
+      "durationSeconds": 21.0,
+      "previewAtSeconds": 9.4
+    },
+    {
+      "zoneId": "salt_lake",
+      "file": "ambiente_salzsee.wav",
+      "durationSeconds": 24.0,
+      "previewAtSeconds": 14.05
+    },
+    {
+      "zoneId": "ruins",
+      "file": "ambiente_ruinenstadt.wav",
+      "durationSeconds": 23.0,
+      "previewAtSeconds": 18.7
+    }
+  ]
+}

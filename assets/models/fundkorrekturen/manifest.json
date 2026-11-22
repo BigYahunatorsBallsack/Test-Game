@@ -1,0 +1,466 @@
+[
+  {
+    "id": "duenenmeer_02",
+    "name": "Schneckenhaus",
+    "zone": "duenenmeer",
+    "basis": "collision_preview",
+    "glb": "glb/duenenmeer_02.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_02_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_02",
+    "triangles": 772,
+    "vertices": 1900,
+    "extent": [
+      1.349,
+      1.26,
+      2.0
+    ]
+  },
+  {
+    "id": "duenenmeer_04",
+    "name": "Sanddollar",
+    "zone": "duenenmeer",
+    "basis": "collision_preview",
+    "glb": "glb/duenenmeer_04.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_04_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_04",
+    "triangles": 246,
+    "vertices": 458,
+    "extent": [
+      1.989,
+      0.228,
+      2.0
+    ]
+  },
+  {
+    "id": "duenenmeer_05",
+    "name": "Perlmuschel",
+    "zone": "duenenmeer",
+    "basis": "collision_preview",
+    "glb": "glb/duenenmeer_05.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_05_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_05",
+    "triangles": 528,
+    "vertices": 1324,
+    "extent": [
+      2.0,
+      1.53,
+      1.73
+    ]
+  },
+  {
+    "id": "duenenmeer_06",
+    "name": "Tonscherbe",
+    "zone": "duenenmeer",
+    "basis": "collision_preview",
+    "glb": "glb/duenenmeer_06.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_06_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_06",
+    "triangles": 244,
+    "vertices": 599,
+    "extent": [
+      2.0,
+      0.308,
+      1.54
+    ]
+  },
+  {
+    "id": "duenenmeer_07",
+    "name": "Krughenkel",
+    "zone": "duenenmeer",
+    "basis": "collision_preview",
+    "glb": "glb/duenenmeer_07.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_07_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_07",
+    "triangles": 356,
+    "vertices": 960,
+    "extent": [
+      2.0,
+      1.834,
+      0.622
+    ]
+  },
+  {
+    "id": "duenenmeer_08",
+    "name": "Tonbecher",
+    "zone": "duenenmeer",
+    "basis": "visual_mismatch",
+    "glb": "glb/duenenmeer_08.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_08_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_08",
+    "triangles": 254,
+    "vertices": 590,
+    "extent": [
+      2.0,
+      1.393,
+      2.0
+    ]
+  },
+  {
+    "id": "duenenmeer_11",
+    "name": "Kupferstück",
+    "zone": "duenenmeer",
+    "basis": "visual_mismatch",
+    "glb": "glb/duenenmeer_11.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_11_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_11",
+    "triangles": 336,
+    "vertices": 624,
+    "extent": [
+      2.0,
+      0.216,
+      2.0
+    ]
+  },
+  {
+    "id": "duenenmeer_13",
+    "name": "Münzbündel",
+    "zone": "duenenmeer",
+    "basis": "visual_mismatch",
+    "glb": "glb/duenenmeer_13.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_13_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_13",
+    "triangles": 806,
+    "vertices": 1860,
+    "extent": [
+      2.0,
+      1.174,
+      1.986
+    ]
+  },
+  {
+    "id": "duenenmeer_18",
+    "name": "Nähahle",
+    "zone": "duenenmeer",
+    "basis": "visual_mismatch",
+    "glb": "glb/duenenmeer_18.glb",
+    "icon": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_18_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_18",
+    "triangles": 152,
+    "vertices": 288,
+    "extent": [
+      2.0,
+      0.702,
+      1.169
+    ]
+  },
+  {
+    "id": "oase_05",
+    "name": "Blattabdruck",
+    "zone": "oase",
+    "basis": "visual_mismatch",
+    "glb": "glb/oase_05.glb",
+    "icon": "assets/icons/finds/oase/icon_find_oase_05_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_05",
+    "triangles": 222,
+    "vertices": 485,
+    "extent": [
+      2.0,
+      0.32,
+      1.918
+    ]
+  },
+  {
+    "id": "oase_06",
+    "name": "Krugboden",
+    "zone": "oase",
+    "basis": "visual_mismatch",
+    "glb": "glb/oase_06.glb",
+    "icon": "assets/icons/finds/oase/icon_find_oase_06_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_06",
+    "triangles": 248,
+    "vertices": 560,
+    "extent": [
+      1.996,
+      1.121,
+      2.0
+    ]
+  },
+  {
+    "id": "oase_11",
+    "name": "Fischernadel",
+    "zone": "oase",
+    "basis": "visual_mismatch",
+    "glb": "glb/oase_11.glb",
+    "icon": "assets/icons/finds/oase/icon_find_oase_11_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_11",
+    "triangles": 122,
+    "vertices": 214,
+    "extent": [
+      0.656,
+      0.167,
+      2.0
+    ]
+  },
+  {
+    "id": "oase_22",
+    "name": "Bewässerungsrinne",
+    "zone": "oase",
+    "basis": "visual_mismatch",
+    "glb": "glb/oase_22.glb",
+    "icon": "assets/icons/finds/oase/icon_find_oase_22_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_22",
+    "triangles": 240,
+    "vertices": 448,
+    "extent": [
+      1.095,
+      0.532,
+      2.0
+    ]
+  },
+  {
+    "id": "oase_26",
+    "name": "Mosaikstein",
+    "zone": "oase",
+    "basis": "visual_mismatch",
+    "glb": "glb/oase_26.glb",
+    "icon": "assets/icons/finds/oase/icon_find_oase_26_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_26",
+    "triangles": 224,
+    "vertices": 420,
+    "extent": [
+      2.0,
+      0.304,
+      1.929
+    ]
+  },
+  {
+    "id": "canyon_10",
+    "name": "Pyritwürfel",
+    "zone": "canyon",
+    "basis": "visual_mismatch",
+    "glb": "glb/canyon_10.glb",
+    "icon": "assets/icons/finds/canyon/icon_find_canyon_10_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_10",
+    "triangles": 180,
+    "vertices": 336,
+    "extent": [
+      2.0,
+      1.844,
+      1.281
+    ]
+  },
+  {
+    "id": "canyon_12",
+    "name": "Holzkeil",
+    "zone": "canyon",
+    "basis": "visual_mismatch",
+    "glb": "glb/canyon_12.glb",
+    "icon": "assets/icons/finds/canyon/icon_find_canyon_12_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_12",
+    "triangles": 124,
+    "vertices": 318,
+    "extent": [
+      0.955,
+      0.585,
+      2.0
+    ]
+  },
+  {
+    "id": "canyon_17",
+    "name": "Rippenbogen",
+    "zone": "canyon",
+    "basis": "visual_mismatch",
+    "glb": "glb/canyon_17.glb",
+    "icon": "assets/icons/finds/canyon/icon_find_canyon_17_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_17",
+    "triangles": 184,
+    "vertices": 504,
+    "extent": [
+      2.0,
+      1.095,
+      0.906
+    ]
+  },
+  {
+    "id": "canyon_23",
+    "name": "Pigmentschale",
+    "zone": "canyon",
+    "basis": "visual_mismatch",
+    "glb": "glb/canyon_23.glb",
+    "icon": "assets/icons/finds/canyon/icon_find_canyon_23_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_23",
+    "triangles": 280,
+    "vertices": 570,
+    "extent": [
+      2.0,
+      0.891,
+      2.0
+    ]
+  },
+  {
+    "id": "canyon_24",
+    "name": "Kletterhaken",
+    "zone": "canyon",
+    "basis": "visual_mismatch",
+    "glb": "glb/canyon_24.glb",
+    "icon": "assets/icons/finds/canyon/icon_find_canyon_24_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_24",
+    "triangles": 204,
+    "vertices": 578,
+    "extent": [
+      1.052,
+      0.351,
+      2.0
+    ]
+  },
+  {
+    "id": "salzsee_04",
+    "name": "Gipsrose",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_04.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_04_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_04",
+    "triangles": 676,
+    "vertices": 1274,
+    "extent": [
+      1.872,
+      1.152,
+      2.0
+    ]
+  },
+  {
+    "id": "salzsee_10",
+    "name": "Salzspirale",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_10.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_10_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_10",
+    "triangles": 492,
+    "vertices": 1356,
+    "extent": [
+      1.986,
+      0.401,
+      2.0
+    ]
+  },
+  {
+    "id": "salzsee_11",
+    "name": "Plankenstück",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_11.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_11_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_11",
+    "triangles": 552,
+    "vertices": 1174,
+    "extent": [
+      1.597,
+      0.252,
+      2.0
+    ]
+  },
+  {
+    "id": "salzsee_21",
+    "name": "Frachtmarke",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_21.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_21_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_21",
+    "triangles": 400,
+    "vertices": 736,
+    "extent": [
+      2.0,
+      0.289,
+      1.915
+    ]
+  },
+  {
+    "id": "salzsee_25",
+    "name": "Perlmuttkasten",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_25.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_25_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_25",
+    "triangles": 360,
+    "vertices": 675,
+    "extent": [
+      2.0,
+      0.998,
+      1.581
+    ]
+  },
+  {
+    "id": "salzsee_30",
+    "name": "Spiegelplatte",
+    "zone": "salzsee",
+    "basis": "visual_mismatch",
+    "glb": "glb/salzsee_30.glb",
+    "icon": "assets/icons/finds/salzsee/icon_find_salzsee_30_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_30",
+    "triangles": 148,
+    "vertices": 286,
+    "extent": [
+      2.0,
+      0.235,
+      2.0
+    ]
+  },
+  {
+    "id": "ruinenstadt_04",
+    "name": "Reliefsplitter",
+    "zone": "ruinenstadt",
+    "basis": "visual_mismatch",
+    "glb": "glb/ruinenstadt_04.glb",
+    "icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_04_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_04",
+    "triangles": 200,
+    "vertices": 418,
+    "extent": [
+      2.0,
+      0.392,
+      1.772
+    ]
+  },
+  {
+    "id": "ruinenstadt_09",
+    "name": "Duftlampe",
+    "zone": "ruinenstadt",
+    "basis": "visual_mismatch",
+    "glb": "glb/ruinenstadt_09.glb",
+    "icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_09_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_09",
+    "triangles": 620,
+    "vertices": 1176,
+    "extent": [
+      2.0,
+      1.61,
+      1.969
+    ]
+  },
+  {
+    "id": "ruinenstadt_26",
+    "name": "Steinbolzen",
+    "zone": "ruinenstadt",
+    "basis": "visual_mismatch",
+    "glb": "glb/ruinenstadt_26.glb",
+    "icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_26_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_26",
+    "triangles": 124,
+    "vertices": 304,
+    "extent": [
+      2.0,
+      0.845,
+      0.845
+    ]
+  },
+  {
+    "id": "ruinenstadt_27",
+    "name": "Fingerglied",
+    "zone": "ruinenstadt",
+    "basis": "visual_mismatch",
+    "glb": "glb/ruinenstadt_27.glb",
+    "icon": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_27_01.png",
+    "model": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_27",
+    "triangles": 156,
+    "vertices": 448,
+    "extent": [
+      2.0,
+      0.799,
+      0.942
+    ]
+  }
+]

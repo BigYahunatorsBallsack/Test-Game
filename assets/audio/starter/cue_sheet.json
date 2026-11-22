@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "clips": {
+    "HandScoopLoop": {
+      "durationSeconds": 1.54,
+      "previewStartsAtSeconds": 0.1,
+      "cues": {
+        "HandSandTouch": {
+          "file": "hand_sandkontakt.wav",
+          "markerSeconds": 0.45
+        },
+        "HandLoaded": {
+          "file": "hand_anheben.wav",
+          "markerSeconds": 0.8
+        },
+        "HandDeposit": {
+          "file": "hand_einfuellen.wav",
+          "markerSeconds": 1.16
+        }
+      }
+    },
+    "ShovelWorkLoop": {
+      "durationSeconds": 1.82,
+      "previewStartsAtSeconds": 2,
+      "cues": {
+        "SpadeCut": {
+          "file": "schaufel_sandkontakt.wav",
+          "markerSeconds": 0.48
+        },
+        "SpadeLoaded": {
+          "file": "schaufel_anheben.wav",
+          "markerSeconds": 0.89
+        },
+        "SpadeDump": {
+          "file": "schaufel_auskippen.wav",
+          "markerSeconds": 1.31
+        }
+      }
+    }
+  },
+  "events": {
+    "tankFull": {
+      "file": "tank_voll.wav",
+      "previewAtSeconds": 4.42
+    },
+    "sold": {
+      "file": "verkauf.wav",
+      "previewAtSeconds": 5.42
+    }
+  }
+}

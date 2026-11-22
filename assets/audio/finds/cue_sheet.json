@@ -1,0 +1,40 @@
+{
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "cues": [
+    {
+      "rarityId": "common",
+      "file": "fund_common.wav",
+      "previewAtSeconds": 0.1
+    },
+    {
+      "rarityId": "uncommon",
+      "file": "fund_uncommon.wav",
+      "previewAtSeconds": 1.16
+    },
+    {
+      "rarityId": "rare",
+      "file": "fund_rare.wav",
+      "previewAtSeconds": 2.22
+    },
+    {
+      "rarityId": "epic",
+      "file": "fund_epic.wav",
+      "previewAtSeconds": 3.28
+    },
+    {
+      "rarityId": "legendary",
+      "file": "fund_legendary.wav",
+      "previewAtSeconds": 4.34
+    },
+    {
+      "rarityId": "mythic",
+      "file": "fund_mythic.wav",
+      "previewAtSeconds": 5.4
+    }
+  ]
+}
