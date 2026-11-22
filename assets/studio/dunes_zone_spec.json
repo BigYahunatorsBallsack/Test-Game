@@ -1,0 +1,52 @@
+{
+  "package": "1.5",
+  "status": "implemented_and_desktop_playtested",
+  "objective": "Begehbare erste Zone im akzeptierten Roblox-Look",
+  "scope": [
+    "Sandterrain",
+    "Spawn",
+    "Händlerstand",
+    "statische Maschinen und Funde"
+  ],
+  "integration": {
+    "sellStand": {
+      "tag": "SellStand",
+      "position": [
+        0,
+        8,
+        -21
+      ],
+      "kind": "BasePart",
+      "canQuery": false
+    },
+    "sandField": {
+      "tag": "SandField",
+      "position": [
+        0,
+        6,
+        56
+      ],
+      "kind": "BasePart",
+      "canQuery": false
+    }
+  },
+  "source": "BigYahunatorsBallsack/Test-Game/main/src/shared/Data/World.luau",
+  "acceptance": [
+    "Spawn steht auf begehbarem Boden",
+    "Weg vom Spawn zum Stand und Sandfeld ist frei",
+    "Grabstrahlen treffen Sandterrain, keinen Marker",
+    "Bibliothek mit 164 Modellen bleibt erhalten",
+    "Client-Szene lädt ohne Assetfehler"
+  ],
+  "limits": [
+    "Keine neue Sammel- oder Kaufmechanik",
+    "GitHub-Spielcode wird in diesem Umgebungs-Schritt noch nicht nach Studio importiert",
+    "Modellplatzierung statisch; noch keine Ausrüstung oder Animation"
+  ],
+  "save": {
+    "status": "Saved",
+    "version": 28,
+    "location": "TeamCreate",
+    "published": false
+  }
+}

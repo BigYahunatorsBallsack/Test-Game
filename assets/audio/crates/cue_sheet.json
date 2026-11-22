@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "crates": {
+    "wood": {
+      "Open": {
+        "durationSeconds": 0.81,
+        "cues": {
+          "Unlatch": {
+            "file": "wood_unlatch.wav",
+            "markerSeconds": 0.162
+          },
+          "Reveal": {
+            "file": "wood_reveal.wav",
+            "markerSeconds": 0.5184
+          }
+        }
+      },
+      "Close": {
+        "durationSeconds": 0.57,
+        "cues": {
+          "Latch": {
+            "file": "wood_latch.wav",
+            "markerSeconds": 0.538333
+          }
+        }
+      }
+    },
+    "iron": {
+      "Open": {
+        "durationSeconds": 1.16,
+        "cues": {
+          "Unlatch": {
+            "file": "iron_unlatch.wav",
+            "markerSeconds": 0.298286
+          },
+          "Reveal": {
+            "file": "iron_reveal.wav",
+            "markerSeconds": 0.795429
+          }
+        }
+      },
+      "Close": {
+        "durationSeconds": 0.84,
+        "cues": {
+          "Latch": {
+            "file": "iron_latch.wav",
+            "markerSeconds": 0.807692
+          }
+        }
+      }
+    },
+    "gold": {
+      "Open": {
+        "durationSeconds": 0.98,
+        "cues": {
+          "Unlatch": {
+            "file": "gold_unlatch.wav",
+            "markerSeconds": 0.228667
+          },
+          "Reveal": {
+            "file": "gold_reveal.wav",
+            "markerSeconds": 0.620667
+          }
+        }
+      },
+      "Close": {
+        "durationSeconds": 0.68,
+        "cues": {
+          "Latch": {
+            "file": "gold_latch.wav",
+            "markerSeconds": 0.647619
+          }
+        }
+      }
+    },
+    "event": {
+      "Open": {
+        "durationSeconds": 1.28,
+        "cues": {
+          "Unlatch": {
+            "file": "event_unlatch.wav",
+            "markerSeconds": 0.361026
+          },
+          "Reveal": {
+            "file": "event_reveal.wav",
+            "markerSeconds": 0.853333
+          }
+        }
+      },
+      "Close": {
+        "durationSeconds": 0.78,
+        "cues": {
+          "Latch": {
+            "file": "event_latch.wav",
+            "markerSeconds": 0.7475
+          }
+        }
+      }
+    }
+  }
+}

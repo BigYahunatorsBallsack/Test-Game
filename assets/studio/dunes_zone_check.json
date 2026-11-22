@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-18",
+  "place_id": 135831532782380,
+  "package": "1.5",
+  "save_version": 28,
+  "scope": "environment only",
+  "spawn_position": [
+    0,
+    8.998,
+    -3
+  ],
+  "health": 100,
+  "route": {
+    "spawn_to_merchant": "success",
+    "merchant_distance": 4.976,
+    "merchant_to_sand": "success",
+    "end_position": [
+      0.044,
+      8.998,
+      55.022
+    ]
+  },
+  "dig_ray": {
+    "instance": "Workspace.Terrain",
+    "material": "Sand",
+    "surface_y": 6
+  },
+  "scene_preload": {
+    "callbacks": 64,
+    "failures": []
+  },
+  "library": {
+    "core": 14,
+    "finds": 150,
+    "per_zone": 30
+  },
+  "unanchored_scene_parts": 0,
+  "tags": {
+    "SellStand": true,
+    "SandField": true
+  },
+  "backup": "ServerStorage.DuneBaronWorldBackup",
+  "console_observations": [
+    "Studio log also contained HttpRequestsCache Studio API access warning and asset-type warnings for 203785492; scene-specific preload had no failures. These were not game persistence or scene-load tests."
+  ],
+  "limitations": [
+    "No collection, economy, HUD or upgrades imported yet",
+    "No physical phone test",
+    "Decorative models have simplified collision",
+    "Rollback script provided but not executed, to retain completed scene"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "cues": [
+    { "phase": "confirmed", "file": "sandsturm_uebergang.wav", "durationSeconds": 2.4, "previewAtSeconds": 0.1 },
+    { "phase": "revealed", "file": "sandsturm_windkristall.wav", "durationSeconds": 1.52, "previewAtSeconds": 2.5 }
+  ]
+}

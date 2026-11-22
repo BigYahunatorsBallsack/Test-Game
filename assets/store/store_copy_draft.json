@@ -1,0 +1,57 @@
+{
+  "status": "draft_not_published",
+  "working_title": "Dune Baron",
+  "name_clearance": "pending",
+  "title_options_not_cleared": [
+    "Sand Baron",
+    "Dune Diggers",
+    "Sand to Giants",
+    "Dune Workshop",
+    "Sandbound Explorers",
+    "Dune Relic Hunters",
+    "Sand Collector",
+    "Dune Excavators",
+    "Sand and Secrets",
+    "Dune Frontier"
+  ],
+  "description_en": "Start with a handful of sand. Build up to machines that reshape the desert. Dig, fill your tank, and sell your haul to develop your own growing excavation operation. Upgrade your collecting power, storage, selling skills, and luck as you explore golden dunes, a green oasis, towering canyons, a quiet salt lake, and an ancient ruined city. Uncover buried relics, complete themed collections, open crates, and bring a desert companion along for the journey. From your first shovel to a giant sand harvester, every new tool changes the scale of your dig. Join other players to uncover a colossal stone figure hidden beneath the dunes. Choose your next upgrade, follow your curiosity, and see what the sand has been hiding.",
+  "description_word_count": 120,
+  "taglines_en": [
+    "Start small. Dig bigger.",
+    "A desert full of discoveries.",
+    "From handfuls to harvesters.",
+    "Dig the sand. Build your story.",
+    "Uncover what lies beneath."
+  ],
+  "preview_listing": {
+    "description_en": "Start with your bare hands and see how much desert you can move. Dig into the dunes, fill your tank, and sell your haul at the caravan camp. Spend your coins on better tools and storage. Work your way from a steel shovel to a bucket conveyor, a mini excavator, and a harvester with twin cutting drums.\n\nFollow the caravan trails across the sand and look for half-buried stonework along the way. Open the field guide to browse relics by region and see which sets they belong to. Then head back into the dunes, make your next haul, and decide what to upgrade first.",
+    "tagline_en": "From handfuls to harvesters.",
+    "icon": "store_icon_studio.png",
+    "thumbnails": [
+      {
+        "file": "store_thumbnail_graben_studio.jpg",
+        "alt_en": "An explorer uncovers a turquoise seal in the sand. The merchant stall and machine yard are in the background."
+      },
+      {
+        "file": "store_thumbnail_harvester_studio.jpg",
+        "alt_en": "A yellow harvester kicks up sand with two steel-tipped drums. A Roblox explorer stands beside it for scale."
+      }
+    ]
+  },
+  "event_preview": {
+    "status": "draft_for_planned_event",
+    "thumbnail": {
+      "file": "store_thumbnail_koloss_studio.jpg",
+      "alt_en": "An explorer digs beside the giant stone hand of a half-buried colossus. A yellow mini excavator sits nearby."
+    }
+  },
+  "image_candidates": {
+    "icon": "store_icon_02.png",
+    "thumbnails": [
+      "store_thumbnail_01_02.png",
+      "store_thumbnail_02.png",
+      "store_thumbnail_03.png"
+    ]
+  },
+  "note_de": "Texte und Bilder sind Entwürfe für das geplante Spiel. Vor Veröffentlichung gegen den tatsächlich implementierten Funktionsumfang abgleichen. Titelalternativen sind nicht auf Verfügbarkeit geprüft. Ältere sparse Icon-/Thumbnail-Varianten bleiben als frühere Entwürfe erhalten."
+}

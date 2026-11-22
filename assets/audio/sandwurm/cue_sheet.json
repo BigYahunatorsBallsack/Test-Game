@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "sequence": [
+    {
+      "clip": "Sandworm_Emerge",
+      "durationSeconds": 1.29,
+      "cues": {
+        "SandWarning": {
+          "file": "sandwurm_warnung.wav",
+          "markerSeconds": 0.05
+        },
+        "Breach": {
+          "file": "sandwurm_ausbruch.wav",
+          "markerSeconds": 0.7
+        }
+      }
+    },
+    {
+      "clip": "Sandworm_Bite",
+      "durationSeconds": 0.74,
+      "cues": {
+        "Bite": {
+          "file": "sandwurm_biss.wav",
+          "markerSeconds": 0.35
+        }
+      }
+    },
+    {
+      "clip": "Sandworm_Burrow",
+      "durationSeconds": 0.67,
+      "cues": {
+        "Burrow": {
+          "file": "sandwurm_abtauchen.wav",
+          "markerSeconds": 0.23
+        }
+      }
+    }
+  ]
+}

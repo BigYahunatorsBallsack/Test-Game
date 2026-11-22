@@ -1,0 +1,48 @@
+[
+  {
+    "id": "salt_lake_wreck",
+    "file": "salt_lake_wreck.glb",
+    "triangles": 4036,
+    "vertices": 8932,
+    "boundsCenter": [
+      -0.1016,
+      3.9077,
+      -1.6792
+    ],
+    "sizeStuds": [
+      11.8872,
+      8.3711,
+      28.2087
+    ],
+    "worldXZ": [
+      1286,
+      790
+    ],
+    "yawDegrees": 31,
+    "pitchDegrees": 5,
+    "rollDegrees": -4,
+    "embedStuds": 1.2
+  },
+  {
+    "id": "salt_lake_dock",
+    "file": "salt_lake_dock.glb",
+    "triangles": 3192,
+    "vertices": 6228,
+    "boundsCenter": [
+      0.0,
+      -0.6333,
+      -0.55
+    ],
+    "sizeStuds": [
+      6.502,
+      7.2547,
+      16.0098
+    ],
+    "worldXZ": [
+      1311,
+      796
+    ],
+    "yawDegrees": 18,
+    "waterline": 16.2
+  }
+]

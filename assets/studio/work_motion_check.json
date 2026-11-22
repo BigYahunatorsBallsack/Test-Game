@@ -1,0 +1,125 @@
+{
+  "date": "2026-11-18",
+  "package": "2.4 work motion",
+  "place_id": 135831532782380,
+  "save_version": 35,
+  "published": false,
+  "source_files_matched": 7,
+  "script_count": 53,
+  "tests": {
+    "lune": {
+      "files": 15,
+      "failed": 0,
+      "new_motion_cases": 6,
+      "log": "assets/studio/work_motion_lune.log"
+    },
+    "lint": {
+      "changed_source_errors": 0,
+      "warnings": 0,
+      "parse_errors": 0,
+      "cached_api_dump": true
+    },
+    "shovel": {
+      "tool": "shovel",
+      "groups": {
+        "1": {
+          "jointMax": 0.9515919089317322,
+          "group": "scoop",
+          "actualPartMax": 0.9515917301177979
+        }
+      }
+    },
+    "bucket_chain": {
+      "maxJointChangeRadians": 0.15784615278244019,
+      "passed": true
+    },
+    "machines": [
+      {
+        "tool": "mini_digger",
+        "groups": {
+          "1": {
+            "jointMax": 0.23542536795139313,
+            "group": "boom",
+            "actualPartMax": 0.23542536795139313
+          }
+        }
+      },
+      {
+        "tool": "vacuum_robot",
+        "groups": {
+          "1": {
+            "jointMax": 0.13447271287441254,
+            "group": "nozzle",
+            "actualPartMax": 0.13447360694408417
+          }
+        }
+      },
+      {
+        "tool": "mega_machine",
+        "groups": {
+          "1": {
+            "jointMax": 2.852799415588379,
+            "group": "leftDrum",
+            "actualPartMax": 2.8527991771698
+          },
+          "2": {
+            "jointMax": 2.852799415588379,
+            "group": "rightDrum",
+            "actualPartMax": 2.8527991771698
+          }
+        }
+      }
+    ],
+    "stop": {
+      "shovelReturnsToRest": true,
+      "rotorsCoastToStop": true,
+      "fullTank": "60K / 60K, IsCollecting false while button still held",
+      "idleRotorAngleRange": [
+        0.28560206294059753,
+        0.28560206294059753
+      ]
+    },
+    "physics": {
+      "massBefore": 13.940256118774414,
+      "massAfter": 13.940256118774414,
+      "rootUnchanged": true,
+      "serverJointTransformsIdentity": true
+    },
+    "respawn": {
+      "models": 1,
+      "workMotors": 2,
+      "partsIncludingPivots": 91
+    },
+    "library": {
+      "core": 14,
+      "finds": 150
+    }
+  },
+  "regressions": {
+    "first_missing_module": "ToolMotion test failed before implementation",
+    "idle_pose_flicker": {
+      "beforeAngleRange": [
+        0,
+        1.5231964588165283
+      ],
+      "cause": "Animator resets Motor6D.Transform between throttled updates",
+      "fix": "Apply transforms in every PreSimulation step",
+      "after": "constant stopped angle over 18 Heartbeat samples"
+    }
+  },
+  "scope": [
+    "Tool-only mechanical poses; no humanoid animation assets",
+    "One motor per work group, with welded drum spikes",
+    "IsCollecting replicated from server snapshot",
+    "No new remotes or per-frame network messages",
+    "Nearby-player visuals evaluated within 120 studs"
+  ],
+  "limitations": [
+    "Bucket mesh rocks; individual buckets do not circulate along a chain",
+    "Excavator arm and suction head are single rigid mesh segments",
+    "Driving, tread/wheel driving animation and humanoid shovel-arm pose still pending",
+    "Second-player viewpoint, R6 and physical phone not tested",
+    "Studio persistent storage remains disabled"
+  ],
+  "test_funds": "Existing Studio DebugCoins helper; no real purchase or persisted test data"
+}

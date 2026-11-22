@@ -1,0 +1,1306 @@
+{
+  "status": "reference_prompt_catalog_with_prototypes",
+  "note_de": "Referenz-Promptsammlung. Tatsächliche Generierungen und Modellpfade stehen in assets/studio/generated_models.json, additional_find_models.json und find_model_map.json. Die erzeugten Modelle sind statische Prototypen; Art-Abnahme, Rigging und Spielintegration folgen gesondert.",
+  "models": [
+    {
+      "id": "shovel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A steel shovel with straight ochre wooden handle, square D grip and dark grey spade.",
+      "reference": "assets/reference/tools/ref_shovel_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.shovel"
+    },
+    {
+      "id": "bucket_chain",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A compact inclined bucket-chain sand conveyor on a charcoal frame with yellow buckets and a teal collection tank.",
+      "reference": "assets/reference/tools/ref_bucket_chain_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.bucket_chain"
+    },
+    {
+      "id": "excavator",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A compact yellow tracked mini excavator with an open charcoal roll cage and grey digging bucket.",
+      "reference": "assets/reference/tools/ref_excavator_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.excavator"
+    },
+    {
+      "id": "suction_robot",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A compact wheeled sand suction robot, yellow rectangular tank, teal rims, curved charcoal hose and broad nozzle.",
+      "reference": "assets/reference/tools/ref_suction_robot_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.suction_robot"
+    },
+    {
+      "id": "harvester",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A huge yellow sand harvester with twin toothed charcoal front drums, teal cab windows and massive wheels.",
+      "reference": "assets/reference/tools/ref_harvester_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.harvester"
+    },
+    {
+      "id": "merchant_stall",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A wooden desert merchant stall with yellow-and-cream striped canopy and a teal counter.",
+      "reference": "assets/reference/props/ref_merchant_stall_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.merchant_stall"
+    },
+    {
+      "id": "crate_wood",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A closed wooden cube crate with charcoal iron corner brackets and a front latch.",
+      "reference": "assets/icons/crates/icon_crates_wood_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_wood"
+    },
+    {
+      "id": "crate_iron",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A closed dark iron cube crate with chunky rivets and a heavy front lock.",
+      "reference": "assets/icons/crates/icon_crates_iron_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_iron"
+    },
+    {
+      "id": "crate_gold",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A closed golden cube crate with broad geometric ornaments and reinforced corners.",
+      "reference": "assets/icons/crates/icon_crates_gold_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_gold"
+    },
+    {
+      "id": "crate_event",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A closed teal cube crate with sandstone corner ornaments and a thin pale cyan lid seam.",
+      "reference": "assets/icons/crates/icon_crates_event_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.crate_event"
+    },
+    {
+      "id": "fennec",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A cute sandy low-poly fennec fox with large angular ears and a tiny teal digging backpack.",
+      "reference": "assets/reference/companions/ref_fennec_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.fennec"
+    },
+    {
+      "id": "scarab",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A cute teal low-poly scarab beetle with six charcoal legs and a tiny ochre digging backpack.",
+      "reference": "assets/reference/companions/ref_scarab_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.scarab"
+    },
+    {
+      "id": "desert_mouse",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A cute sandy low-poly desert mouse with round ears, thin tail and a tiny teal digging backpack.",
+      "reference": "assets/reference/companions/ref_desert_mouse_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.desert_mouse"
+    },
+    {
+      "id": "colossus",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. A monumental reclining sandstone humanoid colossus with a square head, segmented shoulders and teal circular chest inset, partially buried.",
+      "reference": "assets/reference/events/ref_colossus_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Core.colossus"
+    }
+  ],
+  "finds": [
+    {
+      "id": "duenenmeer_01",
+      "name_de": "Rillenmuschel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. ribbed cream seashell.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_01_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_01"
+    },
+    {
+      "id": "duenenmeer_02",
+      "name_de": "Schneckenhaus",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small spiral seashell.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_02_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_02"
+    },
+    {
+      "id": "duenenmeer_03",
+      "name_de": "Korallenstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short branching pale coral fragment.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_03_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_03"
+    },
+    {
+      "id": "duenenmeer_04",
+      "name_de": "Sanddollar",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. flat round fossil sand dollar.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_04_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_04"
+    },
+    {
+      "id": "duenenmeer_05",
+      "name_de": "Perlmuschel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. open oyster shell with one pearl.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_05_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_05"
+    },
+    {
+      "id": "duenenmeer_06",
+      "name_de": "Tonscherbe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. broken terracotta pottery shard.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_06_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_06"
+    },
+    {
+      "id": "duenenmeer_07",
+      "name_de": "Krughenkel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. broken terracotta jug handle.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_07_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_07"
+    },
+    {
+      "id": "duenenmeer_08",
+      "name_de": "Tonbecher",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small plain clay cup.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_08_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_08"
+    },
+    {
+      "id": "duenenmeer_09",
+      "name_de": "Öllämpchen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small terracotta oil lamp with spout.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_09_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_09"
+    },
+    {
+      "id": "duenenmeer_10",
+      "name_de": "Bemalter Krug",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small clay jug with teal geometric band.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_10_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_10"
+    },
+    {
+      "id": "duenenmeer_11",
+      "name_de": "Kupferstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. worn copper coin with blank face.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_11_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_11"
+    },
+    {
+      "id": "duenenmeer_12",
+      "name_de": "Lochmünze",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze coin with square center hole.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_12_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_12"
+    },
+    {
+      "id": "duenenmeer_13",
+      "name_de": "Münzbündel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. three bronze coins tied with cord.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_13_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_13"
+    },
+    {
+      "id": "duenenmeer_14",
+      "name_de": "Silberstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single silver coin with plain circular rim.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_14_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_14"
+    },
+    {
+      "id": "duenenmeer_15",
+      "name_de": "Händlermedaille",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze round medallion with abstract diamond relief.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_15_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_15"
+    },
+    {
+      "id": "duenenmeer_16",
+      "name_de": "Löffelrest",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short worn wooden spoon.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_16_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_16"
+    },
+    {
+      "id": "duenenmeer_17",
+      "name_de": "Gürtelschnalle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. plain rectangular bronze belt buckle.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_17_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_17"
+    },
+    {
+      "id": "duenenmeer_18",
+      "name_de": "Nähahle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short bone awl with thick grip.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_18_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_18"
+    },
+    {
+      "id": "duenenmeer_19",
+      "name_de": "Wasserschlauch",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small tied leather waterskin.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_19_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_19"
+    },
+    {
+      "id": "duenenmeer_20",
+      "name_de": "Karawanenglocke",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small bronze bell with loop.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_20_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_20"
+    },
+    {
+      "id": "duenenmeer_21",
+      "name_de": "Seilknoten",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short knotted rope loop.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_21_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_21"
+    },
+    {
+      "id": "duenenmeer_22",
+      "name_de": "Wegstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small flat sandstone marker with one groove.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_22_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_22"
+    },
+    {
+      "id": "duenenmeer_23",
+      "name_de": "Sternscheibe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze disc with simple radial spokes no writing.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_23_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_23"
+    },
+    {
+      "id": "duenenmeer_24",
+      "name_de": "Reisekompass",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small brass compass with plain needle no letters.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_24_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_24"
+    },
+    {
+      "id": "duenenmeer_25",
+      "name_de": "Sonnenamulett",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. gold sun disc amulet with broad triangular rays.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_25_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_25"
+    },
+    {
+      "id": "duenenmeer_26",
+      "name_de": "Glasperle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single opaque teal glass bead.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_26_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_26"
+    },
+    {
+      "id": "duenenmeer_27",
+      "name_de": "Armreif",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. plain bronze open cuff bracelet.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_27_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_27"
+    },
+    {
+      "id": "duenenmeer_28",
+      "name_de": "Siegelring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze ring with square flat seal face.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_28_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_28"
+    },
+    {
+      "id": "duenenmeer_29",
+      "name_de": "Skarabäus-Anhänger",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small teal stone scarab pendant.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_29_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_29"
+    },
+    {
+      "id": "duenenmeer_30",
+      "name_de": "Dünenkrone",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. simple angular sandstone circlet with teal inset.",
+      "reference": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_30_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.duenenmeer.duenenmeer_30"
+    },
+    {
+      "id": "oase_01",
+      "name_de": "Dattelkern",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single large brown date pit.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_01_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_01"
+    },
+    {
+      "id": "oase_02",
+      "name_de": "Palmblattrest",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short folded palm leaf fragment.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_02_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_02"
+    },
+    {
+      "id": "oase_03",
+      "name_de": "Schilfbündel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small tied bundle of cut reeds.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_03_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_03"
+    },
+    {
+      "id": "oase_04",
+      "name_de": "Samendose",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small clay seed pot with removable lid.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_04_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_04"
+    },
+    {
+      "id": "oase_05",
+      "name_de": "Blattabdruck",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. flat clay tablet with one leaf imprint no writing.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_05_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_05"
+    },
+    {
+      "id": "oase_06",
+      "name_de": "Krugboden",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. broken round terracotta jug base.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_06_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_06"
+    },
+    {
+      "id": "oase_07",
+      "name_de": "Trinkschale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. shallow cream ceramic drinking bowl.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_07_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_07"
+    },
+    {
+      "id": "oase_08",
+      "name_de": "Wasserflasche",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small teal glazed clay bottle.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_08_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_08"
+    },
+    {
+      "id": "oase_09",
+      "name_de": "Zweihenkelkrug",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small cream jug with two loop handles.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_09_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_09"
+    },
+    {
+      "id": "oase_10",
+      "name_de": "Oasenkanne",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. teal ceramic ewer with long spout.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_10_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_10"
+    },
+    {
+      "id": "oase_11",
+      "name_de": "Fischernadel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short thick bone netting needle.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_11_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_11"
+    },
+    {
+      "id": "oase_12",
+      "name_de": "Netzgewicht",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small donut shaped clay fishing net weight.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_12_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_12"
+    },
+    {
+      "id": "oase_13",
+      "name_de": "Weidenkorb",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small woven basket with simple broad weave.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_13_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_13"
+    },
+    {
+      "id": "oase_14",
+      "name_de": "Fischhaken",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large simple bronze fish hook.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_14_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_14"
+    },
+    {
+      "id": "oase_15",
+      "name_de": "Muschelkamm",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. cream shell comb with five broad teeth.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_15_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_15"
+    },
+    {
+      "id": "oase_16",
+      "name_de": "Holzperle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single carved brown wooden bead.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_16_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_16"
+    },
+    {
+      "id": "oase_17",
+      "name_de": "Glasring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick teal glass finger ring.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_17_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_17"
+    },
+    {
+      "id": "oase_18",
+      "name_de": "Kupferohrring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. simple copper hoop earring.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_18_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_18"
+    },
+    {
+      "id": "oase_19",
+      "name_de": "Perlenkette",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short necklace of five cream beads.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_19_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_19"
+    },
+    {
+      "id": "oase_20",
+      "name_de": "Blütenbrosche",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. gold brooch shaped like a simple five petal flower.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_20_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_20"
+    },
+    {
+      "id": "oase_21",
+      "name_de": "Pflanzstab",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short wooden planting dibber.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_21_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_21"
+    },
+    {
+      "id": "oase_22",
+      "name_de": "Bewässerungsrinne",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short U shaped terracotta water channel segment.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_22_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_22"
+    },
+    {
+      "id": "oase_23",
+      "name_de": "Gartensichel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small bronze sickle with wooden handle.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_23_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_23"
+    },
+    {
+      "id": "oase_24",
+      "name_de": "Brunnenrad",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small wooden pulley wheel with axle hole.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_24_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_24"
+    },
+    {
+      "id": "oase_25",
+      "name_de": "Brunnenschlüssel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large bronze T shaped water valve key.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_25_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_25"
+    },
+    {
+      "id": "oase_26",
+      "name_de": "Mosaikstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single chunky teal mosaic tile.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_26_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_26"
+    },
+    {
+      "id": "oase_27",
+      "name_de": "Duftfläschchen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small round amber glass perfume bottle.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_27_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_27"
+    },
+    {
+      "id": "oase_28",
+      "name_de": "Seerosenrelief",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small sandstone tile with raised water lily.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_28_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_28"
+    },
+    {
+      "id": "oase_29",
+      "name_de": "Gartensiegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. round jade green stone stamp with leaf relief.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_29_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_29"
+    },
+    {
+      "id": "oase_30",
+      "name_de": "Quellenschale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. wide cream stone bowl with teal rim.",
+      "reference": "assets/icons/finds/oase/icon_find_oase_30_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.oase.oase_30"
+    },
+    {
+      "id": "canyon_01",
+      "name_de": "Muschelfossil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small beige fossil shell embedded in stone.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_01_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_01"
+    },
+    {
+      "id": "canyon_02",
+      "name_de": "Blattfossil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. slate chip with single fern leaf fossil.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_02_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_02"
+    },
+    {
+      "id": "canyon_03",
+      "name_de": "Ammonit",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. cream spiral ammonite fossil.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_03_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_03"
+    },
+    {
+      "id": "canyon_04",
+      "name_de": "Trilobit",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small segmented trilobite fossil in rock.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_04_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_04"
+    },
+    {
+      "id": "canyon_05",
+      "name_de": "Fischfossil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. flat stone with simple fish skeleton fossil.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_05_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_05"
+    },
+    {
+      "id": "canyon_06",
+      "name_de": "Quarzstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small milky white quartz crystal cluster.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_06_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_06"
+    },
+    {
+      "id": "canyon_07",
+      "name_de": "Eisenknolle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. rough round rust brown ironstone nodule.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_07_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_07"
+    },
+    {
+      "id": "canyon_08",
+      "name_de": "Malachit",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. chunky green banded malachite stone.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_08_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_08"
+    },
+    {
+      "id": "canyon_09",
+      "name_de": "Bergkristall",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single clear pale blue quartz point.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_09_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_09"
+    },
+    {
+      "id": "canyon_10",
+      "name_de": "Pyritwürfel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. cluster of three brass colored pyrite cubes.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_10_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_10"
+    },
+    {
+      "id": "canyon_11",
+      "name_de": "Keilstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small wedge shaped dark stone tool.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_11_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_11"
+    },
+    {
+      "id": "canyon_12",
+      "name_de": "Holzkeil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short thick wooden splitting wedge.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_12_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_12"
+    },
+    {
+      "id": "canyon_13",
+      "name_de": "Meißel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short charcoal iron chisel with broad head.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_13_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_13"
+    },
+    {
+      "id": "canyon_14",
+      "name_de": "Spitzhackenkopf",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small iron pickaxe head without handle.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_14_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_14"
+    },
+    {
+      "id": "canyon_15",
+      "name_de": "Grubenlampe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small bronze cage oil lantern.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_15_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_15"
+    },
+    {
+      "id": "canyon_16",
+      "name_de": "Wirbelstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single chunky beige fossil vertebra.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_16_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_16"
+    },
+    {
+      "id": "canyon_17",
+      "name_de": "Rippenbogen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. curved short fossil rib bone.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_17_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_17"
+    },
+    {
+      "id": "canyon_18",
+      "name_de": "Zahnfossil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large triangular fossil tooth.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_18_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_18"
+    },
+    {
+      "id": "canyon_19",
+      "name_de": "Klauenfossil",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. curved fossil claw on small stone base.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_19_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_19"
+    },
+    {
+      "id": "canyon_20",
+      "name_de": "Schädelplatte",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small broad fossil skull plate.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_20_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_20"
+    },
+    {
+      "id": "canyon_21",
+      "name_de": "Feuerstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. dark angular flint chip.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_21_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_21"
+    },
+    {
+      "id": "canyon_22",
+      "name_de": "Reibstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small oval sandstone grinding stone.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_22_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_22"
+    },
+    {
+      "id": "canyon_23",
+      "name_de": "Pigmentschale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small clay bowl holding red ochre lump.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_23_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_23"
+    },
+    {
+      "id": "canyon_24",
+      "name_de": "Kletterhaken",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large simple iron climbing piton with ring.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_24_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_24"
+    },
+    {
+      "id": "canyon_25",
+      "name_de": "Bernsteineinschluss",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large amber chunk with simple leaf inclusion.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_25_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_25"
+    },
+    {
+      "id": "canyon_26",
+      "name_de": "Gesteinskugel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small round layered stone concretion.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_26_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_26"
+    },
+    {
+      "id": "canyon_27",
+      "name_de": "Kristallgeode",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. split grey geode with pale blue crystal interior.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_27_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_27"
+    },
+    {
+      "id": "canyon_28",
+      "name_de": "Versteinertes Holz",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short faceted petrified wood log segment.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_28_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_28"
+    },
+    {
+      "id": "canyon_29",
+      "name_de": "Himmelseisen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. dark faceted meteorite with shallow pits.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_29_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_29"
+    },
+    {
+      "id": "canyon_30",
+      "name_de": "Tiefenkristall",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large angular smoky teal crystal cluster.",
+      "reference": "assets/icons/finds/canyon/icon_find_canyon_30_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.canyon.canyon_30"
+    },
+    {
+      "id": "salzsee_01",
+      "name_de": "Salzwürfel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. single milky white halite cube.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_01_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_01"
+    },
+    {
+      "id": "salzsee_02",
+      "name_de": "Kristallzweig",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small branching white salt crystal cluster.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_02_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_02"
+    },
+    {
+      "id": "salzsee_03",
+      "name_de": "Rosensalz",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. chunky pale pink salt stone.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_03_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_03"
+    },
+    {
+      "id": "salzsee_04",
+      "name_de": "Gipsrose",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small beige gypsum desert rose crystal.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_04_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_04"
+    },
+    {
+      "id": "salzsee_05",
+      "name_de": "Klarer Halit",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. cluster of three translucent cyan salt cubes.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_05_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_05"
+    },
+    {
+      "id": "salzsee_06",
+      "name_de": "Salzring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick irregular white salt ring.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_06_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_06"
+    },
+    {
+      "id": "salzsee_07",
+      "name_de": "Salzsäule",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short layered white salt column.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_07_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_07"
+    },
+    {
+      "id": "salzsee_08",
+      "name_de": "Salzschale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. shallow natural white salt bowl.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_08_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_08"
+    },
+    {
+      "id": "salzsee_09",
+      "name_de": "Salzfächer",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. fan shaped pale cyan crystal formation.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_09_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_09"
+    },
+    {
+      "id": "salzsee_10",
+      "name_de": "Salzspirale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick white natural spiral salt formation.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_10_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_10"
+    },
+    {
+      "id": "salzsee_11",
+      "name_de": "Plankenstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short weathered wooden ship plank.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_11_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_11"
+    },
+    {
+      "id": "salzsee_12",
+      "name_de": "Holzdübel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. two thick wooden ship pegs.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_12_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_12"
+    },
+    {
+      "id": "salzsee_13",
+      "name_de": "Seilrolle",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small coiled brown nautical rope.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_13_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_13"
+    },
+    {
+      "id": "salzsee_14",
+      "name_de": "Ruderblatt",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short broad wooden oar blade fragment.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_14_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_14"
+    },
+    {
+      "id": "salzsee_15",
+      "name_de": "Ankerstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small corroded iron anchor.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_15_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_15"
+    },
+    {
+      "id": "salzsee_16",
+      "name_de": "Takelring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick corroded iron rigging ring.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_16_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_16"
+    },
+    {
+      "id": "salzsee_17",
+      "name_de": "Rollenblock",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small wooden nautical pulley block.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_17_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_17"
+    },
+    {
+      "id": "salzsee_18",
+      "name_de": "Schiffsglocke",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small bronze ship bell with thick loop.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_18_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_18"
+    },
+    {
+      "id": "salzsee_19",
+      "name_de": "Steuerrad",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small wooden ship steering wheel.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_19_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_19"
+    },
+    {
+      "id": "salzsee_20",
+      "name_de": "Peilscheibe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. brass nautical sighting disc with needle no writing.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_20_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_20"
+    },
+    {
+      "id": "salzsee_21",
+      "name_de": "Frachtmarke",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. plain square bronze cargo token with center hole.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_21_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_21"
+    },
+    {
+      "id": "salzsee_22",
+      "name_de": "Vorratsdose",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small cylindrical tin container with closed lid.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_22_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_22"
+    },
+    {
+      "id": "salzsee_23",
+      "name_de": "Handelsgewicht",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small bronze hexagonal scale weight.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_23_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_23"
+    },
+    {
+      "id": "salzsee_24",
+      "name_de": "Glasphiole",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small pale blue glass vial with cork.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_24_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_24"
+    },
+    {
+      "id": "salzsee_25",
+      "name_de": "Perlmuttkasten",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small closed cream inlaid wooden box.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_25_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_25"
+    },
+    {
+      "id": "salzsee_26",
+      "name_de": "Keramikstopfen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large round cream ceramic jar stopper.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_26_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_26"
+    },
+    {
+      "id": "salzsee_27",
+      "name_de": "Muschelanhänger",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small pale pink shell pendant with cord loop.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_27_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_27"
+    },
+    {
+      "id": "salzsee_28",
+      "name_de": "Kristalllinse",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick round pale cyan crystal lens.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_28_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_28"
+    },
+    {
+      "id": "salzsee_29",
+      "name_de": "Salzsiegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. white stone seal with abstract wave relief.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_29_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_29"
+    },
+    {
+      "id": "salzsee_30",
+      "name_de": "Spiegelplatte",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small octagonal polished silver mirror plate.",
+      "reference": "assets/icons/finds/salzsee/icon_find_salzsee_30_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.salzsee.salzsee_30"
+    },
+    {
+      "id": "ruinenstadt_01",
+      "name_de": "Steinziegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small chipped sandstone building block.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_01_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_01"
+    },
+    {
+      "id": "ruinenstadt_02",
+      "name_de": "Mosaikplatte",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small sandstone square with four teal mosaic tiles.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_02_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_02"
+    },
+    {
+      "id": "ruinenstadt_03",
+      "name_de": "Säulenstück",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short broken sandstone column segment.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_03_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_03"
+    },
+    {
+      "id": "ruinenstadt_04",
+      "name_de": "Reliefsplitter",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. sandstone fragment with raised geometric diamond.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_04_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_04"
+    },
+    {
+      "id": "ruinenstadt_05",
+      "name_de": "Kapitell",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small square sandstone column capital.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_05_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_05"
+    },
+    {
+      "id": "ruinenstadt_06",
+      "name_de": "Steinschale",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. shallow plain sandstone bowl.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_06_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_06"
+    },
+    {
+      "id": "ruinenstadt_07",
+      "name_de": "Spielstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small round terracotta game token.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_07_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_07"
+    },
+    {
+      "id": "ruinenstadt_08",
+      "name_de": "Bronzeschlüssel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short simple bronze key with square bow.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_08_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_08"
+    },
+    {
+      "id": "ruinenstadt_09",
+      "name_de": "Duftlampe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small cream ceramic incense burner with vent holes.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_09_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_09"
+    },
+    {
+      "id": "ruinenstadt_10",
+      "name_de": "Schmuckdose",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small closed teal glazed ceramic box.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_10_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_10"
+    },
+    {
+      "id": "ruinenstadt_11",
+      "name_de": "Tonstempel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small terracotta stamp with cube handle.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_11_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_11"
+    },
+    {
+      "id": "ruinenstadt_12",
+      "name_de": "Torplakette",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small rectangular bronze plate with arch relief.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_12_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_12"
+    },
+    {
+      "id": "ruinenstadt_13",
+      "name_de": "Rundsiegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. round sandstone stamp with abstract concentric rings.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_13_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_13"
+    },
+    {
+      "id": "ruinenstadt_14",
+      "name_de": "Wächtersiegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. teal stone stamp with simple shield silhouette.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_14_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_14"
+    },
+    {
+      "id": "ruinenstadt_15",
+      "name_de": "Ratssiegel",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. gold octagonal seal with plain central teal disc.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_15_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_15"
+    },
+    {
+      "id": "ruinenstadt_16",
+      "name_de": "Steinhand",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small blocky sandstone statue hand fragment.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_16_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_16"
+    },
+    {
+      "id": "ruinenstadt_17",
+      "name_de": "Vogelfigur",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small angular sandstone bird statuette.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_17_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_17"
+    },
+    {
+      "id": "ruinenstadt_18",
+      "name_de": "Wächterbüste",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small blocky sandstone guardian bust.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_18_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_18"
+    },
+    {
+      "id": "ruinenstadt_19",
+      "name_de": "Sitzfigur",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small seated sandstone figure with folded arms.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_19_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_19"
+    },
+    {
+      "id": "ruinenstadt_20",
+      "name_de": "Sonnenwächter",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. gold trimmed sandstone guardian statuette with teal chest inset.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_20_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_20"
+    },
+    {
+      "id": "ruinenstadt_21",
+      "name_de": "Messschnur",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short knotted measuring cord with stone weight.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_21_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_21"
+    },
+    {
+      "id": "ruinenstadt_22",
+      "name_de": "Lotgewicht",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze conical plumb bob with cord loop.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_22_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_22"
+    },
+    {
+      "id": "ruinenstadt_23",
+      "name_de": "Sternring",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. thick brass ring with four short radial tabs.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_23_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_23"
+    },
+    {
+      "id": "ruinenstadt_24",
+      "name_de": "Linsenfassung",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. bronze square frame holding circular teal lens.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_24_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_24"
+    },
+    {
+      "id": "ruinenstadt_25",
+      "name_de": "Himmelsscheibe",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. gold radial disc with teal central stone no writing.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_25_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_25"
+    },
+    {
+      "id": "ruinenstadt_26",
+      "name_de": "Steinbolzen",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. short broad sandstone joining pin.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_26_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_26"
+    },
+    {
+      "id": "ruinenstadt_27",
+      "name_de": "Fingerglied",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. small segmented sandstone colossus finger joint.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_27_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_27"
+    },
+    {
+      "id": "ruinenstadt_28",
+      "name_de": "Schulterplatte",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. curved sandstone armor plate with one teal stripe.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_28_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_28"
+    },
+    {
+      "id": "ruinenstadt_29",
+      "name_de": "Augenstein",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. oval polished deep teal stone inset.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_29_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_29"
+    },
+    {
+      "id": "ruinenstadt_30",
+      "name_de": "Herz des Kolosses",
+      "prompt": "Roblox-compatible blocky low-poly game asset, simple matte materials, clear silhouette, no text or logos. large faceted teal stone core in angular sandstone cradle.",
+      "reference": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_30_01.png",
+      "status": "prototype_available_in_studio",
+      "studio_model_path": "ServerStorage.DuneBaronAssetLibrary.Finds.ruinenstadt.ruinenstadt_30"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-18",
+  "place_id": 135831532782380,
+  "save_version": 30,
+  "published": false,
+  "source_repository": "BigYahunatorsBallsack/Test-Game",
+  "source_commit": "368d170dd6315fe2f0875f3bd5d4665c02f16adb",
+  "scripts_installed": 47,
+  "local_change": {
+    "file": "src/client/Controllers/Dig.luau",
+    "reason": "Hand digging cut only air: rendered flat sand at y=6, occupancy fill height y=4",
+    "fix": "Convert hit to voxel fill coordinates by subtracting voxelSize/2 before SandDig.tryDig"
+  },
+  "tests": {
+    "lune": {
+      "command": "lune run tests/run",
+      "version": "0.11.1",
+      "files_passed": 14,
+      "files_failed": 0,
+      "log": "assets/studio/core_loop_lune.log"
+    },
+    "structure": {
+      "red": "Shared modules missing",
+      "green": "passed; DataCheck 0 errors"
+    },
+    "desktop": {
+      "viewport": [
+        1226,
+        802
+      ],
+      "actual_inputs": [
+        "Left mouse hold",
+        "E sell prompt",
+        "Click collect_rate_1"
+      ],
+      "hand_after_5s": "Tank 5 / 15",
+      "capacity": "Tank 15 / 15",
+      "far_sell": "rejected; Tank 15 / 15 and M\u00c3\u00bcnzen: 0 unchanged",
+      "sale": {
+        "before": {
+          "sand": 15,
+          "coins": 0
+        },
+        "after": {
+          "sand": 0,
+          "coins": 15
+        }
+      },
+      "upgrade": {
+        "id": "collect_rate_1",
+        "cost": 15,
+        "coins_after": 0,
+        "after_2_2s": "Tank 3 / 15",
+        "rate": 1.5
+      },
+      "terrain": {
+        "red_occupancy": {
+          "before": 32,
+          "after": 32
+        },
+        "green_occupancy": {
+          "before": 32,
+          "after": 30.58984375
+        },
+        "server_occupancy": 32,
+        "regrown_occupancy": 32,
+        "dirty_chunks_after_fix": 2
+      }
+    },
+    "lint": {
+      "tool": "selene 0.31.0 using cached Roblox API dump",
+      "errors": 0,
+      "parse_errors": 0,
+      "existing_warnings": 20,
+      "exit_code": 1
+    }
+  },
+  "persistence": {
+    "status": "not_verified",
+    "studio_api_access": "disabled",
+    "store_mode": "ProfileStore automatic temporary test store",
+    "settings_unchanged": true
+  },
+  "limits": [
+    "Desktop only; no physical phone test",
+    "Not published live",
+    "Fund collection, crates, payments and events remain existing stubs",
+    "UI still the imported simple HUD and upgrade list",
+    "Model library preserved: 14 core + 150 finds",
+    "Console retains unrelated asset-type warning for 203785492"
+  ],
+  "checks": {
+    "source_matches_studio": 47,
+    "authored_diff_whitespace": "passed",
+    "vendor_whitespace": "Preserved unchanged upstream ProfileStore whitespace; global git diff --check reports vendor-only findings."
+  }
+}

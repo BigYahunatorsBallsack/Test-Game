@@ -1,0 +1,29 @@
+{
+  "processed_assets": 162,
+  "preload_finished": true,
+  "preload_ok": true,
+  "scope": "Desktop Studio client: core prototypes and 30-find dunes preview",
+  "camera_type": "Enum.CameraType.Scriptable",
+  "triangles": {
+    "Children": [
+      {
+        "Name": "Opaque",
+        "Sizes": {
+          "Drawcalls": 95,
+          "Triangles": 87650
+        }
+      }
+    ],
+    "Name": "TriangleComposition",
+    "Sizes": {
+      "Drawcalls": 95,
+      "Triangles": 87650
+    }
+  },
+  "triangle_query_ok": true,
+  "not_a_physical_phone_test": true,
+  "viewport": "1510, 802",
+  "camera_aligned": true,
+  "camera_position": "18, 23, 100",
+  "asset_failures": []
+}

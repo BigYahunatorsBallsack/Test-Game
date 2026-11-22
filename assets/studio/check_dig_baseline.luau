@@ -1,0 +1,1 @@
+local m,o=workspace.Terrain:ReadVoxels(Region3.new(Vector3.new(-8,-4,48),Vector3.new(8,16,64)),4) local sum=0 for x=1,4 do for y=1,5 do for z=1,4 do sum+=o[x][y][z] end end end game.Players.LocalPlayer:SetAttribute('IntegrationTerrainBaseline',sum) return sum

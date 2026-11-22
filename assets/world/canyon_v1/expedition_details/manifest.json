@@ -1,0 +1,36 @@
+[
+  {
+    "id": "canyon_fossil_workbench",
+    "file": "canyon_fossil_workbench.glb",
+    "sizeStuds": [
+      7.14,
+      4.077,
+      3.115
+    ],
+    "triangles": 2773,
+    "vertices": 5683,
+    "worldXZ": [
+      649,
+      733
+    ],
+    "yawDegrees": 12,
+    "embedStuds": 0.27
+  },
+  {
+    "id": "canyon_quartz_seam",
+    "file": "canyon_quartz_seam.glb",
+    "sizeStuds": [
+      8.58,
+      4.1,
+      4.149
+    ],
+    "triangles": 630,
+    "vertices": 1271,
+    "worldXZ": [
+      895,
+      767
+    ],
+    "yawDegrees": -19,
+    "embedStuds": 0.4
+  }
+]

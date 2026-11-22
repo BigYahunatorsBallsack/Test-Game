@@ -1,0 +1,110 @@
+{
+  "format": {
+    "sampleRate": 48000,
+    "channels": 1,
+    "sampleWidthBits": 16,
+    "encoding": "PCM"
+  },
+  "surfaces": [
+    {
+      "sandTypeId": "yellow",
+      "takes": [
+        {
+          "file": "step_yellow_01.wav",
+          "sampleCount": 13161,
+          "previewAtSeconds": 0.12
+        },
+        {
+          "file": "step_yellow_02.wav",
+          "sampleCount": 13091,
+          "previewAtSeconds": 0.502
+        },
+        {
+          "file": "step_yellow_03.wav",
+          "sampleCount": 13814,
+          "previewAtSeconds": 0.884
+        }
+      ]
+    },
+    {
+      "sandTypeId": "red",
+      "takes": [
+        {
+          "file": "step_red_01.wav",
+          "sampleCount": 16374,
+          "previewAtSeconds": 1.69
+        },
+        {
+          "file": "step_red_02.wav",
+          "sampleCount": 15977,
+          "previewAtSeconds": 2.072
+        },
+        {
+          "file": "step_red_03.wav",
+          "sampleCount": 15650,
+          "previewAtSeconds": 2.454
+        }
+      ]
+    },
+    {
+      "sandTypeId": "white",
+      "takes": [
+        {
+          "file": "step_white_01.wav",
+          "sampleCount": 14239,
+          "previewAtSeconds": 3.26
+        },
+        {
+          "file": "step_white_02.wav",
+          "sampleCount": 12481,
+          "previewAtSeconds": 3.642
+        },
+        {
+          "file": "step_white_03.wav",
+          "sampleCount": 13876,
+          "previewAtSeconds": 4.024
+        }
+      ]
+    },
+    {
+      "sandTypeId": "crystal",
+      "takes": [
+        {
+          "file": "step_crystal_01.wav",
+          "sampleCount": 14061,
+          "previewAtSeconds": 4.83
+        },
+        {
+          "file": "step_crystal_02.wav",
+          "sampleCount": 15205,
+          "previewAtSeconds": 5.212
+        },
+        {
+          "file": "step_crystal_03.wav",
+          "sampleCount": 14537,
+          "previewAtSeconds": 5.594
+        }
+      ]
+    },
+    {
+      "sandTypeId": "black",
+      "takes": [
+        {
+          "file": "step_black_01.wav",
+          "sampleCount": 15535,
+          "previewAtSeconds": 6.4
+        },
+        {
+          "file": "step_black_02.wav",
+          "sampleCount": 14832,
+          "previewAtSeconds": 6.782
+        },
+        {
+          "file": "step_black_03.wav",
+          "sampleCount": 15436,
+          "previewAtSeconds": 7.164
+        }
+      ]
+    }
+  ]
+}
