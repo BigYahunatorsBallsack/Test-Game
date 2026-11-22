@@ -23,7 +23,7 @@ T.describe("RemoteSpec", function()
                 T.expect(select(1, RemoteSpec.canRegister(def.name))).toBe(true)
             end
         end
-        T.expect(clientRemotes).toBe(12) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6), ClaimDaily (5.1), RedeemCode (5.2)
+        T.expect(clientRemotes).toBe(14) -- 6 bis Paket 4.2, dazu EquipItem und MergeItem (4.3), SetAutoDig (4.4), BuyDirectItem (4.6), ClaimDaily (5.1), RedeemCode (5.2), BuySeasonPass und ClaimSeasonReward (5.5b)
         T.expect(RemoteSpec.byName.StateSync.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.Notify.direction).toBe("ServerToClient")
         T.expect(RemoteSpec.byName.StateSync.limit).toBeNil()
@@ -43,6 +43,8 @@ T.describe("RemoteSpec", function()
             ClaimDaily = { 1, 2 },
             RedeemCode = { 1, 3 },
             Prestige = { 1, 5 },
+            BuySeasonPass = { 1, 3 },
+            ClaimSeasonReward = { 5, 1 },
         }
         for name, values in expected do
             local limit = RemoteSpec.byName[name].limit

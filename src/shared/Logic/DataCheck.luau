@@ -9,6 +9,7 @@ local Offers = require("./Offers")
 local Equipment = require("./Equipment")
 local DirectShop = require("./DirectShop")
 local Seasons = require("./Seasons")
+local SeasonPass = require("./SeasonPass")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -45,6 +46,14 @@ local DAILY_FIELDS: { [string]: { [string]: boolean } } = {
     gems = { day = true, kind = true, amount = true },
 }
 local DAILY_DAY7_FIELDS = { day = true, kind = true, crateId = true }
+-- Saison-Pass (Paket 5.5b): erlaubte Felder je Belohnungsart (Logic/SeasonPass.claim kennt genau
+-- diese). Ein Feld wie `crateId` fällt so auf: nie Kisten, nie Zufall.
+local PASS_REWARD_FIELDS: { [string]: { [string]: boolean } } = {
+    gems = { kind = true, amount = true },
+    coinBoost = { kind = true, seconds = true },
+    luck = { kind = true, seconds = true },
+    item = { kind = true, itemId = true },
+}
 local EFFECT_KINDS = {
     setTool = true,
     rateBonus = true,
@@ -1382,6 +1391,22 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
         if not isInt(config.duplicateGems) or config.duplicateGems < 0 or config.duplicateGems > maxGems then
             table.insert(errors, "Economy.seasonPass: duplicateGems muss eine ganze Zahl von 0 bis maxGems sein")
         end
+        -- Ersatz-Gems dürfen nie mehr wert sein als der Pass-Preis zum besten Paketkurs bis zu diesem Preis
+        -- (sonst wäre ein altes Pass-Produkt ein verstecktes, günstigeres Gem-Paket).
+        if isInt(config.duplicateGems) and type(data.Products) == "table" and type(data.GemPacks) == "table" and isList(data.GemPacks.list) then
+            local passProduct = data.Products.byId and data.Products.byId.season_pass
+            if type(passProduct) == "table" and isFinite(passProduct.priceRobux) then
+                local bestRate = 0
+                for _, pack in data.GemPacks.list do
+                    if type(pack) == "table" and isFinite(pack.gems) and isFinite(pack.robux) and pack.robux > 0 and pack.robux <= passProduct.priceRobux then
+                        bestRate = math.max(bestRate, pack.gems / pack.robux)
+                    end
+                end
+                if config.duplicateGems > passProduct.priceRobux * bestRate then
+                    table.insert(errors, `Economy.seasonPass: duplicateGems {config.duplicateGems} sind mehr wert als der Pass-Preis ({math.floor(passProduct.priceRobux * bestRate)} Gems zum besten Paketkurs)`)
+                end
+            end
+        end
         if not isFinite(config.premiumGemsMaxPercent) or config.premiumGemsMaxPercent <= 0 or config.premiumGemsMaxPercent > 100 then
             table.insert(errors, "Economy.seasonPass: premiumGemsMaxPercent muss größer als 0 und höchstens 100 sein")
         end
@@ -1423,6 +1448,8 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
             end
         end
     end
+    -- Jedes Pass-Item kommt in allen Saisons und Spuren höchstens einmal vor (5.5b).
+    local passItemUsedAt: { [string]: string } = {}
     for seasonId, row in passData.bySeason do
         local label = `SeasonPass "{tostring(seasonId)}"`
         if type(seasonId) ~= "string" or seasonRows[seasonId] == nil then
@@ -1432,6 +1459,24 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
         if type(row) ~= "table" or not isList(row.tiers) or #row.tiers < 1 then
             table.insert(errors, `{label}: tiers braucht mindestens eine Stufe`)
             continue
+        end
+        -- Lückenlos 1 bis n (5.5b): Bei einer Lücke wären `#tiers`, die letzte Stufe und damit die
+        -- Punkte-Obergrenze mehrdeutig, und ClaimSeasonReward fände Stufen hinter der Lücke unzuverlässig.
+        local keyCount = 0
+        local dense = true
+        for key in row.tiers do
+            keyCount += 1
+            if type(key) ~= "number" or key ~= math.floor(key) or key < 1 then
+                dense = false
+            end
+        end
+        if not dense or keyCount ~= #row.tiers or row.tiers[keyCount] == nil then
+            table.insert(errors, `{label}: tiers muss eine lückenlose Liste sein (Stufe 1 bis n, ohne andere Schlüssel)`)
+            continue
+        end
+        if #row.tiers > SeasonPass.MAX_TIERS then
+            -- Die Remote ClaimSeasonReward nimmt nur Stufen 1 bis MAX_TIERS an (RemoteSpec).
+            table.insert(errors, `{label}: höchstens {SeasonPass.MAX_TIERS} Stufen (ClaimSeasonReward)`)
         end
         local last = 0
         local premiumGems = 0
@@ -1449,6 +1494,14 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
             for _, track in { "free", "premium" } do
                 local reward = tier[track]
                 local rewardLabel = `{tierLabel} {track}`
+                local allowedFields = if type(reward) == "table" and type(reward.kind) == "string" then PASS_REWARD_FIELDS[reward.kind] else nil
+                if allowedFields ~= nil then
+                    for field in reward do
+                        if not allowedFields[field] then
+                            table.insert(errors, `{rewardLabel}: unbekanntes Feld "{tostring(field)}" (nur feste Belohnungen, nie Kisten oder Zufall)`)
+                        end
+                    end
+                end
                 if type(reward) ~= "table" then
                     table.insert(errors, `{rewardLabel}: Belohnung fehlt`)
                 elseif reward.kind == "gems" then
@@ -1467,6 +1520,10 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
                         table.insert(errors, `{rewardLabel}: unbekanntes Item "{tostring(reward.itemId)}"`)
                     elseif item.passOnly ~= true then
                         table.insert(errors, `{rewardLabel}: Item "{reward.itemId}" ist kein Pass-Item (passOnly)`)
+                    elseif passItemUsedAt[reward.itemId] ~= nil then
+                        table.insert(errors, `{rewardLabel}: Pass-Item "{reward.itemId}" steht schon bei {passItemUsedAt[reward.itemId]} (jedes Pass-Item nur einmal)`)
+                    else
+                        passItemUsedAt[reward.itemId] = rewardLabel
                     end
                 else
                     table.insert(errors, `{rewardLabel}: unbekannte Art "{tostring(reward.kind)}" (erlaubt: gems, coinBoost, luck, item)`)
@@ -1539,7 +1596,8 @@ local function checkSeasons(errors: { string }, data: DataSet)
     local ids: { [string]: boolean } = {}
     local crateUsers: { [string]: string } = {}
     local zoneUsers: { [string]: string } = {}
-    local ranges: { { id: string, startAt: number } } = {}
+    local passUsers: { [string]: string } = {}
+    local ranges: { { id: string, startAt: number, hasPass: boolean } } = {}
     for index, season in seasons.list do
         local label = `Seasons.list[{index}]`
         if type(season) ~= "table" then
@@ -1564,7 +1622,7 @@ local function checkSeasons(errors: { string }, data: DataSet)
         elseif not Seasons.isMondayStart(start) then
             table.insert(errors, `{label}: startDate {season.startDate} ist kein Montag`)
         else
-            table.insert(ranges, { id = id, startAt = start })
+            table.insert(ranges, { id = id, startAt = start, hasPass = season.passId ~= nil })
         end
         local crate = if type(season.crateId) == "string" and crates ~= nil then crates[season.crateId] else nil
         if crate == nil then
@@ -1588,16 +1646,39 @@ local function checkSeasons(errors: { string }, data: DataSet)
                 zoneUsers[season.zoneId] = id
             end
         end
-        if season.passId ~= nil and (type(season.passId) ~= "string" or products == nil or products[season.passId] == nil) then
-            table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
+        if season.passId ~= nil then
+            local product = if type(season.passId) == "string" and products ~= nil then products[season.passId] else nil
+            if type(product) ~= "table" then
+                table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
+            else
+                -- Paket 5.5b: Der Pass läuft über ProcessReceipt (Developer Product) und ist je Saison
+                -- kaufbar, darum oneTime = false (ein zweiter Kauf derselben Saison gibt Ersatz-Gems).
+                if product.kind ~= "developerProduct" or product.oneTime ~= false then
+                    table.insert(errors, `{label}: Pass-Produkt "{season.passId}" muss ein Developer Product mit oneTime = false sein`)
+                end
+                -- Ein Produkt gehört zu höchstens einer Saison, sonst wüsste der Kauf-Handler nicht,
+                -- welche Saison bezahlt ist.
+                if passUsers[season.passId] ~= nil then
+                    table.insert(errors, `{label}: Pass-Produkt "{season.passId}" gehört schon zu Saison "{passUsers[season.passId]}"`)
+                else
+                    passUsers[season.passId] = id
+                end
+            end
         end
     end
     table.sort(ranges, function(a, b)
         return a.startAt < b.startAt
     end)
+    local passConfig = if type(data.Economy) == "table" then data.Economy.seasonPass else nil
+    local graceDays = if type(passConfig) == "table" and isFinite(passConfig.claimGraceDays) then passConfig.claimGraceDays else 0
+    local graceSeconds = graceDays * 86400
     for index = 2, #ranges do
         if ranges[index].startAt < ranges[index - 1].startAt + length then
             table.insert(errors, `Seasons "{ranges[index].id}" überlappt "{ranges[index - 1].id}"`)
+        elseif ranges[index - 1].hasPass and ranges[index].startAt < ranges[index - 1].startAt + length + graceSeconds then
+            -- Paket 5.5b: Die Abholfrist einer Saison mit Pass (und eine späte Zahlung) braucht Platz,
+            -- sonst verfielen Belohnungen und Zahlungen mit dem Start der nächsten Saison.
+            table.insert(errors, `Seasons "{ranges[index].id}" beginnt vor dem Ende der Abholfrist von "{ranges[index - 1].id}" (claimGraceDays)`)
         end
     end
     -- Jede Event-Kiste braucht eine Saison, sonst ist sie nie öffnbar.

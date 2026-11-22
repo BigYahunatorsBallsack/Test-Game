@@ -44,7 +44,9 @@
 -- Protokolleintrag. Der Client hat keinen Einfluss: Menge und Preis kommen allein aus den Daten.
 --
 -- Handler-Register (für Paket 4.4): Ein Handler bekommt Kopien von Profil und Produkt (Änderungen
--- daran wirken nicht) und gibt `{ changes, gems, announce? }` zurück. `changes` sind die neuen Werte
+-- daran wirken nicht), die Daten und seit Paket 5.5b als 4. Argument den Kontext
+-- `{ userId, purchaseId }` (HandlerContext; ältere Handler ignorieren ihn) und gibt
+-- `{ changes, gems, announce? }` zurück. `changes` sind die neuen Werte
 -- für oberste Profilfelder (zum Beispiel `{ gems = 650 }` oder `{ boosts = neueTabelle }`), Purchases
 -- schreibt sie selbst. Nicht erlaubt: receipts, purchaseLog, spent, version, nicht speicherbare Werte
 -- (Funktionen, NaN, unendlich, gemischte oder lückenhafte Tabellen) und Werte, die nicht zum
@@ -145,8 +147,15 @@ export type Prepared = {
     announce: ((profile: any) -> (string, { [string]: any }))?,
 }
 
+-- Kontext eines Kaufs für den Handler (4. Argument, Paket 5.5b): wer kauft und welcher Beleg. Neue
+-- Tabelle je Aufruf. Bestehende Handler mit drei Parametern ignorieren ihn einfach.
+export type HandlerContext = {
+    userId: number, -- PlayerId des Belegs (für eine Uhr je Spieler, zum Beispiel die Saison-Uhr)
+    purchaseId: string, -- PurchaseId (bei der Studio-Hilfe mit DEBUG_PREFIX)
+}
+
 -- Rechnet die Gutschrift auf einer Kopie des Profils aus. Darf nie warten. nil = nicht möglich.
-export type Handler = (profile: any, product: Product, data: any?) -> Prepared?
+export type Handler = (profile: any, product: Product, data: any?, context: HandlerContext?) -> Prepared?
 
 export type Deps = {
     getProfile: (userId: number) -> any?, -- geladenes Profil (lebende Tabelle) oder nil
@@ -598,8 +607,9 @@ function Purchases.new(deps: Deps): Purchases
     -- erneute Prüfung. Ändert das Profil nicht. Gibt den Plan zurück oder nil (Grund protokolliert).
     local function planWrites(userId: number, purchaseId: string, product: Product, profile: any, handler: Handler, label: string, currencySpent: any): Plan?
         local cfg = configOf(data)
-        -- 1. Handler auf Kopien von Profil und Produkt.
-        local handled, answer = pcall(handler, deepCopy(profile), table.clone(product), data)
+        -- 1. Handler auf Kopien von Profil und Produkt, dazu der Kontext (neue Tabelle je Aufruf).
+        local context: HandlerContext = { userId = userId, purchaseId = purchaseId }
+        local handled, answer = pcall(handler, deepCopy(profile), table.clone(product), data, context)
         if not handled then
             log(`{label}: Fehler im Handler: {tostring(answer)}, NotProcessedYet`)
             return nil

@@ -882,6 +882,81 @@ T.describe("Kaufabwicklung: Handler und Fehler", function()
         T.expect(buy(a, "gems_550", "kauf-f")).toBe("granted")
         T.expect(#a.notes).toBe(0)
     end)
+
+    -- Paket 5.5b: Der Handler bekommt als 4. Argument { userId, purchaseId } (zum Beispiel für die
+    -- Saison-Uhr des Spielers). Alte Handler mit drei Parametern laufen unverändert weiter.
+    T.it("4. Argument: { userId, purchaseId } bei process und processDebug, je Aufruf eine neue Tabelle", function()
+        local world = FakeStore.newWorld()
+        local seen: { any } = {}
+        local a = newServer(world, "A", {
+            allowDebug = true,
+            handlers = {
+                coin_boost = function(profile: any, product: Purchases.Product, data: any?, context: any?): Purchases.Prepared?
+                    table.insert(seen, { context = context, data = data, productId = product.id })
+                    if context ~= nil then
+                        -- Eine Änderung am Kontext darf nichts bewirken.
+                        context.userId = 7
+                        context.purchaseId = "fremd"
+                    end
+                    return boostHandler(profile, product)
+                end,
+            },
+        })
+        local profile = load(a)
+        T.expect(buy(a, "coin_boost", "kauf-ctx")).toBe("granted")
+        T.expect(#seen).toBe(1)
+        T.expect(seen[1].context).toEqual({ userId = 7, purchaseId = "fremd" }) -- vom Handler verändert
+        T.expect(seen[1].productId).toBe("coin_boost")
+        T.expect(seen[1].data).toBe(DATA)
+        -- Die Buchung nutzt trotzdem die echte PurchaseId.
+        T.expect(profile.receipts).toEqual({ "kauf-ctx" })
+
+        -- Zweiter Aufruf: neue Tabelle, wieder die echten Werte.
+        local captured: { any } = {}
+        local b = newServer(FakeStore.newWorld(), "B", {
+            allowDebug = true,
+            handlers = {
+                coin_boost = function(profile: any, product: Purchases.Product, _data: any?, context: any?): Purchases.Prepared?
+                    table.insert(captured, context)
+                    return boostHandler(profile, product)
+                end,
+            },
+        })
+        load(b)
+        T.expect(buy(b, "coin_boost", "kauf-1")).toBe("granted")
+        T.expect(buy(b, "coin_boost", "kauf-2")).toBe("granted")
+        local studio = finish(start(function(): string
+            return b.purchases.processDebug(USER, "coin_boost", "test")
+        end))
+        T.expect(studio).toBe("granted")
+        T.expect(#captured).toBe(3)
+        T.expect(captured[1]).toEqual({ userId = USER, purchaseId = "kauf-1" })
+        T.expect(captured[2]).toEqual({ userId = USER, purchaseId = "kauf-2" })
+        T.expect(captured[3]).toEqual({ userId = USER, purchaseId = Purchases.DEBUG_PREFIX .. "test" })
+        T.expect(captured[1] ~= captured[2]).toBe(true)
+        -- Ein Beleg, der schon gebucht ist, ruft den Handler nicht noch einmal.
+        T.expect(buy(b, "coin_boost", "kauf-1")).toBe("granted")
+        T.expect(#captured).toBe(3)
+    end)
+
+    T.it("4. Argument: alte Handler mit zwei oder drei Parametern laufen unverändert", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A", {
+            handlers = {
+                coin_boost = boostHandler, -- zwei Parameter
+                season_pass = function(profile: any, product: Purchases.Product, data: any?): Purchases.Prepared?
+                    T.expect(data).toBe(DATA)
+                    return { gems = 5, changes = { gems = profile.gems + 5 } }
+                end,
+            },
+        })
+        local profile = load(a)
+        T.expect(buy(a, "coin_boost", "alt-1")).toBe("granted")
+        T.expect(buy(a, "season_pass", "alt-2")).toBe("granted")
+        T.expect(profile.boosts.coinsUntil).toBe(START + Economy.coinBoost.durationSeconds)
+        T.expect(profile.gems).toBe(5)
+        T.expect(profile.receipts).toEqual({ "alt-1", "alt-2" })
+    end)
 end)
 
 -- Security-Review 4.1 (M1, M2, N6): Der Handler rechnet nur auf einer Kopie und darf nie warten;

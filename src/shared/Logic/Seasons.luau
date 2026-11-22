@@ -227,12 +227,39 @@ function Seasons.state(unixNow: any, data: Data?): { [string]: any }
     return result
 end
 
--- Studio-Hilfe: "off", "clear" oder "week:N" (N = 1 bis Anzahl Wochen). Alles andere ergibt nil.
+-- Die zuletzt beendete Saison (größtes Ende, das nicht nach `unixNow` liegt; das Ende ist
+-- ausschließend, in der Sekunde des Endes ist sie also schon beendet) und die Sekunden seit ihrem Ende
+-- (ab 0). (nil, nil), wenn noch keine Saison beendet ist oder die Zeit kaputt ist. Zeilen mit kaputtem
+-- Datum werden übersprungen (Paket 5.5b, Abholfrist des Saison-Passes).
+function Seasons.lastEnded(unixNow: any, data: Data?): (any?, number?)
+    if not isFinite(unixNow) or unixNow < 0 then
+        return nil, nil
+    end
+    local set = dataOf(data)
+    local length = lengthOf(set)
+    local found: any = nil
+    local foundEnd = -math.huge
+    for _, season in set.list do
+        local start = Seasons.startOf(season)
+        if start ~= nil then
+            local finish = start + length
+            if finish <= unixNow and finish > foundEnd then
+                found, foundEnd = season, finish
+            end
+        end
+    end
+    if found == nil then
+        return nil, nil
+    end
+    return found, unixNow - foundEnd
+end
+
+-- Studio-Hilfe: "off", "clear", "ended" oder "week:N" (N = 1 bis Anzahl Wochen). Alles andere ergibt nil.
 function Seasons.parseDebug(value: any, data: Data?): (string?, number?)
     if type(value) ~= "string" then
         return nil, nil
     end
-    if value == "off" or value == "clear" then
+    if value == "off" or value == "clear" or value == "ended" then
         return value, nil
     end
     local text = string.match(value, "^week:(%d+)$")
@@ -246,20 +273,9 @@ function Seasons.parseDebug(value: any, data: Data?): (string?, number?)
     return "week", week
 end
 
--- Zeit, die die Studio-Hilfe an Stelle der Server-Uhr benutzt. "clear" ergibt nil (echte Zeit),
--- "off" eine Zeit vor allen Saisons, "week" die Mitte der Woche N der laufenden oder sonst der
--- nächsten oder sonst der ersten Saison. nil, wenn es keine Saison mit gültigem Datum gibt.
-function Seasons.debugTime(action: string, week: number?, unixNow: number, data: Data?): number?
-    if action == "clear" then
-        return nil
-    end
-    if action == "off" then
-        return 0
-    end
-    if action ~= "week" or week == nil then
-        return nil
-    end
-    local set = dataOf(data)
+-- Saison, auf die die Studio-Hilfe zielt: die laufende, sonst die nächste, sonst die erste der Tabelle
+-- (frühester Start). Gemessen an der echten Zeit `unixNow`, damit das Ziel fest bleibt.
+local function debugTarget(unixNow: number, set: Data): any?
     local position = Seasons.at(unixNow, set)
     local target: any = position.active or position.nextSeason
     if target == nil then
@@ -271,11 +287,35 @@ function Seasons.debugTime(action: string, week: number?, unixNow: number, data:
             end
         end
     end
-    local start = Seasons.startOf(target)
+    return target
+end
+
+-- Zeit, die die Studio-Hilfe an Stelle der Server-Uhr benutzt. "clear" ergibt nil (echte Zeit),
+-- "off" eine Zeit vor allen Saisons, "week" die Mitte der Woche N der laufenden oder sonst der
+-- nächsten oder sonst der ersten Saison, "ended" einen Tag nach dem Ende derselben Saison (für die
+-- Abholfrist des Saison-Passes, Paket 5.5b). nil, wenn es keine Saison mit gültigem Datum gibt.
+function Seasons.debugTime(action: string, week: number?, unixNow: number, data: Data?): number?
+    if action == "clear" then
+        return nil
+    end
+    if action == "off" then
+        return 0
+    end
+    if action ~= "week" and action ~= "ended" then
+        return nil
+    end
+    if action == "week" and week == nil then
+        return nil
+    end
+    local set = dataOf(data)
+    local start = Seasons.startOf(debugTarget(unixNow, set))
     if start == nil then
         return nil
     end
-    return start + (week - 1) * Seasons.WEEK_SECONDS + Seasons.WEEK_SECONDS / 2
+    if action == "ended" then
+        return start + lengthOf(set) + Seasons.SECONDS_PER_DAY
+    end
+    return start + ((week :: number) - 1) * Seasons.WEEK_SECONDS + Seasons.WEEK_SECONDS / 2
 end
 
 return Seasons

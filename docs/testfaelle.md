@@ -602,19 +602,19 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 5.5b Saison-Pass
 
-- [ ] [Lune] Punkte zu Stufe: Stufe n ist ab ihrem Punktestand erreicht, nie früher; ein Sprung über mehrere Stufen erreicht alle.
-- [ ] [Lune] Abholen: nur erreichte Stufen, jede Stufe je Spur genau einmal, die Premium-Spur nur mit Pass; Belohnung und "abgeholt" werden in einem Zug gebucht (Fehler bucht nichts).
-- [ ] [Lune] Belohnungen sind fest (Gems, Boosts, feste Items), nie Kisten oder Zufall; sie gelten auch bei `ArePaidRandomItemsRestricted`. DataCheck verbietet Kisten und Zufall in den Stufen.
-- [ ] [Lune] Kauf: Dieselbe PurchaseId zweimal ergibt genau eine Gutschrift (idempotent), `PurchaseGranted` erst nach dem Speichern; unbekanntes Produkt oder kaputte Daten gewähren nichts.
-- [ ] [Lune] Doppelkauf derselben Saison: der Server sperrt den Kauf-Aufruf; trifft ein Kauf trotzdem ein, gibt es die Ersatz-Gems aus `Economy.seasonPass` statt eines zweiten Passes.
-- [ ] [Lune] Kauf außerhalb der Saison: der Server startet den Kauf-Aufruf nicht; trifft eine Zahlung innerhalb der Abholfrist nach dem Ende ein, gilt sie für die zuletzt beendete Saison.
-- [ ] [Lune] Abholfrist: Belohnungen sind bis zum Ende der Frist (Tage in den Daten) nach dem Saisonende abholbar, danach nicht mehr; Punkte zählen nach dem Ende nicht mehr.
-- [ ] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
-- [ ] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
-- [ ] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
-- [ ] [Lune] Eine Zahlung nach dem Saisonende gilt für die zuletzt beendete Saison (innerhalb der Abholfrist), danach gibt es die Ersatz-Gems aus `Economy.seasonPass`; der Pass einer Saison wird nie zweimal vergeben.
-- [ ] [Lune] Zwei gleichzeitige `ClaimSeasonReward`-Aufrufe buchen eine Stufe nur einmal (Sperre je Spieler); ein Fehler beim Abholen lässt Gems, Boosts und "abgeholt" unverändert.
-- [ ] [Lune] `premium = true` und die Abholmerker überleben Laden, Speichern und Sandsturm; `Seasons.lastEnded` liefert die zuletzt beendete Saison und die Sekunden seit dem Ende.
+- [x] [Lune] Punkte zu Stufe: Stufe n ist ab ihrem Punktestand erreicht, nie früher; ein Sprung über mehrere Stufen erreicht alle.
+- [x] [Lune] Abholen: nur erreichte Stufen, jede Stufe je Spur genau einmal, die Premium-Spur nur mit Pass; Belohnung und "abgeholt" werden in einem Zug gebucht (Fehler bucht nichts).
+- [x] [Lune] Belohnungen sind fest (Gems, Boosts, feste Items), nie Kisten oder Zufall; sie gelten auch bei `ArePaidRandomItemsRestricted`. DataCheck verbietet Kisten und Zufall in den Stufen.
+- [x] [Lune] Kauf: Dieselbe PurchaseId zweimal ergibt genau eine Gutschrift (idempotent), `PurchaseGranted` erst nach dem Speichern; unbekanntes Produkt oder kaputte Daten gewähren nichts.
+- [x] [Lune] Doppelkauf derselben Saison: `BuySeasonPass` öffnet den Kaufdialog nicht (ein manipulierter Client kann ihn trotzdem selbst aufrufen); trifft ein Kauf ein, gibt es die Ersatz-Gems aus `Economy.seasonPass` statt eines zweiten Passes.
+- [x] [Lune] Kauf außerhalb der Saison: `BuySeasonPass` startet den Kaufdialog nicht; trifft eine Zahlung innerhalb der Abholfrist nach dem Ende ein, gilt sie für die zuletzt beendete Saison.
+- [x] [Lune] Abholfrist: Belohnungen sind bis zum Ende der Frist (Tage in den Daten) nach dem Saisonende abholbar, danach nicht mehr; Punkte zählen nach dem Ende nicht mehr.
+- [x] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
+- [x] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
+- [x] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
+- [x] [Lune] Eine Zahlung nach dem Saisonende gilt für die zuletzt beendete Saison (innerhalb der Abholfrist), danach gibt es die Ersatz-Gems aus `Economy.seasonPass`; der Pass einer Saison wird nie zweimal vergeben.
+- [x] [Lune] Zwei gleichzeitige `ClaimSeasonReward`-Aufrufe buchen eine Stufe nur einmal (Sperre je Spieler); ein Fehler beim Abholen lässt Gems, Boosts und "abgeholt" unverändert.
+- [x] [Lune] `premium = true` und die Abholmerker überleben Laden, Speichern und Sandsturm; `Seasons.lastEnded` liefert die zuletzt beendete Saison und die Sekunden seit dem Ende.
 - [ ] [Studio] `DebugSeason "ended"` (ein Tag nach dem Saisonende): Abholen geht noch, neue Punkte zählen nicht; `DebugSeasonPass "points:500"` erreicht Stufe 4.
 - [ ] [Shell] `balance-analyst`: Simulation der Punkte-Kurve (Gelegenheitsspieler schafft rund zwei Drittel der Spur, Vielspieler die ganze Spur vor Woche 4) und Wert der Premium-Spur in `docs/balance/season_5_5.md`.
 - [ ] [Shell] `security-reviewer` (Käufe, Abholen, Remotes) ohne offenen kritischen oder hohen Befund.

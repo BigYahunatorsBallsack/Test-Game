@@ -957,4 +957,127 @@ T.describe("Direktkauf und Ersatzgegenstand (4.6)", function()
     end)
 end)
 
+T.describe("Saison-Pass: Abholen und Kauf (5.5b)", function()
+    local SeasonsData = require("../src/shared/Data/Seasons")
+    local SeasonPassLogic = require("../src/shared/Logic/SeasonPass")
+
+    local function broken(change: (data: any) -> ()): { string }
+        local data = freshDataSet()
+        change(data)
+        return DataCheck.run(data)
+    end
+
+    local function expectNoError(errors: { string }, fragment: string)
+        T.expect(string.find(table.concat(errors, "\n"), fragment, 1, true)).toBeNil()
+    end
+
+    -- Neues Produkt in list und byId (beide Sichten zeigen auf dieselbe Tabelle).
+    local function addProduct(d: any, product: any)
+        table.insert(d.Products.list, product)
+        d.Products.byId[product.id] = product
+    end
+
+    -- Zweite Saison acht Wochen nach der ersten (Montag, keine Überlappung), ohne eigene Kiste und Zone.
+    local function addSecondSeason(d: any, passId: string?)
+        table.insert(d.Seasons.list, { id = "season_2", name = "Saison 2", startDate = "2027-03-01", crateId = "event", passId = passId })
+    end
+
+    T.it("echte Daten: season_1 verkauft den Pass über season_pass, genau eine Saison, DataCheck grün", function()
+        T.expect(SeasonsData.list[1].passId).toBe("season_pass")
+        local product = Products.byId.season_pass
+        T.expect(product.kind).toBe("developerProduct")
+        T.expect(product.oneTime).toBe(false)
+        local owners = 0
+        for _, season in SeasonsData.list do
+            if season.passId == "season_pass" then
+                owners += 1
+            end
+        end
+        T.expect(owners).toBe(1)
+        T.expect(DataCheck.run()).toEqual({})
+    end)
+
+    T.it("passId muss ein Produkt aus Products sein", function()
+        expectError(broken(function(d) d.Seasons.list[1].passId = "gibt_es_nicht" end), 'passId "gibt_es_nicht" steht nicht in Products')
+        expectError(broken(function(d) d.Seasons.list[1].passId = 5 end), 'passId "5" steht nicht in Products')
+        expectError(broken(function(d) d.Products.byId.season_pass = nil end), 'passId "season_pass" steht nicht in Products')
+    end)
+
+    T.it("das Pass-Produkt ist ein Developer Product mit oneTime = false", function()
+        local message = 'Pass-Produkt "season_pass" muss ein Developer Product mit oneTime = false sein'
+        expectError(broken(function(d) d.Products.byId.season_pass.oneTime = true end), message)
+        expectError(broken(function(d) d.Products.byId.season_pass.oneTime = nil end), message)
+        expectError(broken(function(d) d.Products.byId.season_pass.kind = "gamepass" end), message)
+        expectError(broken(function(d) d.Products.byId.season_pass.kind = "direct" end), message)
+        -- Ein Gamepass als Pass-Produkt (wäre nur einmal im Leben kaufbar).
+        expectError(broken(function(d) d.Seasons.list[1].passId = "double_coins" end), 'Pass-Produkt "double_coins" muss ein Developer Product')
+    end)
+
+    T.it("ein Pass-Produkt gehört zu höchstens einer Saison, jede Saison mit passId braucht Stufen", function()
+        local twice = broken(function(d) addSecondSeason(d, "season_pass") end)
+        expectError(twice, 'Pass-Produkt "season_pass" gehört schon zu Saison "season_1"')
+        -- Mit eigenem Produkt kein Doppel-Fehler (aber Stufen fehlen noch).
+        local own = broken(function(d)
+            addProduct(d, { id = "season_pass_2", kind = "developerProduct", name = "Saison-Pass 2", priceRobux = 299, productId = 0, oneTime = false, consumable = false, effect = "Premium-Spur der Saison 2" })
+            addSecondSeason(d, "season_pass_2")
+        end)
+        expectNoError(own, "Pass-Produkt") -- die geteilte Event-Kiste meldet sich hier eigens
+        expectError(own, 'Seasons "season_2": hat eine passId, aber keine Stufen in SeasonPass')
+    end)
+
+    T.it("höchstens 50 Stufen (die Remote ClaimSeasonReward nimmt nur 1 bis 50 an)", function()
+        T.expect(SeasonPassLogic.MAX_TIERS).toBe(50)
+        local function withTiers(count: number): { string }
+            return broken(function(d)
+                local tiers = {}
+                for index = 1, count do
+                    tiers[index] = { points = index * 10, free = { kind = "coinBoost", seconds = 60 }, premium = { kind = "luck", seconds = 60 } }
+                end
+                d.SeasonPass.bySeason.season_1.tiers = tiers
+            end)
+        end
+        expectError(withTiers(51), 'SeasonPass "season_1": höchstens 50 Stufen (ClaimSeasonReward)')
+        T.expect(withTiers(50)).toEqual({})
+        T.expect(withTiers(1)).toEqual({})
+    end)
+
+    T.it("Stufen lückenlos, Gems je Stufe höchstens maxGems", function()
+        local gap = 'SeasonPass "season_1": tiers muss eine lückenlose Liste sein'
+        expectError(broken(function(d)
+            d.SeasonPass.bySeason.season_1.tiers[2] = nil -- Lücke: #tiers und die Punkte-Obergrenze wären mehrdeutig
+        end), gap)
+        expectError(broken(function(d)
+            local tiers = d.SeasonPass.bySeason.season_1.tiers
+            tiers[#tiers + 2] = table.clone(tiers[#tiers]) -- Lücke am Ende
+        end), gap)
+        expectError(broken(function(d)
+            d.SeasonPass.bySeason.season_1.tiers.extra = { points = 1 } -- Textschlüssel
+        end), gap)
+        expectError(broken(function(d)
+            d.SeasonPass.bySeason.season_1.tiers[1.5] = { points = 1 }
+        end), gap)
+        expectError(broken(function(d)
+            d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "gems", amount = d.Economy.purchases.maxGems + 1 }
+        end), 'SeasonPass "season_1" Stufe 1 free: amount muss eine ganze Zahl von 1 bis maxGems sein')
+    end)
+
+    T.it("nur feste Belohnungen: unbekannte Felder, Kisten und Zufall werden gemeldet", function()
+        local tier1 = 'SeasonPass "season_1" Stufe 1'
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free.crateId = "gold" end), `{tier1} free: unbekanntes Feld "crateId"`)
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].premium.chance = 0.5 end), `{tier1} premium: unbekanntes Feld "chance"`)
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "crate", crateId = "gold" } end), `{tier1} free: unbekannte Art "crate"`)
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "gems", amount = 10, odds = { 1, 2 } } end), `{tier1} free: unbekanntes Feld "odds"`)
+        -- Die erlaubten Felder je Art bestehen.
+        T.expect(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "gems", amount = 10 } end)).toEqual({})
+        T.expect(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "luck", seconds = 60 } end)).toEqual({})
+    end)
+
+    T.it("Pass-Items: nur passOnly, jedes Pass-Item nur einmal über alle Stufen und Spuren", function()
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[2].premium = { kind = "item", itemId = "skin_rare_4" } end), 'Pass-Item "skin_rare_4" steht schon bei SeasonPass "season_1" Stufe 1 premium (jedes Pass-Item nur einmal)')
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].free = { kind = "item", itemId = "skin_rare_4" } end), "jedes Pass-Item nur einmal")
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].premium = { kind = "item", itemId = "skin_common_1" } end), 'Item "skin_common_1" ist kein Pass-Item (passOnly)')
+        expectError(broken(function(d) d.SeasonPass.bySeason.season_1.tiers[1].premium = { kind = "item", itemId = "gold" } end), 'unbekanntes Item "gold"')
+    end)
+end)
+
 T.finish()

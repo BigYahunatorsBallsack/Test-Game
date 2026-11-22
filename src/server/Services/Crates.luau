@@ -25,8 +25,9 @@
 -- (Zustand aus `Crates.policyState`) neben `cratesAllowed`.
 --
 -- Gemeinsame Sperre (Paket 5.1): `Crates.runExclusive(player, label, action)` lässt je Spieler nur einen
--- dieser Aufrufe zur selben Zeit zu: OpenCrate, BuyDirectItem, ClaimDaily (Services/Daily) und
--- RedeemCode (Services/Codes, Paket 5.2); ein zweiter bekommt sofort "busy". Andere Schreiber (MergeItem, Kauf-Handler) nutzen sie nicht. Regel für
+-- dieser Aufrufe zur selben Zeit zu: OpenCrate, BuyDirectItem, ClaimDaily (Services/Daily),
+-- RedeemCode (Services/Codes, Paket 5.2), ClaimSeasonReward und BuySeasonPass (Services/SeasonPasses,
+-- Paket 5.5b); ein zweiter bekommt sofort "busy". Andere Schreiber (MergeItem, Kauf-Handler) nutzen sie nicht. Regel für
 -- alle: zwischen Lesen und Schreiben des Profils nie warten.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
