@@ -612,6 +612,10 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 - [ ] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
 - [ ] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
 - [ ] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
+- [ ] [Lune] Eine Zahlung nach dem Saisonende gilt für die zuletzt beendete Saison (innerhalb der Abholfrist), danach gibt es die Ersatz-Gems aus `Economy.seasonPass`; der Pass einer Saison wird nie zweimal vergeben.
+- [ ] [Lune] Zwei gleichzeitige `ClaimSeasonReward`-Aufrufe buchen eine Stufe nur einmal (Sperre je Spieler); ein Fehler beim Abholen lässt Gems, Boosts und "abgeholt" unverändert.
+- [ ] [Lune] `premium = true` und die Abholmerker überleben Laden, Speichern und Sandsturm; `Seasons.lastEnded` liefert die zuletzt beendete Saison und die Sekunden seit dem Ende.
+- [ ] [Studio] `DebugSeason "ended"` (ein Tag nach dem Saisonende): Abholen geht noch, neue Punkte zählen nicht; `DebugSeasonPass "points:500"` erreicht Stufe 4.
 - [ ] [Shell] `balance-analyst`: Simulation der Punkte-Kurve (Gelegenheitsspieler schafft rund zwei Drittel der Spur, Vielspieler die ganze Spur vor Woche 4) und Wert der Premium-Spur in `docs/balance/season_5_5.md`.
 - [ ] [Shell] `security-reviewer` (Käufe, Abholen, Remotes) ohne offenen kritischen oder hohen Befund.
 - [ ] [Studio] `DebugSeason` "week:1": Event-Zone erscheint im Zonen-Menü, Hinfahren und Graben zählt Punkte im Pass-Fenster, ein Gratis-Preis lässt sich abholen.
