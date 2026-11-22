@@ -40,6 +40,7 @@ end
 local ToolLook = loadShared("Logic", "ToolLook")
 local ToolLooks = loadShared("Data", "ToolLooks")
 local ItemLooks = loadShared("Data", "ItemLooks")
+local FirstPersonData = loadShared("Data", "FirstPerson")
 local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local ToolVisual = {}
@@ -209,8 +210,9 @@ local function buildEntry(player: Player, toolId: string, animated: boolean, var
     local parts: { BasePart } = {}
     local baseSizes: { Vector3 } = {}
     local baseCFrames: { CFrame } = {}
-    for _, spec in look.parts do
+    for index, spec in look.parts do
         local part = Instance.new("Part")
+        part.Name = `Part{index}` -- Controllers/FirstPerson blendet Teile vor den Augen über die Nummer aus
         part.Anchored = true
         part.CanCollide = false
         part.CanQuery = false
@@ -262,6 +264,11 @@ local function buildEntry(player: Player, toolId: string, animated: boolean, var
 end
 
 local function applyCamera(look: any, animated: boolean)
+    -- In der Ego-Perspektive bleibt die Kamera im Kopf (Controllers/FirstPerson), große Maschinen
+    -- werden dort vor den Augen durchscheinend statt die Kamera zurückzuziehen.
+    if FirstPersonData.enabled then
+        return
+    end
     local target = BASE_MIN_ZOOM + look.cameraBonusStuds
     if cameraTween ~= nil then
         cameraTween:Cancel()

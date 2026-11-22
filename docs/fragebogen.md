@@ -22,7 +22,7 @@ Vorlage für den Fragebogen von Roblox. Ausfüllen musst du ihn selbst im Creato
 | Gewalt | Nein | Graben, Sammeln, Verkaufen. Keine Kämpfe, keine Waffen |
 | Blut und Verletzungen | Nein | |
 | Grafik-Stil | Animiert, 3D | Weich-realistische, aber nicht fotorealistische Optik ohne Menschen in Gefahr |
-| Kamera | Meist weit entfernt, selten nah | Standard-Kamera in dritter Person |
+| Kamera | Meist weit entfernt, selten nah | Ego-Perspektive mit sichtbaren Armen (seit 22.11.2026, vorher dritte Person). Antwort im Fragebogen vor dem Absenden prüfen |
 | Liebe, Sexualität, Dating | Nein | |
 | Derber Humor, Schimpfwörter | Nein | Eigene Texte ohne Schimpfwörter |
 | Alkohol, Drogen, Tabak | Nein | |
