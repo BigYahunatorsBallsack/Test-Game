@@ -5,6 +5,8 @@
 -- den Sand unabhängig davon (Sand-Service). Die Regeln (welche Blöcke, wie tief, wann
 -- nachwachsen) stehen in Logic/SandDig, die Zahlen in Data/Terrain. Hier werden nur Voxel
 -- gelesen und geschrieben, Partikel gezeigt und die Rückfallvariante gezeichnet.
+-- Ego-Perspektive: Das Loch entsteht dort, wohin Fadenkreuz oder freie Maus zeigen (Logic/DigAim),
+-- begrenzt auf die Reichweite des Werkzeugs, nicht mehr fest vor dem Charakter.
 --
 -- Modi: "full" verformt das Terrain. "fallback" (schwaches Gerät, Logic/PerfGuard) lässt das
 -- Terrain in Ruhe und zeigt nur eine sinkende Sandscheibe und Partikel.
@@ -14,6 +16,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 -- Partikel
@@ -64,6 +67,9 @@ local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: an
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
 local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local FirstPerson = require(script.Parent:WaitForChild("FirstPerson") :: ModuleScript) :: any
+local DigAim = loadShared("Logic", "DigAim")
+local FirstPersonData = loadShared("Data", "FirstPerson")
 
 local VOXEL = TerrainData.voxelSize
 local CHUNK = TerrainData.chunkSize
@@ -148,18 +154,7 @@ local function wantsDig(): boolean
     return BigNum.lt(tank, BigNum.new(snapshot.capacity))
 end
 
--- Trefferpunkt auf grabbarem Terrain vor dem Charakter, sonst nil.
-local function findGround(root: BasePart, toolId: string?): RaycastResult?
-    local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
-    if look.Magnitude < 1e-3 then
-        return nil
-    end
-    local dig = TerrainData.dig
-    -- Das Loch entsteht an der Arbeitsspitze des Werkzeugs (Data/ToolLooks), z unter 0 = vorn.
-    local workPoint = ToolLook.workPointOf(toolId)
-    local forward = look.Unit
-    local right = forward:Cross(Vector3.yAxis)
-    local origin = root.Position - forward * workPoint.z + right * workPoint.x + Vector3.new(0, dig.rayUpStuds, 0)
+local function rayParams(): RaycastParams
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     local exclude: { Instance } = {}
@@ -175,6 +170,47 @@ local function findGround(root: BasePart, toolId: string?): RaycastResult?
     end
     params.FilterDescendantsInstances = exclude
     params.IgnoreWater = true
+    return params
+end
+
+-- Wohin zeigt der Spieler? Strahl aus der Kamera durch das Fadenkreuz (Bildmitte), bei freier Maus
+-- durch den Mauszeiger. Gibt den Treffer waagrecht zurück, nil = nichts getroffen (Himmel).
+local function aimHit(params: RaycastParams): any?
+    local camera = workspace.CurrentCamera
+    if camera == nil then
+        return nil
+    end
+    local ray: Ray
+    if FirstPerson.isCursorFree() then
+        local mouse = UserInputService:GetMouseLocation()
+        ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
+    else
+        local size = camera.ViewportSize
+        ray = camera:ViewportPointToRay(size.X / 2, size.Y / 2)
+    end
+    local result = workspace:Raycast(ray.Origin, ray.Direction.Unit * FirstPersonData.aim.rayLengthStuds, params)
+    if result == nil then
+        return nil
+    end
+    return { x = result.Position.X, z = result.Position.Z }
+end
+
+-- Trefferpunkt auf grabbarem Terrain dort, wohin der Spieler zielt (begrenzt auf die Reichweite
+-- des Werkzeugs, Logic/DigAim), sonst nil.
+local function findGround(root: BasePart, toolId: string?): RaycastResult?
+    local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+    local dig = TerrainData.dig
+    local params = rayParams()
+    local target = DigAim.target(
+        { x = root.Position.X, z = root.Position.Z },
+        { x = look.X, z = look.Z },
+        aimHit(params),
+        DigAim.reach(toolId)
+    )
+    if target == nil then
+        return nil
+    end
+    local origin = Vector3.new(target.x, root.Position.Y + dig.rayUpStuds, target.z)
     local result = workspace:Raycast(origin, Vector3.new(0, -dig.rayLengthStuds, 0), params)
     if result == nil or result.Instance ~= terrain or not diggable[result.Material] then
         return nil
