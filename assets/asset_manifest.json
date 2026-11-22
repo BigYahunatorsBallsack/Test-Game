@@ -1,0 +1,1431 @@
+{
+  "status": "image_assets_and_studio_prototype_catalog",
+  "image_generation": "built-in image_gen",
+  "icon_count": 185,
+  "png_files": [
+    {
+      "path": "assets/icons/crates/icon_crates_event_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/crates/icon_crates_gold_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/crates/icon_crates_iron_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/crates/icon_crates_wood_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/currency/icon_currency_coin_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/currency/icon_currency_gem_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/currency/icon_currency_sand_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/currency/icon_currency_wind_crystal_01.png",
+      "width": 444,
+      "height": 444,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_01_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_02_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_03_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_04_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_05_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_06_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_07_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_08_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_09_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_10_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_11_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_12_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_13_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_14_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_15_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_16_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_17_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_18_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_19_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_20_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_21_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_22_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_23_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_24_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_25_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_26_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_27_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_28_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_29_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/canyon/icon_find_canyon_30_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_01_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_02_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_03_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_04_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_05_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_06_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_07_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_08_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_09_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_10_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_11_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_12_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_13_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_14_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_15_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_16_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_17_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_18_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_19_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_20_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_21_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_22_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_23_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_24_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_25_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_26_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_27_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_28_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_29_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/duenenmeer/icon_find_duenenmeer_30_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_01_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_02_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_03_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_04_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_05_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_06_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_07_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_08_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_09_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_10_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_11_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_12_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_13_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_14_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_15_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_16_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_17_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_18_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_19_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_20_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_21_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_22_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_23_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_24_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_25_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_26_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_27_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_28_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_29_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/oase/icon_find_oase_30_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_01_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_02_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_03_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_04_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_05_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_06_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_07_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_08_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_09_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_10_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_11_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_12_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_13_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_14_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_15_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_16_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_17_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_18_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_19_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_20_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_21_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_22_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_23_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_24_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_25_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_26_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_27_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_28_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_29_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/ruinenstadt/icon_find_ruinenstadt_30_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_01_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_02_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_03_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_04_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_05_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_06_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_07_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_08_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_09_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_10_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_11_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_12_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_13_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_14_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_15_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_16_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_17_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_18_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_19_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_20_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_21_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_22_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_23_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_24_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_25_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_26_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_27_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_28_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_29_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/finds/salzsee/icon_find_salzsee_30_01.png",
+      "width": 397,
+      "height": 397,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_common_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_epic_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_legendary_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_mythic_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_rare_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_rarity_uncommon_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_state_available_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_state_locked_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/frames/frame_state_owned_01.png",
+      "width": 418,
+      "height": 418,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/luck/icon_node_luck_clover_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/luck/icon_node_luck_compass_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/luck/icon_node_luck_magnifier_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/luck/icon_node_luck_star_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/selling/icon_node_selling_coins_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/selling/icon_node_selling_price_tag_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/selling/icon_node_selling_scales_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/selling/icon_node_selling_stall_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_branches_sheet_01.png",
+      "width": 1448,
+      "height": 1086,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_currency_crates_sheet_01.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_canyon_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_canyon_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_canyon_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_duenenmeer_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_duenenmeer_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_duenenmeer_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_oase_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_oase_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_oase_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_ruinenstadt_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_ruinenstadt_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_ruinenstadt_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_salzsee_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_salzsee_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_finds_salzsee_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_frames_sheet_01.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/icon_tools_sheet_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_branches_sheet_01.png",
+      "width": 1448,
+      "height": 1086,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_currency_crates_sheet_01.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_finds_duenenmeer_01_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_finds_duenenmeer_02_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_finds_duenenmeer_03_01.png",
+      "width": 1983,
+      "height": 793,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/sheets/sources/icon_tools_sheet_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/storage/icon_node_storage_backpack_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/storage/icon_node_storage_barrel_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/storage/icon_node_storage_bucket_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/storage/icon_node_storage_tank_01.png",
+      "width": 362,
+      "height": 362,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_bucket_chain_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_excavator_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_hand_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_harvester_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_shovel_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/icons/tools/icon_node_collect_suction_robot_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/previews/finds_64px_dark.png",
+      "width": 1440,
+      "height": 960,
+      "mode": "RGBA"
+    },
+    {
+      "path": "assets/reference/candidates/style_board_reference_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/companions/ref_desert_mouse_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/companions/ref_fennec_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/companions/ref_scarab_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/events/ref_colossus_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/props/ref_merchant_stall_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/style_board_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/tools/ref_bucket_chain_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/tools/ref_excavator_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/tools/ref_harvester_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/tools/ref_shovel_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/tools/ref_suction_robot_01.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/zones/ref_zone_canyon_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/zones/ref_zone_duenenmeer_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/zones/ref_zone_oase_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/zones/ref_zone_ruinenstadt_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/reference/zones/ref_zone_salzsee_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/sources/store_icon_source_01.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/sources/store_icon_source_02.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_icon_01.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_icon_02.png",
+      "width": 512,
+      "height": 512,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_thumbnail_01.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_thumbnail_01_02.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_thumbnail_02.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    },
+    {
+      "path": "assets/store/store_thumbnail_03.png",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB"
+    }
+  ],
+  "note_de": "Bildpaket lokal; 164 statische Modellquellen in der Studio-Bibliothek, Dünenmeer-Umgebung und vorhandene Sammelschleife mit HUD integriert. Persistenz nicht geprüft, Studio-API deaktiviert. Keine Live-Veröffentlichung.",
+  "studio_core_models": 14,
+  "studio_find_models": 150,
+  "studio_catalog": "assets/studio/find_model_map.json",
+  "studio_generation_log": "assets/studio/generated_models.json",
+  "studio_world": "Workspace.DuneBaronWorld",
+  "studio_world_check": "assets/studio/dunes_zone_check.json",
+  "core_loop_check": "assets/studio/core_loop_check.json"
+}
