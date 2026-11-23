@@ -71,6 +71,58 @@ T.describe("Freunde-Faktor", function()
     end)
 end)
 
+T.describe("Wochenfortschritt", function()
+    T.it("neue Woche: der aktuelle Wert wird zur Basis, Fortschritt 0", function()
+        local weekly, progress = Social.rollWeek({ week = 3, base = 10 }, 4, 500)
+        T.expect(weekly).toEqual({ week = 4, base = 500 })
+        T.expect(progress).toBe(0)
+        local fresh, freshProgress = Social.rollWeek({ week = 0, base = 0 }, 4, 80)
+        T.expect(fresh).toEqual({ week = 4, base = 80 })
+        T.expect(freshProgress).toBe(0)
+    end)
+
+    T.it("gleiche Woche: Fortschritt = Wert minus Basis, nie negativ", function()
+        local weekly, progress = Social.rollWeek({ week = 4, base = 500 }, 4, 560)
+        T.expect(weekly).toEqual({ week = 4, base = 500 })
+        T.expect(progress).toBe(60)
+        local lowered, lowProgress = Social.rollWeek({ week = 4, base = 500 }, 4, 300)
+        T.expect(lowered).toEqual({ week = 4, base = 300 }) -- Basis folgt dem Wert nach unten
+        T.expect(lowProgress).toBe(0)
+    end)
+
+    T.it("kaputte Profildaten und kaputte Werte ergeben eine saubere Basis", function()
+        for _, bad in { "x", 5, { week = 4 }, { week = 4, base = 0 / 0 }, { week = 4, base = -9 }, { base = 3 } } do
+            local weekly, progress = Social.rollWeek(bad, 4, 100)
+            T.expect(weekly).toEqual({ week = 4, base = 100 })
+            T.expect(progress).toBe(0)
+        end
+        local weekly, progress = Social.rollWeek({ week = 4, base = 10 }, 4, 0 / 0)
+        T.expect(weekly.base).toBe(0)
+        T.expect(progress).toBe(0)
+        local unknown = Social.rollWeek(nil, nil, 50)
+        T.expect(unknown.base).toBe(50)
+    end)
+end)
+
+T.describe("Kontoalter der Freunde", function()
+    T.it("nur Konten ab minAccountAgeDays zählen, kaputtes Alter zählt nicht", function()
+        local min = SocialData.friends.minAccountAgeDays
+        T.expect(Social.accountOldEnough(min)).toBe(true)
+        T.expect(Social.accountOldEnough(min + 1000)).toBe(true)
+        T.expect(Social.accountOldEnough(min - 1)).toBe(false)
+        T.expect(Social.accountOldEnough(0)).toBe(false)
+        for _, bad in { 0 / 0, math.huge, "30" :: any, nil } do
+            T.expect(Social.accountOldEnough(bad)).toBe(false)
+        end
+        T.expect(Social.accountOldEnough(3, { Social = { friends = { minAccountAgeDays = 0 } } })).toBe(true)
+        T.expect(Social.accountOldEnough(3, { Social = { friends = {} } })).toBe(false)
+    end)
+
+    T.it("der Service zählt nur Freunde mit altem Konto", function()
+        T.expect(string.find(FRIENDS_SOURCE, "accountOldEnough(other.AccountAge)", 1, true) ~= nil).toBe(true)
+    end)
+end)
+
 T.describe("Freunde zählen", function()
     T.it("nie sich selbst, nur Anwesende, jede UserId einmal, nur bekannte Freunde", function()
         local known = { [2] = true, [3] = true, [4] = false, [9] = true }
@@ -332,6 +384,9 @@ T.describe("DataCheck", function()
         T.expect(broken(function(d)
             d.Social.friends.maxBp = d.Social.friends.perFriendBp - 1
         end)).toContain("mindestens")
+        T.expect(broken(function(d)
+            d.Social.friends.minAccountAgeDays = -1
+        end)).toContain("minAccountAgeDays")
         T.expect(broken(function(d)
             d.Social.friends.maxBp = 50000
         end)).toContain("maxBp")

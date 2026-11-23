@@ -3034,6 +3034,13 @@ local function checkKoloss(errors: { string }, data: DataSet)
         else
             last = tier.minSeconds
         end
+        if tier.fairShare ~= nil then
+            if not isFinite(tier.fairShare) or tier.fairShare <= 0 or tier.fairShare > 1 then
+                table.insert(errors, `{label}: fairShare muss eine Zahl über 0 bis 1 sein`)
+            elseif index == 1 then
+                table.insert(errors, `{label}: die erste Stufe gilt ab 0 Sekunden und darf kein fairShare haben`)
+            end
+        end
         if isFinite(tier.minSeconds) and isFinite(koloss.targetSeconds) and tier.minSeconds > koloss.targetSeconds then
             table.insert(errors, `{label}: minSeconds liegt über targetSeconds, die Stufe wäre unerreichbar`)
         end
@@ -3074,6 +3081,9 @@ local function checkSocial(errors: { string }, data: DataSet)
     else
         if not isInt(friends.perFriendBp) or friends.perFriendBp < 1 then
             table.insert(errors, "Social.friends.perFriendBp muss eine ganze Zahl ab 1 sein")
+        end
+        if not isInt(friends.minAccountAgeDays) or friends.minAccountAgeDays < 0 or friends.minAccountAgeDays > 365 then
+            table.insert(errors, "Social.friends.minAccountAgeDays muss eine ganze Zahl von 0 bis 365 sein")
         end
         if not isInt(friends.maxBp) or friends.maxBp < 1 or friends.maxBp > 10000 then
             table.insert(errors, "Social.friends.maxBp muss eine ganze Zahl von 1 bis 10000 sein (höchstens +100 %)")

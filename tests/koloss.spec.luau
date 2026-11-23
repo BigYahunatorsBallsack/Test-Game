@@ -181,6 +181,43 @@ end)
 
 T.describe("Stufen", function()
     local tiers = KolossData.tiers
+    T.it("die Schwellen folgen der Zahl der Gräber: wenige Gräber gelten die festen Sekunden, viele den fairen Anteil", function()
+        local dug, strong = tiers[2], tiers[3]
+        -- 1 bis 6 Gräber: Stark bleibt bei 900 s (6000 / 6 = 1000 > 900).
+        for diggers = 1, 6 do
+            T.expect(Koloss.thresholdOf(strong, diggers)).toBe(strong.minSeconds)
+        end
+        -- 20 Gräber: fairer Anteil 300 s, Mitgegraben halb davon: 150 s.
+        T.expect(Koloss.thresholdOf(strong, 20)).toBe(300)
+        T.expect(Koloss.thresholdOf(dug, 20)).toBe(150)
+        T.expect(Koloss.thresholdOf(dug, 1)).toBe(dug.minSeconds)
+        -- Die erste Stufe bleibt bei 0, auch mit vielen Gräbern.
+        T.expect(Koloss.thresholdOf(tiers[1], 100)).toBe(0)
+        -- Wer bei 20 Gräbern seinen fairen Anteil gräbt, ist "Stark", wer 150 s gräbt "Mitgegraben".
+        T.expect((Koloss.tierOf(300, nil, 20) :: any).id).toBe(strong.id)
+        T.expect((Koloss.tierOf(150, nil, 20) :: any).id).toBe(dug.id)
+        T.expect((Koloss.tierOf(149, nil, 20) :: any).id).toBe(tiers[1].id)
+        -- Ohne Angabe oder mit kaputter Zahl gelten die festen Sekunden.
+        T.expect((Koloss.tierOf(300, nil, nil) :: any).id).toBe(dug.id)
+        T.expect((Koloss.tierOf(300, nil, 0 / 0) :: any).id).toBe(dug.id)
+        T.expect((Koloss.tierOf(300, nil, 0) :: any).id).toBe(dug.id)
+    end)
+
+    T.it("die Zahl der Gräber zählt nur Beiträge über 0", function()
+        local event = Koloss.newEvent()
+        event.contributions = { [1] = 10, [2] = 0, [3] = 5, [4] = 0 / 0 }
+        T.expect(Koloss.diggerCount(event)).toBe(2)
+    end)
+
+    T.it("die Belohnung nimmt die Zahl der Gräber mit (viele Gräber, fairer Anteil gibt Stark)", function()
+        local profile = newProfile()
+        local result = Koloss.claim(profile, SEASON_ID, 300, { boostNow = REAL_NOW, diggers = 20 })
+        T.expect(result.ok).toBe(true)
+        T.expect(result.tierId).toBe(tiers[3].id)
+        local solo = Koloss.claim(newProfile(), SEASON_ID, 300, { boostNow = REAL_NOW, diggers = 1 })
+        T.expect(solo.tierId).toBe(tiers[2].id)
+    end)
+
     T.it("die Stufe zum Beitrag stimmt an den Grenzen", function()
         T.expect((Koloss.tierOf(0) :: any).id).toBe(tiers[1].id)
         for index = 2, #tiers do
@@ -353,7 +390,7 @@ T.describe("Anzeigeform (view)", function()
             table.insert(keys, key)
         end
         table.sort(keys)
-        T.expect(keys).toEqual({ "claimed", "completed", "progress", "seasonId", "secondsLeft", "secondsToStart", "state", "target", "tierId", "you" })
+        T.expect(keys).toEqual({ "claimed", "completed", "diggers", "progress", "seasonId", "secondsLeft", "secondsToStart", "state", "target", "tierId", "you" })
         T.expect(view.state).toBe("open")
         T.expect(view.progress).toBe(500)
         T.expect(view.target).toBe(TARGET)
@@ -479,6 +516,12 @@ T.describe("DataCheck", function()
         T.expect(broken(function(d)
             d.Koloss.tiers[2].rewards = {}
         end)).toContain("rewards")
+        T.expect(broken(function(d)
+            d.Koloss.tiers[2].fairShare = 0
+        end)).toContain("fairShare")
+        T.expect(broken(function(d)
+            d.Koloss.tiers[1].fairShare = 0.5
+        end)).toContain("fairShare")
         T.expect(broken(function(d)
             d.Koloss.tiers[#d.Koloss.tiers].minSeconds = d.Koloss.targetSeconds + 1
         end)).toContain("unerreichbar")

@@ -647,6 +647,7 @@ Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: 
 Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, Plan". Fertig, wenn: Boni und Rangliste laufen, der Besuch zeigt eine fremde Sammlung.
 
 - [x] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Social`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
+- [x] [Lune] Wochenfortschritt (`Social.rollWeek`): neue Woche setzt die Basis, gleiche Woche Fortschritt = Wert minus Basis, nie negativ, kaputte Profildaten ergeben eine saubere Basis; Kontoalter der Freunde (`accountOldEnough`); Koloss: Schwellen mit `fairShare` folgen der Zahl der Gräber.
 - [x] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
 - [x] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
 - [x] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.

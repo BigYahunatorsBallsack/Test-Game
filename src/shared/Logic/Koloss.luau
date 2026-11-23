@@ -182,8 +182,18 @@ function Koloss.addSeconds(event: Event, unixNow: any, userId: any, seconds: any
     return { gained = gained, completed = done }
 end
 
+-- Schwelle einer Stufe in Sekunden. Mit `fairShare` und bekannter Zahl der Gräber (ab 1) ist sie höchstens
+-- fairShare mal targetSeconds / Gräber, sonst `minSeconds`.
+function Koloss.thresholdOf(tier: any, diggers: any, data: Data?): number
+    local base = tier.minSeconds
+    if type(tier.fairShare) == "number" and isFinite(tier.fairShare) and tier.fairShare > 0 and isFinite(diggers) and diggers >= 1 then
+        return math.min(base, tier.fairShare * Koloss.targetSeconds(data) / diggers)
+    end
+    return base
+end
+
 -- Höchste erreichte Stufe zum Beitrag: (Stufe, Index) oder nil bei kaputter Eingabe.
-function Koloss.tierOf(seconds: any, data: Data?): (any?, number?)
+function Koloss.tierOf(seconds: any, data: Data?, diggers: any?): (any?, number?)
     local tiers = kolossOf(data).tiers
     if type(tiers) ~= "table" or not isFinite(seconds) or seconds < 0 then
         return nil, nil
@@ -191,22 +201,30 @@ function Koloss.tierOf(seconds: any, data: Data?): (any?, number?)
     local found: any = nil
     local foundIndex: number? = nil
     for index, tier in tiers do
-        if seconds >= tier.minSeconds then
+        if seconds >= Koloss.thresholdOf(tier, diggers, data) then
             found, foundIndex = tier, index
-        else
-            break
         end
     end
     return found, foundIndex
 end
 
--- Hat der Spieler die Belohnung dieser Saison schon?
+-- Wie viele Spieler haben in diesem Server schon etwas beigetragen (Beitrag über 0)?
+function Koloss.diggerCount(event: Event): number
+    local count = 0
+    for _, seconds in event.contributions do
+        if type(seconds) == "number" and seconds > 0 then
+            count += 1
+        end
+    end
+    return count
+end
+
 function Koloss.isClaimed(profile: any, seasonId: any): boolean
     local entry = SeasonPass.entryOf(profile, seasonId)
     return entry ~= nil and (entry :: any).koloss == true
 end
 
-export type ClaimContext = { data: Data?, boostNow: number? }
+export type ClaimContext = { data: Data?, boostNow: number?, diggers: number? }
 
 local function fail(reason: string, detail: string?): any
     return { ok = false, reason = reason, detail = detail }
@@ -222,7 +240,7 @@ local function prepareClaim(profile: any, seasonId: any, contribution: any, ctx:
     if Koloss.isClaimed(profile, seasonId) then
         return fail("claimed")
     end
-    local tier = Koloss.tierOf(contribution, data)
+    local tier = Koloss.tierOf(contribution, data, ctx.diggers)
     if tier == nil then
         return fail("error", "kein Beitrag")
     end
@@ -319,7 +337,8 @@ function Koloss.view(event: Event, profile: any, userId: any, unixNow: any, data
     local sameSeason = event.seasonId == window.seasonId
     local progress = if sameSeason then event.progress else 0
     local you = if sameSeason and type(userId) == "number" then (event.contributions[userId] or 0) else 0
-    local tier = Koloss.tierOf(you, data)
+    local diggers = if sameSeason then Koloss.diggerCount(event) else 0
+    local tier = Koloss.tierOf(you, data, diggers)
     return {
         state = window.state,
         seasonId = window.seasonId,
@@ -327,6 +346,7 @@ function Koloss.view(event: Event, profile: any, userId: any, unixNow: any, data
         target = Koloss.targetSeconds(data),
         completed = sameSeason and event.completed,
         you = you,
+        diggers = diggers,
         tierId = if tier ~= nil then tier.id else nil,
         claimed = Koloss.isClaimed(profile, window.seasonId),
         secondsLeft = window.secondsLeft,

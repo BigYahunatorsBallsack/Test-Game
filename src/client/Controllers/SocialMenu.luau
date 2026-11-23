@@ -1,5 +1,5 @@
 --!strict
--- Freunde-Menü (Paket 5.7): Reiter "Rangliste" (wertvollste Sammlung der Woche) und "Besuchen"
+-- Freunde-Menü (Paket 5.7): Reiter "Rangliste" (Wochenfortschritt der Sammlung) und "Besuchen"
 -- (Sammlung eines Freundes ansehen). Der Server entscheidet alles: GetLeaderboard und GetFriends
 -- haben keine Argumente, ViewCollection nennt nur einen Platz aus der Liste, die der Server für den
 -- Spieler gebaut hat (nie einen Spieler). Der Client zeigt nur an. Der Freunde-Bonus selbst steckt im
@@ -161,7 +161,7 @@ function SocialMenu.Start()
             return
         end
         local hours = if type(reply.secondsLeft) == "number" then math.floor(reply.secondsLeft / 3600) else 0
-        newLabel(body, `Wertvollste Sammlung der Woche. Neue Woche in {hours} Std.`, Enum.Font.GothamBold, ACCENT_COLOR, 2, MESSAGE_HEIGHT)
+        newLabel(body, `Größter Zuwachs der Woche (Wert neuer Funde). Neue Woche in {hours} Std.`, Enum.Font.GothamBold, ACCENT_COLOR, 2, MESSAGE_HEIGHT)
         local order = 3
         if type(reply.entries) == "table" then
             for _, entry in reply.entries do
