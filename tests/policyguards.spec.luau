@@ -22,6 +22,7 @@ local fs = require("@lune/fs")
 local CrateOpen = require("../src/shared/Logic/CrateOpen")
 local CrateRoll = require("../src/shared/Logic/CrateRoll")
 local Profile = require("../src/shared/Logic/Profile")
+local SocialData = require("../src/shared/Data/Social")
 local TreeEffects = require("../src/shared/Logic/TreeEffects")
 local Perks = require("../src/shared/Logic/Perks")
 local SeasonPass = require("../src/shared/Logic/SeasonPass")
@@ -213,6 +214,9 @@ local OTHER_REMOTES: { [string]: string } = {
     SetAutoDig = "Einstellung",
     Prestige = "Sandsturm (behält das Inventar, siehe Sandstorm.KEEP_FIELDS)",
     RedeemCode = "Code einlösen: nur Gems, Münz- oder Glücks-Boost, nie Kisten oder Items (Codes, Logic/Codes, Paket 5.2)",
+    GetLeaderboard = "liest die Wochen-Rangliste aus dem Zwischenspeicher des Servers (Leaderboard, Paket 5.7)",
+    GetFriends = "Freundesliste des Spielers zum Besuchen, vom Server geholt (Leaderboard, Paket 5.7)",
+    ViewCollection = "nur lesen: Sammlung eines Freundes, gewählt über einen Platz der Server-Liste, nie über eine UserId (Leaderboard, Paket 5.7)",
     BuySeasonPass = "öffnet nur den Roblox-Kaufdialog des Saison-Passes; gebucht wird in ProcessReceipt (Premium-Spur oder Ersatz-Gems, nie Items) (SeasonPasses, Paket 5.5b)",
 }
 -- Wo die Remotes mit Inventar registriert sein müssen.
@@ -250,6 +254,11 @@ local SMALL_INT_ARGS: { [string]: { min: number, max: number, reason: string } }
         min = 1,
         max = SeasonPass.MAX_TIERS,
         reason = "Stufennummer des Saison-Passes; der Server prüft sie gegen Data/SeasonPass (Paket 5.5b)",
+    },
+    ["ViewCollection#1"] = {
+        min = 1,
+        max = SocialData.leaderboard.maxFriends,
+        reason = "Platz in der Freundesliste, die der Server mit GetFriends aufgebaut hat; der Client nennt nie eine UserId (Paket 5.7)",
     },
 }
 local SMALL_INT_MAX = 1000

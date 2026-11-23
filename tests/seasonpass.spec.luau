@@ -1003,7 +1003,7 @@ end)
 
 T.describe("Service: Reihenfolge, Handler vor Shop.Start, Studio-Hilfe", function()
     T.it("SeasonPasses steht nach Shop und Events und registriert die Handler in Init", function()
-        T.expect(string.find(BOOTSTRAP_SOURCE, '"Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes" }', 1, true) ~= nil).toBe(true)
+        T.expect(string.find(BOOTSTRAP_SOURCE, '"Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes", "Friends", "Leaderboard" }', 1, true) ~= nil).toBe(true)
         local initStart = string.find(SERVICE_SOURCE, "function SeasonPasses.Init()", 1, true) :: number
         local startStart = string.find(SERVICE_SOURCE, "function SeasonPasses.Start()", 1, true) :: number
         local register = string.find(SERVICE_SOURCE, "Shop.registerProduct(passId, SeasonPassLogic.passHandler(timeForUserId, log))", 1, true) :: number
