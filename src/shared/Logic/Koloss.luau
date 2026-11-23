@@ -44,6 +44,10 @@ local function isFinite(value: any): boolean
     return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
 end
 
+local function isWholePositive(value: any): boolean
+    return isFinite(value) and value >= 1 and value % 1 == 0
+end
+
 local function kolossOf(data: Data?): any
     if data ~= nil and data.Koloss ~= nil then
         return data.Koloss
@@ -233,6 +237,9 @@ local function prepareClaim(profile: any, seasonId: any, contribution: any, ctx:
     local rewards: { any } = {}
     for _, reward in tier.rewards do
         if reward.kind == "gems" then
+            if not isWholePositive(reward.amount) then
+                return fail("error", `Gems-Menge in Stufe {tier.id} ist ungültig`)
+            end
             local added = Gems.grant(wallet, reward.amount, `koloss:{seasonId}:{tier.id}`, data)
             changedGems = true
             table.insert(rewards, { kind = "gems", amount = added, capped = if added < reward.amount then true else nil })

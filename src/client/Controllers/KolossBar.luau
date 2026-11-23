@@ -142,6 +142,11 @@ function KolossBar.Start()
         local target = if type(koloss.target) == "number" and koloss.target > 0 then koloss.target else 1
         local progress = if type(koloss.progress) == "number" then koloss.progress else 0
         local ratio = math.clamp(progress / target, 0, 1)
+        -- Außerhalb der Event-Zone kommt kein neuer Stand an: der Server-Stand steht als Attribut bereit.
+        local published = workspace:GetAttribute("KolossProgress")
+        if type(published) == "number" and published == published then
+            ratio = math.max(ratio, math.clamp(published, 0, 1))
+        end
         fill.Size = UDim2.fromScale(ratio, 1)
         fill.BackgroundColor3 = if koloss.completed == true then DONE_COLOR else FILL_COLOR
         if koloss.completed == true then
@@ -152,6 +157,9 @@ function KolossBar.Start()
             title.Text = `Der Koloss: {math.floor(ratio * 100)} %`
             local you = if type(koloss.you) == "number" then koloss.you else 0
             info.Text = `Du: {math.floor(you / 60)} Min. · noch {math.floor(left / 3600)} Std.`
+            if koloss.claimed == true then
+                info.Text ..= " · Belohnung schon erhalten"
+            end
         end
     end
 

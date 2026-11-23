@@ -638,9 +638,9 @@ Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: 
 - [x] [Lune] Das Feld `koloss` im Saison-Eintrag überlebt Laden, Speichern und Sandsturm und wird repariert (nur `true` zählt).
 - [x] [Lune] DataCheck: Fenster liegt in der Koloss-Woche, Ziel größer 0, Stufen aufsteigend ab 0, nur feste Belohnungen, Gems höchstens `maxGems`, Boosts höchstens 4 Stunden.
 - [x] [Lune] Studio-Hilfe: `DebugSeason "koloss"` und `DebugKoloss` ("progress:N", "complete", "reset") werden richtig gelesen und wirken nur in Studio.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (Befunde M2, N1, N3, N4, N5 behoben, Balance-Frage M1 offen, siehe architektur.md).
 - [ ] [Studio] `DebugSeason "koloss"`, `DebugKoloss "progress:5900"`, in der Event-Zone graben: Der Balken steigt, bei 100 % kommt die Meldung mit der Stufe, `KolossProgress` steht auf 1.
-- [ ] [Studio] Test mit 2 Spielern: beide füllen denselben Balken, beide bekommen ihre Stufe.
+- [ ] [Studio] Test mit 2 Spielern (beide setzen `DebugSeason "koloss"`, die Saison-Uhr gilt je Spieler): beide füllen denselben Balken, beide bekommen ihre Stufe.
 
 ## Ego-Perspektive (Umstellung von dritter Person)
 

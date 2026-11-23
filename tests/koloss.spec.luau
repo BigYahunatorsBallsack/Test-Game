@@ -204,7 +204,7 @@ end)
 
 T.describe("Belohnung", function()
     local function claim(profile: any, contribution: any, data: any?): any
-        return Koloss.claim(profile, SEASON_ID, contribution, { boostNow = REAL_NOW, data = data })
+        return Koloss.claim(profile, SEASON_ID, contribution, { boostNow = REAL_NOW, data = { Koloss = data } :: any })
     end
 
     T.it("gibt die Stufe zum Beitrag und den Merker, einmal je Saison", function()
@@ -306,16 +306,31 @@ T.describe("Belohnung", function()
     end)
 
     T.it("Warten im Block bucht nichts", function()
-        local tier = KolossData.tiers[1]
         local profile = newProfile()
         local before = deepCopy(profile)
         local data = deepCopy(KolossData)
-        data.tiers[1] = tier
-        -- Ein Boost-Handler, der wartet, ist hier nicht einschleusbar; geprüft wird der Mechanismus über
-        -- eine Uhr, die wirft.
-        local result = Koloss.claim(profile, SEASON_ID, 0, { boostNow = setmetatable({}, { __index = function() error("kaputt") end }) :: any })
+        -- Belohnungsliste, deren Durchlauf wartet: die Rechnung darf dann nichts buchen.
+        data.tiers[1].rewards = setmetatable({}, {
+            __iter = function()
+                coroutine.yield()
+                return next, {}, nil
+            end,
+        })
+        local result = Koloss.claim(profile, SEASON_ID, 0, { boostNow = REAL_NOW, data = { Koloss = data } :: any })
         T.expect(result.ok).toBe(false)
         T.expect(profile).toEqual(before)
+    end)
+
+    T.it("eine ungültige Gems-Menge bucht nichts und setzt keinen Merker", function()
+        for _, bad in { 0, -5, 2.5, 0 / 0, math.huge } do
+            local profile = newProfile()
+            local before = deepCopy(profile)
+            local data = deepCopy(KolossData)
+            data.tiers[1].rewards = { { kind = "gems", amount = bad } }
+            local result = Koloss.claim(profile, SEASON_ID, 0, { boostNow = REAL_NOW, data = { Koloss = data } :: any })
+            T.expect(result.ok).toBe(false)
+            T.expect(profile).toEqual(before)
+        end
     end)
 
     T.it("Belohnungen sind fest: nur Gems, Münz- und Glücks-Boost", function()
@@ -464,6 +479,19 @@ T.describe("DataCheck", function()
         T.expect(broken(function(d)
             d.Koloss.tiers[2].rewards = {}
         end)).toContain("rewards")
+        T.expect(broken(function(d)
+            d.Koloss.tiers[#d.Koloss.tiers].minSeconds = d.Koloss.targetSeconds + 1
+        end)).toContain("unerreichbar")
+        T.expect(broken(function(d)
+            for _, phase in d.Seasons.phases do
+                if phase.id == d.Koloss.window.phaseId then
+                    phase.zoneOpen = false
+                end
+            end
+        end)).toContain("zoneOpen")
+        T.expect(broken(function(d)
+            d.Seasons.list[1].zoneId = nil
+        end)).toContain("zoneId")
     end)
 end)
 
@@ -530,6 +558,16 @@ T.describe("Anbindung: keine Remote, nur Events.addZoneSeconds", function()
 
     T.it("die Belohnung geht nur an aktive Spieler mit geladenem Profil", function()
         T.expect(SERVICE_SOURCE).toContain("PlayerData.isActive")
+    end)
+
+    T.it("bei 100 % wird zuerst verteilt, dann veröffentlicht (ein Fehler beim Attribut kostet keine Belohnung)", function()
+        local distribute = string.find(SERVICE_SOURCE, "        distribute()\n        pcall(publishAttributes)", 1, true)
+        T.expect(distribute ~= nil).toBe(true)
+    end)
+
+    T.it("die Attribute zeigen nach dem Fenster oder in einer anderen Saison geschlossen und 0", function()
+        T.expect(SERVICE_SOURCE).toContain("w.seasonId ~= event.seasonId")
+        T.expect(SERVICE_SOURCE).toContain('return "closed", 0')
     end)
 end)
 

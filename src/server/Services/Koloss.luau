@@ -81,21 +81,27 @@ local function refreshAll()
     end
 end
 
--- Zustand für das Attribut: fertig, offen (Fortschritt läuft oder Fenster offen) oder geschlossen.
-local function stateName(): string
+-- Zustand für das Attribut. Ein Stand aus einer anderen Saison oder außerhalb des Fensters zählt als
+-- geschlossen (Fortschritt 0), damit Modell und Terrain nach dem Fenster nichts Falsches zeigen.
+local function currentState(): (string, number)
+    local w = KolossLogic.window(os.time())
+    if w.seasonId == nil or w.seasonId ~= event.seasonId then
+        return "closed", 0
+    end
+    local fraction = math.clamp(event.progress / KolossLogic.targetSeconds(), 0, 1)
     if event.completed then
-        return "complete"
+        return "complete", 1
     end
-    if event.progress > 0 or KolossLogic.window(os.time()).state == "open" then
-        return "open"
+    if w.state == "open" then
+        return "open", fraction
     end
-    return "closed"
+    return "closed", fraction
 end
 
 local function publishAttributes()
-    local target = KolossLogic.targetSeconds()
-    Workspace:SetAttribute(PROGRESS_ATTRIBUTE, math.clamp(event.progress / target, 0, 1))
-    Workspace:SetAttribute(STATE_ATTRIBUTE, stateName())
+    local state, fraction = currentState()
+    Workspace:SetAttribute(PROGRESS_ATTRIBUTE, fraction)
+    Workspace:SetAttribute(STATE_ATTRIBUTE, state)
 end
 
 local function snapshotFor(player: Player): { [string]: any }
@@ -159,8 +165,8 @@ function Koloss.addZoneSeconds(player: Player, zoneId: string, seconds: number)
     end
     dirty = true
     if added.completed then
-        publishAttributes()
         distribute()
+        pcall(publishAttributes)
         refreshAll()
     end
 end

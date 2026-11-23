@@ -2973,6 +2973,21 @@ local function checkKoloss(errors: { string }, data: DataSet)
         if not known then
             table.insert(errors, `Koloss.window.phaseId "{tostring(window.phaseId)}" steht nicht in Seasons.phases`)
         end
+        local seasons2 = data.Seasons
+        if type(seasons2) == "table" and isList(seasons2.phases) then
+            for _, phase in seasons2.phases do
+                if type(phase) == "table" and phase.id == window.phaseId and phase.zoneOpen ~= true then
+                    table.insert(errors, `Koloss.window: die Phase "{tostring(phase.id)}" braucht zoneOpen = true, sonst zählt nichts`)
+                end
+            end
+        end
+        if type(seasons2) == "table" and isList(seasons2.list) then
+            for _, season in seasons2.list do
+                if type(season) == "table" and (type(season.zoneId) ~= "string" or season.zoneId == "") then
+                    table.insert(errors, `Koloss: Saison "{tostring(season.id)}" braucht eine zoneId (dort wird gegraben)`)
+                end
+            end
+        end
         if not isInt(window.startDay) or window.startDay < 0 or window.startDay > 6 then
             table.insert(errors, "Koloss.window.startDay muss eine ganze Zahl von 0 (Montag) bis 6 sein")
         end
@@ -3016,6 +3031,9 @@ local function checkKoloss(errors: { string }, data: DataSet)
             table.insert(errors, `{label}: minSeconds muss aufsteigend über der vorigen Stufe liegen`)
         else
             last = tier.minSeconds
+        end
+        if isFinite(tier.minSeconds) and isFinite(koloss.targetSeconds) and tier.minSeconds > koloss.targetSeconds then
+            table.insert(errors, `{label}: minSeconds liegt über targetSeconds, die Stufe wäre unerreichbar`)
         end
         if not isList(tier.rewards) or #tier.rewards < 1 then
             table.insert(errors, `{label}: rewards braucht mindestens eine Belohnung`)
