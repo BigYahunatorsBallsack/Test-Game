@@ -7,6 +7,10 @@
 --  1. Data/Crates: neue Kiste kopieren (z. B. "event_s2", Quoten wie die Goldkiste, eventOnly = true).
 --  2. Data/CrateItems: die Items der Saison mit `crates = { "event_s2" }` eintragen.
 --  3. Hier eine Zeile mit `crateId = "event_s2"` und dem Startdatum. Fertig.
+--  Mit Pass (Paket 5.5): Event-Zone in Data/Zones (`events`), Stufen in Data/SeasonPass
+--  (`bySeason.<saisonId>`) und ein eigenes Developer Product in Data/Products (z. B. "season_pass_2",
+--  oneTime = false), hier `zoneId` und `passId` setzen. Der Kauf-Handler wird für jede passId
+--  automatisch angemeldet (Services/SeasonPasses).
 --
 -- Regeln (DataCheck erzwingt sie):
 --  * Eine Saison dauert immer 4 Wochen (#phases * 7 Tage), das Ende ist ausschließend.
@@ -45,7 +49,9 @@ local phases: { Phase } = {
 
 local list: { Season } = {
     -- Platzhalter-Startdatum: vor dem Launch auf den echten Saisonstart (Montag) setzen.
-    { id = "season_1", name = "Saison 1", startDate = "2027-01-04", crateId = "event", zoneId = "season_camp" },
+    -- passId (Paket 5.5b): Developer Product des Saison-Passes in Data/Products (oneTime = false). Jede
+    -- Saison bekommt ihr eigenes Produkt, ein Produkt gehört zu höchstens einer Saison (DataCheck).
+    { id = "season_1", name = "Saison 1", startDate = "2027-01-04", crateId = "event", zoneId = "season_camp", passId = "season_pass" },
 }
 
 return {
