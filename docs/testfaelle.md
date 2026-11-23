@@ -642,6 +642,22 @@ Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: 
 - [ ] [Studio] `DebugSeason "koloss"`, `DebugKoloss "progress:5900"`, in der Event-Zone graben: Der Balken steigt, bei 100 % kommt die Meldung mit der Stufe, `KolossProgress` steht auf 1.
 - [ ] [Studio] Test mit 2 Spielern (beide setzen `DebugSeason "koloss"`, die Saison-Uhr gilt je Spieler): beide füllen denselben Balken, beide bekommen ihre Stufe.
 
+## 5.7 Freunde-Bonus, Rangliste, Sammlung besuchen
+
+Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, Plan". Fertig, wenn: Boni und Rangliste laufen, der Besuch zeigt eine fremde Sammlung.
+
+- [ ] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Friends`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
+- [ ] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
+- [ ] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
+- [ ] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.
+- [ ] [Lune] Auszug (Showcase): enthält nur bekannte Fundstück-IDs, nie mehr Einträge als der Katalog; ein kaputter oder fremder Auszug wird beim Lesen bereinigt; die Ansicht rechnet Wert und Set-Fortschritt mit `Logic/Collection`.
+- [ ] [Lune] Besuchsregel: erlaubt für sich selbst und für Freunde, sonst "notFriend"; ungültige UserId ergibt "error"; nichts Schreibendes in der Ansicht.
+- [ ] [Lune] RemoteSpec: `GetLeaderboard` (keine Argumente) und `ViewCollection` (ganze UserId) mit Rate-Limit; der Wächtertest findet keine Remote, die einen Wert vom Client übernimmt.
+- [ ] [Lune] Anbindung: `Friends` und `Leaderboard` stehen in `SERVICE_NAMES`, `Sand.optionsFor` multipliziert den Freunde-Faktor in den Münz-Faktor, Offline-Ertrag nutzt ihn nicht, DataStore-Aufrufe laufen in pcall, Studio nutzt einen eigenen Speichernamen.
+- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
+- [ ] [Studio] Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
+- [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.
+
 ## Ego-Perspektive (Umstellung von dritter Person)
 
 Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand mit dem Werkzeug (Schaufel), links unten die Hand mit dem Eimer, beide bewegen sich beim Graben und Laufen, und alle Menüs bleiben bedienbar. Vorbild: Waltuhs Referenzbilder vom 22.11.2026.
