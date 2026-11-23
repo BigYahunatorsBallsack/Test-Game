@@ -194,7 +194,7 @@ function Codes.Init()
     end
     if not RunService:IsStudio() then
         for _, row in CodesData.list do
-            if (row.id == "welcome" and row.code == "WILLKOMMEN") or (row.id == "likes1000" and row.code == "1000LIKES") then
+            if row.code == "WILLKOMMEN" or row.code == "1000LIKES" then -- nur der Code-Text zählt, die id kann jemand umbenennen
                 error(`[Codes] Beispiel-Code "{row.id}" steht noch in src/server/Data/Codes: vor dem Start durch echte Codes ersetzen`)
             end
         end

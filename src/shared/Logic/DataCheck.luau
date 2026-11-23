@@ -977,13 +977,37 @@ local OFFER_FIELDS = {
     gems = true,
     items = true,
     priority = true,
+    duplicateGems = true, -- Ersatz-Gems ohne Paket (Exploit-Review 6.1)
+    receiptGraceMinutes = true, -- Nachfrist für Belege nach dem Fensterende (Exploit-Review 6.1)
 }
+
+-- Längste Nachfrist für Angebots-Belege nach dem Fensterende (Minuten). Sie deckt einen Kaufdialog
+-- über das Fensterende und verschieden gehende Server-Uhren ab, ist aber kein zweites Fenster.
+local MAX_OFFER_GRACE_MINUTES = 60
+
+-- Gem-Gegenwert eines Robux-Preises zum besten Paketkurs unter den Gem-Paketen bis zu diesem Preis
+-- (0, wenn es kein solches Paket gibt), oder nil ohne brauchbare Paketliste oder Preis.
+local function gemValueOfRobux(data: DataSet, priceRobux: any): number?
+    if not isFinite(priceRobux) or type(data.GemPacks) ~= "table" or not isList(data.GemPacks.list) then
+        return nil
+    end
+    local bestRate = 0
+    for _, pack in data.GemPacks.list do
+        if type(pack) == "table" and isFinite(pack.gems) and isFinite(pack.robux) and pack.robux > 0 and pack.robux <= priceRobux then
+            bestRate = math.max(bestRate, pack.gems / pack.robux)
+        end
+    end
+    return priceRobux * bestRate
+end
 
 -- Angebote (Paket 4.5): eindeutige IDs; jedes Angebot verweist auf ein eigenes bekanntes Produkt
 -- (Developer Product, Einmalkauf); bekannter Auslöser und bekannte Seltenheit; Fenster endlich und
 -- größer als 0 Stunden; Gems ganze Zahl von 0 bis maxGems; Items sind feste IDs aus CrateItems (keine
 -- Kisten-ID, kein Zufall), lückenlose Liste, je Art höchstens eines; das Angebot ist nicht leer;
--- priority ist eine endliche Zahl; keine weiteren Felder.
+-- priority ist eine endliche Zahl; keine weiteren Felder. Seit 6.1: `duplicateGems` ganze Zahl von 0
+-- bis maxGems und höchstens der Gem-Gegenwert des Produktpreises zum besten Paketkurs bis zu diesem
+-- Preis (wie Economy.seasonPass.duplicateGems), `receiptGraceMinutes` ganze Zahl von 0 bis
+-- MAX_OFFER_GRACE_MINUTES.
 local function checkOffers(errors: { string }, data: DataSet)
     local offers = data.Offers
     checkIds(errors, "Offers", offers)
@@ -1036,6 +1060,19 @@ local function checkOffers(errors: { string }, data: DataSet)
         end
         if not isFinite(offer.priority) then
             table.insert(errors, `{label}: priority muss eine endliche Zahl sein`)
+        end
+        if not isInt(offer.duplicateGems) or offer.duplicateGems < 0 or (isInt(maxGems) and offer.duplicateGems > maxGems) then
+            table.insert(errors, `{label}: duplicateGems muss eine ganze Zahl von 0 bis Economy.purchases.maxGems sein`)
+        elseif type(product) == "table" then
+            -- Ersatz-Gems nie mehr wert als der Preis zum besten Paketkurs (sonst wäre ein Zweitkauf ein
+            -- verstecktes, günstigeres Gem-Paket).
+            local value = gemValueOfRobux(data, product.priceRobux)
+            if value ~= nil and offer.duplicateGems > value then
+                table.insert(errors, `{label}: duplicateGems {offer.duplicateGems} sind mehr wert als der Preis von "{offer.productId}" ({math.floor(value)} Gems zum besten Paketkurs)`)
+            end
+        end
+        if not isInt(offer.receiptGraceMinutes) or offer.receiptGraceMinutes < 0 or offer.receiptGraceMinutes > MAX_OFFER_GRACE_MINUTES then
+            table.insert(errors, `{label}: receiptGraceMinutes muss eine ganze Zahl von 0 bis {MAX_OFFER_GRACE_MINUTES} sein`)
         end
         local itemList = offer.items
         if type(itemList) ~= "table" then

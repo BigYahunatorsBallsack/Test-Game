@@ -87,6 +87,7 @@ local PASS_COLOR = Color3.fromRGB(255, 214, 110)
 local TAB_ACTIVE_COLOR = Color3.fromRGB(120, 200, 235)
 local OFFER_COLOR = Color3.fromRGB(255, 190, 90)
 local TEXT_OFFER_BOUGHT = "Angebot erhalten!"
+local TEXT_OFFER_FALLBACK_NAME = "Angebot" -- Ersatz-Gems ohne bekanntes Produkt (Meldung "duplicate")
 local TEXT_OFFER_OVER = "Vorbei"
 local TEXT_OFFER_DONE = "Gekauft"
 local TEXT_OFFER_PENDING = "Wird gutgeschrieben…"
@@ -715,7 +716,7 @@ function GemShop.Start()
     local forceOffers = false
     local offerRows: { { offer: any, product: any, row: Frame, status: TextLabel, button: TextButton } } = {}
     -- Kaufdialog offen oder Kauf bezahlt, aber der Server hat noch nicht bestätigt: kein zweiter Kauf
-    -- über die Oberfläche (der Server bucht jeden bezahlten Beleg, auch einen zweiten).
+    -- über die Oberfläche (ein zweiter bezahlter Beleg bekäme vom Server nur Ersatz-Gems, kein Paket).
     local offerDialogOpen: { [string]: boolean } = {}
     local offerPendingSince: { [string]: number } = {}
     local function offerPending(offerId: string): boolean
@@ -1012,7 +1013,14 @@ function GemShop.Start()
         elseif payload.kind == "offerBought" then
             local offer = if type(payload.offerId) == "string" then Offers.byId[payload.offerId] else nil
             local product = if offer ~= nil then Products.byId[offer.productId] else nil
-            showBanner(if product ~= nil then `{product.name} erhalten!` else TEXT_OFFER_BOUGHT)
+            if payload.duplicate == true then
+                -- Kein Paket (schon gekauft oder Fenster vorbei): der Server hat nur Ersatz-Gems gebucht.
+                local name = if product ~= nil then product.name else TEXT_OFFER_FALLBACK_NAME
+                local gems = if type(payload.gems) == "number" then math.floor(payload.gems) else 0
+                showBanner(if gems > 0 then `{name} nicht verfügbar: +{groupedNumber(gems)} Gems` else `{name} nicht verfügbar`)
+            else
+                showBanner(if product ~= nil then `{product.name} erhalten!` else TEXT_OFFER_BOUGHT)
+            end
         end
     end)
 end

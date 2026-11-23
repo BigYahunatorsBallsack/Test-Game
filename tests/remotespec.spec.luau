@@ -31,7 +31,7 @@ T.describe("RemoteSpec", function()
 
     T.it("Limits entsprechen dem Plan", function()
         local expected: { [string]: { number } } = {
-            SetCollecting = { 10, 1 },
+            SetCollecting = { 5, 1 },
             Sell = { 2, 1 },
             TravelZone = { 1, 1 },
             PurchaseNode = { 5, 1 },

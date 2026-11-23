@@ -17,6 +17,14 @@
 --    anbieten geht über das Produkt im Creator Dashboard.
 --  * Jedes Angebot braucht ein eigenes Developer Product mit `oneTime = true` in Data/Products.
 --    Der Kauf-Handler wird für jedes Angebot über dessen `productId` registriert.
+--
+-- Einmalkauf auf dem Server (Exploit-Review 6.1): Roblox kennt keine Einmal-Developer-Products, ein
+-- manipulierter Client kann PromptProductPurchase selbst aufrufen. Nur ein Beleg, der im Fenster
+-- (plus `receiptGraceMinutes`) und vor einem früheren Kauf ankommt, bekommt das Paket. Jeder andere
+-- bezahlte Beleg bekommt nur `duplicateGems` Ersatz-Gems, keine Items (bezahlt ist bezahlt, aber
+-- nie ein zweites Paket). DataCheck: `duplicateGems` höchstens der Gem-Gegenwert des Produktpreises
+-- zum besten Paketkurs bis zu diesem Preis (sonst wäre das Angebot ein verstecktes, günstigeres
+-- Gem-Paket).
 
 export type Trigger = "firstFindFromRarity"
 
@@ -31,6 +39,13 @@ export type Offer = {
     gems: number, -- Gems im Angebot (ganze Zahl ab 0, höchstens Economy.purchases.maxGems)
     items: { string }, -- feste Item-IDs aus Data/CrateItems, je ein Exemplar, höchstens eines je Art
     priority: number, -- Reihenfolge der Hinweise beim Client: kleinere Zahl zuerst
+    -- Ersatz-Gems für einen bezahlten Beleg, der das Paket nicht bekommt (schon gekauft, Fenster nicht
+    -- gestartet oder vorbei): ganze Zahl ab 0, höchstens maxGems und höchstens der Gem-Gegenwert des
+    -- Produktpreises zum besten Paketkurs (DataCheck). Keine Items.
+    duplicateGems: number,
+    -- Nachfrist in Minuten nach dem Fensterende: Ein Beleg in dieser Zeit bekommt noch das Paket
+    -- (Kaufdialog über das Fensterende offen, Uhren verschiedener Server). Ganze Zahl von 0 bis 60.
+    receiptGraceMinutes: number,
 }
 
 local list: { Offer } = {
@@ -44,6 +59,12 @@ local list: { Offer } = {
         -- Glasschaufel (Werkzeug-Variante, Selten) und Wüstengecko (Begleiter, Ungewöhnlich).
         items = { "toolVariant_rare_1", "companion_uncommon_1" },
         priority = 1,
+        -- Gem-Gegenwert von 149 Robux in Paketen: 3 x 100 Gems für 147 Robux. Obergrenze laut DataCheck:
+        -- 149 x 100 / 49 = 304 (bester Kurs bis 149 Robux ist das 100er-Paket). Wie beim Saison-Pass
+        -- (Economy.seasonPass.duplicateGems): Der Spieler verliert nichts, ein absichtlicher Zweitkauf
+        -- bringt keinen besseren Kurs als die Gem-Pakete.
+        duplicateGems = 300,
+        receiptGraceMinutes = 15,
     },
 }
 

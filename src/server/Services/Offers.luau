@@ -20,9 +20,12 @@
 --  * StateSync (Sand.addSnapshotProvider): `offers = { [offerId] = { state, secondsLeft } }` mit der
 --    Server-Uhr beim Snapshot. Läuft ein Angebot ab, zeigt der nächste Snapshot "expired" (der Client
 --    zählt selbst herunter).
---  * Kauf: OffersLogic.offerHandler(angebot.id, os.time, log) je Angebot. Nach dem bestätigten
---    Speichern meldet Purchases Notify { kind = "offerBought", offerId, gems, items }, der Shop sendet
---    danach den Zustand neu (das Angebot steht dann auf "bought").
+--  * Kauf: OffersLogic.offerHandler(angebot.id, os.time, log) je Angebot. Das Paket gibt es nur im
+--    Fenster (plus Nachfrist receiptGraceMinutes) und nur einmal; jeder andere bezahlte Beleg bekommt
+--    nur duplicateGems Ersatz-Gems (Exploit-Review 6.1). Nach dem bestätigten Speichern meldet
+--    Purchases Notify { kind = "offerBought", offerId, gems, items } (beim Ersatz mit duplicate = true
+--    und leeren items), der Shop sendet danach den Zustand neu (das Angebot steht dann auf "bought").
+--    Studio: Für das Paket über DebugPurchase erst DebugOffer "starter" setzen, sonst Ersatz-Gems.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"):
 --   game.Players.Name:SetAttribute("DebugOffer", "starter")    -- Fenster jetzt starten (nicht gekauft)
