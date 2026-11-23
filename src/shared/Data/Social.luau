@@ -12,7 +12,7 @@ export type Leaderboard = {
     maxFriends: number, -- so viele Freunde zeigt die Liste zum Besuchen (der Besuch wählt einen Platz 1 bis maxFriends)
     writeSeconds: number, -- Mindestabstand zwischen zwei Schreibvorgängen je Spieler
     readSeconds: number, -- so oft liest der Server die Top-Liste neu (Zwischenspeicher)
-    friendCacheSeconds: number, -- so lange gilt eine Freundschaftsprüfung
+    friendCacheSeconds: number, -- so lange gilt die Freundesliste zum Besuchen (danach "notFriend", neu laden)
     store: string, -- OrderedDataStore je Woche: Name + "_" + Wochenindex
     showcaseStore: string, -- DataStore mit dem öffentlichen Sammlungs-Auszug je Spieler
     studioSuffix: string, -- Zusatz im Namen in Studio, damit Tests nie echte Daten berühren

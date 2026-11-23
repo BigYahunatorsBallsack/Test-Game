@@ -79,7 +79,8 @@ end
 
 -- Collecting.Options des Profils (Paket 4.4): Tank- und Münz-Faktor aus Pässen und Boost.
 -- Freunde-Bonus (Paket 5.7): Faktor je Spieler, gesetzt vom Service Friends (Sand.setFriendFactor).
--- Er wirkt wie "2x Münzen" im Münz-Faktor (Verkauf, Anzeige), nicht im Offline-Ertrag.
+-- Er wirkt wie "2x Münzen" im Münz-Faktor (Verkauf, Anzeige, Sandsturm-Münzen über Sand.optionsFor), nicht im
+-- Offline-Ertrag.
 local friendFactors: { [Player]: number } = {}
 
 local function optionsOf(profile: any, player: Player): any
@@ -93,6 +94,9 @@ end
 
 -- Setzt den Freunde-Faktor (ab 1) und sendet den Zustand neu, wenn er sich ändert.
 function Sand.setFriendFactor(player: Player, factor: number)
+    if player.Parent == nil then
+        return
+    end
     local old = friendFactors[player] or 1
     friendFactors[player] = if factor > 1 then factor else nil
     if old ~= factor and PlayerData ~= nil and PlayerData.get(player) ~= nil then

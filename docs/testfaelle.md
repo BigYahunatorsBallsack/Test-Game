@@ -654,8 +654,8 @@ Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, P
 - [x] [Lune] Besuch: Der Client nennt nie einen Spieler, nur einen Platz (1 bis maxFriends) in der Freundesliste, die der Server selbst gebaut hat; ungültiger Platz, Text, NaN oder zu groß ergibt nil (notFriend); die Freundesliste wird bereinigt (ganze UserIds, einmal, Namen gekürzt, höchstens maxFriends); nichts Schreibendes in der Ansicht.
 - [x] [Lune] RemoteSpec: `GetLeaderboard` und `GetFriends` (keine Argumente) und `ViewCollection` (Platz 1 bis maxFriends, keine UserId) mit Rate-Limit; der Wächtertest (policyguards) lässt die Zahl nur mit Begründung zu.
 - [x] [Lune] Anbindung: `Friends` und `Leaderboard` stehen in `SERVICE_NAMES`, `Sand.optionsFor` multipliziert den Freunde-Faktor in den Münz-Faktor, Offline-Ertrag nutzt ihn nicht, DataStore-Aufrufe laufen in pcall, Studio nutzt einen eigenen Speichernamen.
-- [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
-- [ ] [Studio] Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (mittlere Befunde behoben, Alt-Accounts und Wochenwertung als Designfragen offen, siehe architektur.md).
+- [ ] [Studio] (nur mit echten Konten, negative Studio-UserIds gehen nicht) Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
 - [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.
 
 ## Ego-Perspektive (Umstellung von dritter Person)

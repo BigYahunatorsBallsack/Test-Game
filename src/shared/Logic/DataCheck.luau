@@ -3075,8 +3075,8 @@ local function checkSocial(errors: { string }, data: DataSet)
         if not isInt(friends.perFriendBp) or friends.perFriendBp < 1 then
             table.insert(errors, "Social.friends.perFriendBp muss eine ganze Zahl ab 1 sein")
         end
-        if not isInt(friends.maxBp) or friends.maxBp < 1 then
-            table.insert(errors, "Social.friends.maxBp muss eine ganze Zahl ab 1 sein")
+        if not isInt(friends.maxBp) or friends.maxBp < 1 or friends.maxBp > 10000 then
+            table.insert(errors, "Social.friends.maxBp muss eine ganze Zahl von 1 bis 10000 sein (höchstens +100 %)")
         elseif isInt(friends.perFriendBp) and friends.maxBp < friends.perFriendBp then
             table.insert(errors, "Social.friends.maxBp muss mindestens perFriendBp sein")
         end
@@ -3092,9 +3092,17 @@ local function checkSocial(errors: { string }, data: DataSet)
     if not isInt(board.maxFriends) or board.maxFriends < 1 or board.maxFriends > 200 then
         table.insert(errors, "Social.leaderboard.maxFriends muss eine ganze Zahl von 1 bis 200 sein")
     end
-    for _, field in { "writeSeconds", "readSeconds", "friendCacheSeconds" } do
-        if not isFinite(board[field]) or board[field] < 1 then
-            table.insert(errors, `Social.leaderboard.{field} muss eine Zahl ab 1 sein`)
+    -- Untergrenzen schützen das DataStore-Budget des Servers (ProfileStore braucht es zum Laden und Speichern).
+    for field, minimum in { writeSeconds = 60, readSeconds = 30, friendCacheSeconds = 60 } do
+        if not isFinite(board[field]) or board[field] < minimum then
+            table.insert(errors, `Social.leaderboard.{field} muss eine Zahl ab {minimum} sein`)
+        end
+    end
+    if type(data.Rarities) == "table" and type(data.Rarities.list) == "table" then
+        for _, rarity in data.Rarities.list do
+            if type(rarity) == "table" and not isInt(rarity.valueFactor) then
+                table.insert(errors, `Social: valueFactor der Stufe "{tostring(rarity.id)}" muss ganzzahlig sein (Rangliste, OrderedDataStore)`)
+            end
         end
     end
     for _, field in { "store", "showcaseStore", "studioSuffix" } do

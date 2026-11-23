@@ -34,6 +34,14 @@ local MAX_FRIEND_PAGES = 3
 local SHOWCASE_CACHE_SECONDS = 60
 -- Ab so vielen gemerkten Auszügen werden abgelaufene gelöscht.
 local MAX_SHOWCASES = 200
+-- Reserve im DataStore-Budget: darunter lesen und schreiben wir nicht, ProfileStore hat Vorrang.
+local BUDGET_RESERVE = 30
+-- Höchstens so viele Auszug-Lesevorgänge (Cache-Fehlschläge) je Spieler und Minute.
+local SHOWCASE_READS_PER_MINUTE = 6
+-- Mindestabstand zwischen zwei Warnungen zum DataStore (Sekunden).
+local WARN_INTERVAL_SECONDS = 60
+-- So lange wartet das Schreiben beim Verlassen auf einen laufenden Schreibvorgang (Sekunden).
+local FLUSH_WAIT_SECONDS = 5
 -- Kurze Pause zwischen zwei Namensabfragen (Sekunden), schont die Rate.
 local NAME_PAUSE_SECONDS = 0.2
 
@@ -63,7 +71,9 @@ local names: { [number]: string } = {}
 local friendLists: { [Player]: { at: number, list: { any } } } = {}
 local busy: { [Player]: boolean } = {}
 local showcaseCache: { [number]: { at: number, owned: any } } = {}
-local warnedStore = false
+local lastWarnAt = -math.huge
+local writtenStore: { [number]: string } = {}
+local showcaseReads: { [Player]: { number } } = {}
 
 local function log(message: string)
     warn(`[Leaderboard] {message}`)
@@ -74,9 +84,9 @@ local function unixNow(): number
 end
 
 local function warnStoreOnce(err: any)
-    if not warnedStore then
-        warnedStore = true
-        log(`DataStore nicht erreichbar, Rangliste und Besuch pausieren: {tostring(err)}`)
+    if os.clock() - lastWarnAt >= WARN_INTERVAL_SECONDS then
+        lastWarnAt = os.clock()
+        log(`DataStore-Fehler (Rangliste oder Besuch): {tostring(err)}`)
     end
 end
 
@@ -104,12 +114,19 @@ end
 -- zuletzt geschriebene.
 local function flush(userId: number)
     local pending = latest[userId]
-    if pending == nil or pending.value <= 0 or pending.value <= (writtenValue[userId] or 0) or writing[userId] then
+    if pending == nil or pending.value <= 0 or writing[userId] then
         return
     end
     local storeName = SocialLogic.weekStoreName(unixNow(), IS_STUDIO)
     if storeName == nil then
         return
+    end
+    -- Neue Woche: der zuletzt geschriebene Wert gehört zur alten Woche und zählt nicht mehr.
+    if not SocialLogic.shouldWrite(pending.value, writtenValue[userId], writtenStore[userId], storeName) then
+        return
+    end
+    if DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.SetIncrementAsync) < BUDGET_RESERVE then
+        return -- zu knapp: im nächsten Takt wieder, ProfileStore hat Vorrang
     end
     writing[userId] = true
     writtenAt[userId] = os.clock() -- auch bei einem Fehler: höchstens ein Versuch je writeSeconds
@@ -127,7 +144,10 @@ local function flush(userId: number)
     end)
     writing[userId] = nil
     if ok then
-        writtenValue[userId] = value
+        if Players:GetPlayerByUserId(userId) ~= nil then -- nicht für einen Spieler, der inzwischen weg ist
+            writtenValue[userId] = value
+            writtenStore[userId] = storeName
+        end
     else
         warnStoreOnce(err)
     end
@@ -260,7 +280,9 @@ local function onGetFriends(player: Player): any
             return { ok = false, reason = "error" }
         end
         cached = { at = os.clock(), list = list }
-        friendLists[player] = cached
+        if player.Parent ~= nil then -- ein Spieler, der gegangen ist, bekommt keinen Eintrag mehr
+            friendLists[player] = cached
+        end
     end
     local friends = {}
     for slot, entry in (cached :: any).list do
@@ -286,9 +308,35 @@ local function pruneShowcases()
     end
 end
 
+-- Grenze für Cache-Fehlschläge: je Spieler höchstens SHOWCASE_READS_PER_MINUTE, und nur mit Restbudget.
+local function allowShowcaseRead(player: Player): boolean
+    if DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetAsync) < BUDGET_RESERVE then
+        return false
+    end
+    local now = os.clock()
+    local times = showcaseReads[player] or {}
+    local recent = {}
+    for _, at in times do
+        if now - at < 60 then
+            table.insert(recent, at)
+        end
+    end
+    if #recent >= SHOWCASE_READS_PER_MINUTE then
+        showcaseReads[player] = recent
+        return false
+    end
+    table.insert(recent, now)
+    showcaseReads[player] = recent
+    return true
+end
+
 local function onViewCollection(player: Player, slot: any): any
     local cached = friendLists[player]
-    local entry = if cached ~= nil then SocialLogic.friendAt(cached.list, slot) else nil
+    -- Eine abgelaufene Liste gilt nicht mehr (wer entfreundet wurde, ist nicht mehr ansehbar).
+    if cached == nil or os.clock() - cached.at >= SocialData.leaderboard.friendCacheSeconds then
+        return { ok = false, reason = "notFriend" }
+    end
+    local entry = SocialLogic.friendAt(cached.list, slot)
     if entry == nil then
         return { ok = false, reason = "notFriend" }
     end
@@ -300,6 +348,9 @@ local function onViewCollection(player: Player, slot: any): any
         local userId = entry.userId
         local known = showcaseCache[userId]
         if known == nil or os.clock() - known.at >= SHOWCASE_CACHE_SECONDS then
+            if not allowShowcaseRead(player) then
+                return { ok = false, reason = "busy" }
+            end
             local store = DataStoreService:GetDataStore(SocialLogic.showcaseStoreName(IS_STUDIO))
             local raw = store:GetAsync(tostring(userId))
             known = { at = os.clock(), owned = SocialLogic.cleanShowcase(raw) }
@@ -309,7 +360,7 @@ local function onViewCollection(player: Player, slot: any): any
         if known.owned == nil then
             return { ok = false, reason = "noShowcase" }
         end
-        return { ok = true, view = SocialLogic.view(known.owned, userId, entry.name) }
+        return { ok = true, view = SocialLogic.view(known.owned, entry.name) }
     end)
     busy[player] = nil
     if not ok then
@@ -331,14 +382,21 @@ function Leaderboard.Start()
 
     Players.PlayerRemoving:Connect(function(player: Player)
         local userId = player.UserId
+        friendLists[player] = nil
+        busy[player] = nil
+        showcaseReads[player] = nil
         task.spawn(function()
-            flush(userId) -- letzter Stand vor dem Gehen
+            -- Läuft gerade ein Schreibvorgang, kurz warten, dann den letzten Stand schreiben.
+            local deadline = os.clock() + FLUSH_WAIT_SECONDS
+            while writing[userId] and os.clock() < deadline do
+                task.wait(0.25)
+            end
+            pcall(flush, userId)
             latest[userId] = nil
             writtenValue[userId] = nil
             writtenAt[userId] = nil
+            writtenStore[userId] = nil
         end)
-        friendLists[player] = nil
-        busy[player] = nil
     end)
 
     task.spawn(function()

@@ -71,6 +71,47 @@ T.describe("Freunde-Faktor", function()
     end)
 end)
 
+T.describe("Freunde zählen", function()
+    T.it("nie sich selbst, nur Anwesende, jede UserId einmal, nur bekannte Freunde", function()
+        local known = { [2] = true, [3] = true, [4] = false, [9] = true }
+        T.expect(Social.countFriends(1, { 1, 2, 3, 4 }, known)).toBe(2)
+        T.expect(Social.countFriends(2, { 1, 2, 3 }, known)).toBe(1) -- 2 zählt sich nicht
+        T.expect(Social.countFriends(1, { 2, 2, 2 }, known)).toBe(1)
+        T.expect(Social.countFriends(1, { 1 }, known)).toBe(0)
+        T.expect(Social.countFriends(1, { 5, 6 }, known)).toBe(0) -- 9 ist nicht anwesend
+        T.expect(Social.countFriends(1, nil, known)).toBe(0)
+        T.expect(Social.countFriends(1, { 2 }, nil)).toBe(0)
+    end)
+
+    T.it("der Deckel greift auch bei vielen Freunden", function()
+        local present: { number } = {}
+        local known: { [number]: boolean } = {}
+        for index = 2, 40 do
+            table.insert(present, index)
+            known[index] = true
+        end
+        T.expect(Social.countFriends(1, present, known)).toBe(39)
+        T.expect(Social.bonusFactor(39)).toBeCloseTo(1.5, 1e-9)
+    end)
+end)
+
+T.describe("Schreibentscheidung der Rangliste", function()
+    T.it("schreibt bei erstem Wert, höherem Wert und neuer Woche, sonst nicht", function()
+        T.expect(Social.shouldWrite(100, nil, nil, "store_1")).toBe(true)
+        T.expect(Social.shouldWrite(100, 100, "store_1", "store_1")).toBe(false)
+        T.expect(Social.shouldWrite(90, 100, "store_1", "store_1")).toBe(false) -- nie senken
+        T.expect(Social.shouldWrite(120, 100, "store_1", "store_1")).toBe(true)
+        T.expect(Social.shouldWrite(100, 100, "store_1", "store_2")).toBe(true) -- neue Woche, gleicher Wert
+    end)
+
+    T.it("kein Wert, kaputter Wert oder kein Speichername: nichts schreiben", function()
+        T.expect(Social.shouldWrite(0, nil, nil, "store_1")).toBe(false)
+        T.expect(Social.shouldWrite(-5, nil, nil, "store_1")).toBe(false)
+        T.expect(Social.shouldWrite(0 / 0, nil, nil, "store_1")).toBe(false)
+        T.expect(Social.shouldWrite(10, nil, nil, nil)).toBe(false)
+    end)
+end)
+
 T.describe("Sammlungswert", function()
     T.it("leere und kaputte Sammlungen ergeben 0", function()
         T.expect(Social.collectionValue({ finds = {} })).toBe(0)
@@ -252,8 +293,8 @@ T.describe("Ansicht", function()
     T.it("Name, Wert, Anzahl, besessene IDs und Set-Fortschritt, nur einfache Werte", function()
         local first = FindsData.list[1]
         local owned: { [string]: boolean } = { [first.id] = true, gibtsnicht = true }
-        local view = Social.view(owned, 77, "Freund")
-        T.expect(view.userId).toBe(77)
+        local view = Social.view(owned, "Freund")
+        T.expect(view.userId).toBeNil() -- der Client braucht keine UserId
         T.expect(view.name).toBe("Freund")
         T.expect(view.value).toBe(RaritiesData.byId[first.rarityId].valueFactor)
         T.expect(view.found).toBe(1)
@@ -265,8 +306,8 @@ T.describe("Ansicht", function()
     end)
 
     T.it("ein langer oder kaputter Name wird gekürzt", function()
-        T.expect(#Social.view({}, 1, string.rep("a", 500)).name).toBe(Social.MAX_NAME_LENGTH)
-        T.expect(Social.view({}, 1, 5 :: any).name).toBe("?")
+        T.expect(#Social.view({}, string.rep("a", 500)).name).toBe(Social.MAX_NAME_LENGTH)
+        T.expect(Social.view({}, 5 :: any).name).toBe("?")
     end)
 end)
 
@@ -291,6 +332,15 @@ T.describe("DataCheck", function()
         T.expect(broken(function(d)
             d.Social.friends.maxBp = d.Social.friends.perFriendBp - 1
         end)).toContain("mindestens")
+        T.expect(broken(function(d)
+            d.Social.friends.maxBp = 50000
+        end)).toContain("maxBp")
+        T.expect(broken(function(d)
+            d.Social.leaderboard.writeSeconds = 1
+        end)).toContain("writeSeconds")
+        T.expect(broken(function(d)
+            d.Rarities.list[2].valueFactor = 2.5
+        end)).toContain("ganzzahlig")
         T.expect(broken(function(d)
             d.Social.leaderboard.topCount = 0
         end)).toContain("topCount")
@@ -337,11 +387,15 @@ T.describe("Anbindung der Services", function()
         T.expect(string.find(FRIENDS_SOURCE, "bonusFactor", 1, true) ~= nil).toBe(true)
         T.expect(string.find(OFFLINE_SOURCE, "Friend", 1, true)).toBeNil()
         T.expect(string.find(OFFLINE_LOGIC_SOURCE, "Friend", 1, true)).toBeNil()
+        for _, source in { OFFLINE_SOURCE, OFFLINE_LOGIC_SOURCE } do
+            T.expect(string.find(source, "optionsFor", 1, true)).toBeNil() -- das wäre der Weg zum Freunde-Faktor
+            T.expect(string.find(source, "optionsOf", 1, true)).toBeNil()
+        end
     end)
 
     T.it("Roblox-Aufrufe laufen in pcall, der Client nennt nie einen Spieler", function()
         for _, call in { "UpdateAsync", "SetAsync", "GetSortedAsync", "GetAsync", "GetFriendsAsync", "GetNameFromUserIdAsync" } do
-            local at = string.find(CODE_ONLY, call, 1, true)
+            local at = string.find(CODE_ONLY, `:{call}(`, 1, true)
             T.expect(at ~= nil).toBe(true)
             -- Der letzte pcall davor muss näher liegen als der letzte Funktionsanfang `local function`.
             local head = string.sub(CODE_ONLY, 1, at :: number)

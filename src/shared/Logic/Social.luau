@@ -69,6 +69,36 @@ function Social.bonusFactor(friendCount: any, data: Data?): number
     return 1 + bp / 10000
 end
 
+-- Wie viele der anwesenden Spieler sind Freunde von `selfId`? `known[userId] == true` heißt befreundet.
+-- Man zählt sich nie selbst, jede UserId nur einmal, nur Anwesende.
+function Social.countFriends(selfId: any, presentIds: any, known: any): number
+    if type(presentIds) ~= "table" or type(known) ~= "table" then
+        return 0
+    end
+    local seen: { [any]: boolean } = {}
+    local count = 0
+    for _, userId in presentIds do
+        if userId ~= selfId and not seen[userId] and known[userId] == true then
+            seen[userId] = true
+            count += 1
+        end
+    end
+    return count
+end
+
+-- Soll der Wert jetzt in den Speicher der Woche geschrieben werden? Nur mit Wert über 0, und nur wenn er
+-- gestiegen ist oder die Woche (der Speichername) gewechselt hat: Eine Sitzung über Montag 0 Uhr schreibt
+-- ihren Wert so auch in die neue Woche.
+function Social.shouldWrite(value: any, writtenValue: any, writtenStoreName: any, storeName: any): boolean
+    if not isFinite(value) or value <= 0 or type(storeName) ~= "string" then
+        return false
+    end
+    if writtenStoreName ~= storeName then
+        return true
+    end
+    return not isFinite(writtenValue) or value > writtenValue
+end
+
 -- Wert einer Sammlung aus einem Profil (nur `finds`).
 function Social.collectionValue(profile: any, data: Data?): number
     local rarities = raritiesOf(data)
@@ -81,7 +111,7 @@ function Social.collectionValue(profile: any, data: Data?): number
             end
         end
     end
-    return math.min(total, Social.MAX_VALUE)
+    return math.min(math.floor(total), Social.MAX_VALUE) -- der OrderedDataStore nimmt nur ganze Zahlen
 end
 
 -- Wochenindex (Woche von Montag 0 Uhr UTC bis Montag 0 Uhr UTC, Ende ausschließend). Kaputte Zeit: nil.
@@ -229,7 +259,7 @@ end
 
 -- Anzeigeform für den Besuch: Name, Wert, Anzahl und die Liste der besessenen IDs, dazu Set-Fortschritt.
 -- Nur Texte, Zahlen und Wahrheitswerte, nichts Schreibendes.
-function Social.view(owned: { [string]: boolean }, userId: any, name: any, data: Data?): { [string]: any }
+function Social.view(owned: { [string]: boolean }, name: any, data: Data?): { [string]: any }
     local finds = findsOf(data)
     local fake = { finds = {} :: { [string]: number } }
     local ids: { string } = {}
@@ -244,7 +274,6 @@ function Social.view(owned: { [string]: boolean }, userId: any, name: any, data:
         table.insert(sets, { setId = progress.setId, have = progress.have, size = progress.size, complete = progress.complete })
     end
     return {
-        userId = userId,
         name = cleanName(name),
         value = Social.collectionValue(fake, data),
         found = #ids,

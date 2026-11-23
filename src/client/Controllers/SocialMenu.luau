@@ -40,6 +40,7 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local FindsData = loadShared("Data", "Finds")
+local SocialData = loadShared("Data", "Social")
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 
@@ -97,7 +98,8 @@ function SocialMenu.Start()
 
     local tab = "board" -- "board" oder "visit"
     local busy = false
-    local lastRequestAt = -math.huge
+    local lastRequestAt: { [string]: number } = {} -- je Remote eine Zeitsperre
+    local lastReply: { [string]: any } = {} -- letzte Antwort je Remote, wird bei einer Sperre erneut gezeigt
     local friendFactor = 1
     local render: () -> () = function() end
 
@@ -146,7 +148,8 @@ function SocialMenu.Start()
         if friendFactor > 1.0001 then
             return `Freunde-Bonus: x{string.format("%.2f", friendFactor)} Münzen, solange deine Freunde im Server sind.`
         end
-        return "Freunde-Bonus: 10 % mehr Münzen je Freund im selben Server, höchstens 50 %."
+        local cfg = SocialData.friends
+        return `Freunde-Bonus: {cfg.perFriendBp / 100} % mehr Münzen je Freund im selben Server, höchstens {cfg.maxBp / 100} %.`
     end
 
     -- Rangliste
@@ -176,18 +179,29 @@ function SocialMenu.Start()
         end
     end
 
-    local function request(call: () -> any, cooldown: number, onReply: (any) -> ())
-        if busy or os.clock() - lastRequestAt < cooldown then
+    -- Ruft eine Remote auf, höchstens einmal je Sperrzeit. Ist sie noch gesperrt, zeigt das Menü die letzte
+    -- Antwort erneut (statt "Lade ..." stehen zu lassen). `cache` = false für Besuche (immer frisch).
+    local function request(key: string, call: () -> any, cooldown: number, onReply: (any) -> (), cache: boolean)
+        if busy then
+            return
+        end
+        if os.clock() - (lastRequestAt[key] or -math.huge) < cooldown then
+            if cache and lastReply[key] ~= nil then
+                onReply(lastReply[key])
+            end
             return
         end
         busy = true
-        lastRequestAt = os.clock()
+        lastRequestAt[key] = os.clock()
         task.spawn(function()
             local ok, reply = pcall(call)
             busy = false
             if not ok then
                 showMessage(REASONS.error)
                 return
+            end
+            if cache then
+                lastReply[key] = reply
             end
             onReply(reply)
         end)
@@ -233,7 +247,7 @@ function SocialMenu.Start()
                     local slot = friend.slot
                     local row = addRow(body, order, ROW_COLOR, tostring(friend.name), "ansehen")
                     row.Activated:Connect(function()
-                        request(function(): any
+                        request("view", function(): any
                             return viewCollection:InvokeServer(slot)
                         end, VIEW_COOLDOWN_SECONDS, function(result: any)
                             if type(result) == "table" and result.ok == true then
@@ -242,7 +256,7 @@ function SocialMenu.Start()
                                 local reason = if type(result) == "table" and type(result.reason) == "string" then result.reason else "unknown"
                                 showMessage(REASONS[reason] or REASONS.unknown)
                             end
-                        end)
+                        end, false)
                     end)
                     order += 1
                 end
@@ -258,24 +272,22 @@ function SocialMenu.Start()
         visitTab.BackgroundColor3 = if tab == "visit" then TAB_ON_COLOR else TAB_OFF_COLOR
         showMessage("Lade ...")
         if tab == "board" then
-            request(function(): any
+            request("board", function(): any
                 return getLeaderboard:InvokeServer()
-            end, REQUEST_COOLDOWN_SECONDS, showBoard)
+            end, REQUEST_COOLDOWN_SECONDS, showBoard, true)
         else
-            request(function(): any
+            request("friends", function(): any
                 return getFriends:InvokeServer()
-            end, REQUEST_COOLDOWN_SECONDS, showFriends)
+            end, REQUEST_COOLDOWN_SECONDS, showFriends, true)
         end
     end
 
     boardTab.Activated:Connect(function()
         tab = "board"
-        lastRequestAt = -math.huge
         render()
     end)
     visitTab.Activated:Connect(function()
         tab = "visit"
-        lastRequestAt = -math.huge
         render()
     end)
 

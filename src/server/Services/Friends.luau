@@ -3,7 +3,8 @@
 -- Der Server zählt, wie viele Spieler im selben Server mit dem Spieler befreundet sind
 -- (`Player:IsFriendsWith`, je Paar einmal geprüft und gemerkt). Aus der Zahl macht Logic/Social den
 -- Münz-Faktor (10 % je Freund, höchstens 50 %, Data/Social). Den Faktor übernimmt Sand
--- (`Sand.setFriendFactor`): Er gilt beim Verkauf und in der Anzeige, nicht beim Offline-Ertrag.
+-- (`Sand.setFriendFactor`): Er gilt beim Verkauf, in der Anzeige und bei den Sandsturm-Münzen (Upgrades
+-- nutzt Sand.optionsFor), nicht beim Offline-Ertrag.
 -- Der Client sendet nichts. Ein Fehler bei der Freundschaftsprüfung ändert den Faktor nicht (kein Freund).
 
 local Players = game:GetService("Players")
@@ -26,17 +27,11 @@ end
 
 -- Anzahl der Freunde, die gerade im Server sind.
 local function countFor(player: Player): number
-    local known = friendOf[player.UserId]
-    if known == nil then
-        return 0
-    end
-    local count = 0
+    local present = {}
     for _, other in Players:GetPlayers() do
-        if other ~= player and known[other.UserId] == true then
-            count += 1
-        end
+        table.insert(present, other.UserId)
     end
-    return count
+    return SocialLogic.countFriends(player.UserId, present, friendOf[player.UserId])
 end
 
 local function apply(player: Player)
@@ -58,6 +53,9 @@ local function checkPair(a: Player, b: Player)
         log(`Freundschaft {a.Name}/{b.Name} nicht prüfbar: {tostring(result)}`)
         return
     end
+    if a.Parent == nil or b.Parent == nil then
+        return -- einer ist inzwischen gegangen: kein Eintrag für ihn anlegen
+    end
     friendOf[a.UserId] = friendOf[a.UserId] or {}
     friendOf[b.UserId] = friendOf[b.UserId] or {}
     friendOf[a.UserId][b.UserId] = result == true
@@ -74,6 +72,7 @@ local function onPlayerAdded(player: Player)
                 task.spawn(checkPair, player, other)
             else
                 apply(player)
+                apply(other)
             end
         end
     end
