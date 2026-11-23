@@ -658,6 +658,15 @@ Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, P
 - [ ] [Studio] (nur mit echten Konten, negative Studio-UserIds gehen nicht) Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
 - [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.
 
+## 6.1 Exploit-Review
+
+Plan: Claude-Dokument "Paket 6.1: Exploit-Review, Plan". Fertig, wenn: Die Review-Liste ist abgearbeitet.
+
+- [ ] [Shell] `security-reviewer` prüft alle Client-zu-Server-Remotes, Käufe, Speichern, Offline-Ertrag, Zeit, Sammeln und Verkaufen, Soziales; Bericht liegt in `docs/exploit-review.md`.
+- [ ] [Lune] Für jeden bestätigten kritischen oder hohen Befund gibt es einen Test, der den Fehler vorher gezeigt hat und jetzt besteht.
+- [ ] [Shell] Kein offener kritischer oder hoher Befund; mittlere Befunde sind behoben oder mit Begründung als Entscheidung für Waltuh vermerkt.
+- [ ] [Studio] Stichprobe: schnelles Mehrfachklicken auf Kaufen, Abholen und Öffnen bucht nie doppelt.
+
 ## Ego-Perspektive (Umstellung von dritter Person)
 
 Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand mit dem Werkzeug (Schaufel), links unten die Hand mit dem Eimer, beide bewegen sich beim Graben und Laufen, und alle Menüs bleiben bedienbar. Vorbild: Waltuhs Referenzbilder vom 22.11.2026.
