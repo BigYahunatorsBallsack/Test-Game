@@ -49,6 +49,7 @@ local Events = {}
 
 local PlayerData: any = nil
 local Sand: any = nil
+local Koloss: any = nil
 
 -- Letzter gesendeter Stand je Spieler (Saison-ID und Woche), damit der Takt nur bei Wechseln sendet.
 local lastKey: { [Player]: string } = {}
@@ -142,6 +143,11 @@ function Events.addZoneSeconds(player: Player, zoneId: string, seconds: number):
     if season == nil then
         return 0
     end
+    -- Server-Event "Der Koloss" (Paket 5.6): dieselben Sekunden füllen den Balken dieses Servers.
+    local counted, err = pcall(Koloss.addZoneSeconds, player, zoneId, seconds)
+    if not counted then
+        log(`Koloss fehlgeschlagen: {tostring(err)}`)
+    end
     local gained = SeasonPassLogic.addSeconds(profile, season.id, seconds)
     if gained > 0 then
         refresh(player)
@@ -197,6 +203,7 @@ end
 function Events.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    Koloss = require(servicesFolder:WaitForChild("Koloss") :: ModuleScript)
 end
 
 function Events.Start()

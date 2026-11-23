@@ -108,6 +108,7 @@ export type DataSet = {
     Offers: any,
     Seasons: any,
     SeasonPass: any,
+    Koloss: any,
 }
 
 local DataCheck = {}
@@ -141,6 +142,7 @@ function DataCheck.defaults(): DataSet
         Offers = require("../Data/Offers"),
         Seasons = require("../Data/Seasons"),
         SeasonPass = require("../Data/SeasonPass"),
+        Koloss = require("../Data/Koloss"),
     }
 end
 
@@ -2946,6 +2948,98 @@ local function checkScreen(errors: { string }, data: DataSet)
     end
 end
 
+-- Server-Event "Der Koloss" (Paket 5.6): Das Fenster liegt in einer bekannten Phase und passt in die
+-- Woche, das Ziel ist endlich und größer 0, die Stufen steigen ab 0 Sekunden, die Belohnungen sind fest
+-- (Gems, Münz- und Glücks-Boost), nie Kisten oder Zufall.
+local function checkKoloss(errors: { string }, data: DataSet)
+    local koloss = data.Koloss
+    if type(koloss) ~= "table" then
+        table.insert(errors, "Koloss: Tabelle fehlt")
+        return
+    end
+    local window = koloss.window
+    if type(window) ~= "table" then
+        table.insert(errors, "Koloss.window fehlt")
+    else
+        local seasons = data.Seasons
+        local known = false
+        if type(seasons) == "table" and isList(seasons.phases) then
+            for _, phase in seasons.phases do
+                if type(phase) == "table" and phase.id == window.phaseId then
+                    known = true
+                end
+            end
+        end
+        if not known then
+            table.insert(errors, `Koloss.window.phaseId "{tostring(window.phaseId)}" steht nicht in Seasons.phases`)
+        end
+        if not isInt(window.startDay) or window.startDay < 0 or window.startDay > 6 then
+            table.insert(errors, "Koloss.window.startDay muss eine ganze Zahl von 0 (Montag) bis 6 sein")
+        end
+        if not isInt(window.days) or window.days < 1 then
+            table.insert(errors, "Koloss.window.days muss eine ganze Zahl ab 1 sein")
+        elseif isInt(window.startDay) and window.startDay + window.days > 7 then
+            table.insert(errors, "Koloss.window: startDay + days muss in die Woche der Phase passen (höchstens 7)")
+        end
+    end
+    if not isFinite(koloss.targetSeconds) or koloss.targetSeconds <= 0 then
+        table.insert(errors, "Koloss.targetSeconds muss endlich und größer 0 sein")
+    end
+    local maxGems = math.huge
+    if type(data.Economy) == "table" and type(data.Economy.purchases) == "table" and isFinite(data.Economy.purchases.maxGems) then
+        maxGems = data.Economy.purchases.maxGems
+    end
+    if not isList(koloss.tiers) or #koloss.tiers < 1 then
+        table.insert(errors, "Koloss.tiers braucht mindestens eine Stufe")
+        return
+    end
+    local seen: { [string]: boolean } = {}
+    local last = -1
+    for index, tier in koloss.tiers do
+        local label = `Koloss Stufe {index}`
+        if type(tier) ~= "table" then
+            table.insert(errors, `{label}: muss eine Tabelle sein`)
+            continue
+        end
+        if type(tier.id) ~= "string" or tier.id == "" or type(tier.name) ~= "string" or tier.name == "" then
+            table.insert(errors, `{label}: id und name müssen Text sein`)
+        elseif seen[tier.id] then
+            table.insert(errors, `{label}: id "{tier.id}" ist doppelt`)
+        else
+            seen[tier.id] = true
+        end
+        if not isFinite(tier.minSeconds) or tier.minSeconds < 0 then
+            table.insert(errors, `{label}: minSeconds muss endlich und ab 0 sein`)
+        elseif index == 1 and tier.minSeconds ~= 0 then
+            table.insert(errors, `{label}: die erste Stufe braucht minSeconds 0 (alle im Server bei 100 % bekommen etwas)`)
+        elseif tier.minSeconds <= last then
+            table.insert(errors, `{label}: minSeconds muss aufsteigend über der vorigen Stufe liegen`)
+        else
+            last = tier.minSeconds
+        end
+        if not isList(tier.rewards) or #tier.rewards < 1 then
+            table.insert(errors, `{label}: rewards braucht mindestens eine Belohnung`)
+            continue
+        end
+        for rewardIndex, reward in tier.rewards do
+            local rewardLabel = `{label} Belohnung {rewardIndex}`
+            if type(reward) ~= "table" then
+                table.insert(errors, `{rewardLabel}: muss eine Tabelle sein`)
+            elseif reward.kind == "gems" then
+                if not isInt(reward.amount) or reward.amount < 1 or reward.amount > maxGems then
+                    table.insert(errors, `{rewardLabel}: amount muss eine ganze Zahl von 1 bis maxGems sein`)
+                end
+            elseif reward.kind == "coinBoost" or reward.kind == "luck" then
+                if not isInt(reward.seconds) or reward.seconds < 1 or reward.seconds > MAX_BOOST_REWARD_SECONDS then
+                    table.insert(errors, `{rewardLabel}: seconds muss eine ganze Zahl von 1 bis {MAX_BOOST_REWARD_SECONDS} sein`)
+                end
+            else
+                table.insert(errors, `{rewardLabel}: unbekannte Art "{tostring(if type(reward) == "table" then reward.kind else reward)}" (erlaubt: gems, coinBoost, luck)`)
+            end
+        end
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -2977,6 +3071,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkDirectShop(errors, data)
     checkSeasons(errors, data)
     checkSeasonPass(errors, data)
+    checkKoloss(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

@@ -14,12 +14,13 @@ local RunService = game:GetService("RunService")
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local SeasonsLogic = require(shared:WaitForChild("Logic"):WaitForChild("Seasons") :: ModuleScript) :: any
+local KolossLogic = require(shared:WaitForChild("Logic"):WaitForChild("Koloss") :: ModuleScript) :: any
 
 local IS_STUDIO = RunService:IsStudio()
 
 local SeasonClock = {}
 
--- Studio-Hilfe je Spieler: { action = "off" | "week" | "ended", week = number? }. Leer = echte Zeit.
+-- Studio-Hilfe je Spieler: { action = "off" | "week" | "ended" | "koloss", week = number? }. Leer = echte Zeit.
 local overrides: { [Player]: { action: string, week: number? } } = {}
 
 -- Zeit für den Kalender dieses Spielers (Unix-Sekunden).
@@ -28,7 +29,10 @@ function SeasonClock.timeFor(player: Player?): number
     if IS_STUDIO and player ~= nil then
         local override = overrides[player]
         if override ~= nil then
-            local shifted = SeasonsLogic.debugTime(override.action, override.week, now)
+            -- "koloss" (Paket 5.6): eine Stunde im Fenster des Server-Events, die Zeit rechnet Logic/Koloss.
+            local shifted = if override.action == "koloss"
+                then KolossLogic.debugTime(now)
+                else SeasonsLogic.debugTime(override.action, override.week, now)
             if shifted ~= nil then
                 return shifted
             end

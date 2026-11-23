@@ -41,6 +41,7 @@ export type Snapshot = {
     daily: { started: boolean, day: number, canClaim: boolean, secondsLeft: number, streak: number }?, -- Daily Reward (Paket 5.1)
     season: { active: boolean, id: string?, name: string?, week: number?, phaseId: string?, phaseName: string?, hint: string?, secondsLeft: number?, crateId: string?, crateOpen: boolean?, zoneId: string?, zoneOpen: boolean?, next: { id: string, name: string, crateId: string, zoneId: string?, secondsToNext: number }? }?, -- Event-Kalender (Paket 5.4)
     seasonPass: { seasonId: string, points: number, maxPoints: number, tier: number, tiers: number, premium: boolean, claimed: { free: { [string]: boolean }, premium: { [string]: boolean } }?, canBuy: boolean?, ended: boolean?, claimSecondsLeft: number?, seasonSecondsLeft: number?, passId: string? }?, -- Saison-Punkte, Stufen, Abholmerker und Kauf-Zustand (Paket 5.5, 5.5b)
+    koloss: { state: string, seasonId: string, progress: number, target: number, completed: boolean, you: number, tierId: string?, claimed: boolean, secondsLeft: number, secondsToStart: number }?, -- Server-Event "Der Koloss" (Paket 5.6)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 

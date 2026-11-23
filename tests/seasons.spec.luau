@@ -391,7 +391,8 @@ T.describe("Studio-Hilfe", function()
         local ended, endedWeek = Seasons.parseDebug("ended")
         T.expect(ended).toBe("ended")
         T.expect(endedWeek).toBeNil()
-        for _, bad in { "Ended", "ended:1", "end", " ended" } do
+        T.expect((Seasons.parseDebug("koloss"))).toBe("koloss") -- Paket 5.6, die Zeit rechnet Logic/Koloss
+        for _, bad in { "Ended", "ended:1", "end", " ended", "Koloss", "koloss:1" } do
             T.expect((Seasons.parseDebug(bad))).toBeNil()
         end
         for number = 1, 4 do
