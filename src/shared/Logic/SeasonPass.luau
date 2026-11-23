@@ -60,6 +60,7 @@ export type Entry = {
     seconds: number,
     premium: boolean,
     claimed: { free: { [string]: boolean }, premium: { [string]: boolean } },
+    koloss: boolean?, -- Belohnung des Server-Events "Der Koloss" dieser Saison abgeholt (Paket 5.6)
 }
 
 export type Data = { Economy: any?, SeasonPass: any?, Seasons: any?, CrateItems: any?, Products: any? }
@@ -329,9 +330,15 @@ function SeasonPass.cleanSeasons(value: any): ({ [string]: Entry }, { string })
         end
         -- Unbekannte Felder bleiben erhalten (ein neuerer Server, zum Beispiel 5.5b, darf nichts verlieren).
         for key, extra in raw do
-            if type(key) == "string" and key ~= "seconds" and key ~= "premium" and key ~= "claimed" then
+            if type(key) == "string" and key ~= "seconds" and key ~= "premium" and key ~= "claimed" and key ~= "koloss" then
                 (entry :: any)[key] = extra
             end
+        end
+        -- Merker des Koloss-Events (Paket 5.6): nur `true` zählt.
+        if raw.koloss == true then
+            entry.koloss = true
+        elseif raw.koloss ~= nil and raw.koloss ~= false then
+            table.insert(problems, `seasons.{seasonId}.koloss kein Wahrheitswert, entfernt`)
         end
         clean[seasonId] = entry
     end

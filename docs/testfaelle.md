@@ -625,8 +625,22 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 ## 5.6 Server-Event "Der Koloss"
 
-- [ ] [Lune] Der Fortschritt zählt nur serverseitig gemeldeten Sand aus der Event-Zone.
-- [ ] [Lune] Die Belohnung wird pro Spieler einmal vergeben und nach Beitrag gestaffelt.
+Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: Alle Spieler eines Servers graben am Wochenende der Koloss-Woche gemeinsam, bei 100 % bekommen alle im Server ihre Belohnung nach Beitrag.
+
+- [x] [Lune] Das Fenster läuft Samstag 0 Uhr bis Montag 0 Uhr UTC der Koloss-Woche (Daten: Phase, Starttag, Tage); davor "upcoming", danach "over", außerhalb einer Saison "none"; kaputte Zeit ergibt nie ein offenes Fenster.
+- [x] [Lune] Der Fortschritt zählt nur Grabsekunden, die der Server meldet, nur bei offenem Fenster; NaN, unendlich, 0 und negative Werte ändern nichts; bei 100 % gedeckelt, das Event ist danach fertig und zählt nichts mehr.
+- [x] [Lune] Der Beitrag je Spieler wächst nur um den wirklich gezählten Anteil (nichts über den Deckel); ein neues Event beginnt mit einer neuen Saison bei 0.
+- [x] [Lune] Die Stufe zum Beitrag stimmt an den Grenzen (0 s, knapp unter und genau auf der Schwelle).
+- [x] [Lune] Die Belohnung wird je Spieler und Saison einmal vergeben (Merker im Saison-Eintrag), in einem Zug mit dem Merker; Gems sind bei `maxGems` gekappt; ein Fehler bucht nichts; ein zweiter Aufruf gibt `claimed`.
+- [x] [Lune] Die Belohnungen sind fest (Gems, Münz- und Glücks-Boost), nie Kisten oder Zufall.
+- [x] [Lune] Die Anzeigeform (`koloss`) nennt Zustand, Fortschritt, Ziel, den eigenen Beitrag, Restzeit und erreichte Stufe und keine fremden Spieler.
+- [x] [Lune] Es gibt keine Remote für das Event; Fortschritt entsteht nur über `Events.addZoneSeconds`.
+- [x] [Lune] Das Feld `koloss` im Saison-Eintrag überlebt Laden, Speichern und Sandsturm und wird repariert (nur `true` zählt).
+- [x] [Lune] DataCheck: Fenster liegt in der Koloss-Woche, Ziel größer 0, Stufen aufsteigend ab 0, nur feste Belohnungen, Gems höchstens `maxGems`, Boosts höchstens 4 Stunden.
+- [x] [Lune] Studio-Hilfe: `DebugSeason "koloss"` und `DebugKoloss` ("progress:N", "complete", "reset") werden richtig gelesen und wirken nur in Studio.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (Befunde M2, N1, N3, N4, N5 behoben, Balance-Frage M1 offen, siehe architektur.md).
+- [ ] [Studio] `DebugSeason "koloss"`, `DebugKoloss "progress:5900"`, in der Event-Zone graben: Der Balken steigt, bei 100 % kommt die Meldung mit der Stufe, `KolossProgress` steht auf 1.
+- [ ] [Studio] Test mit 2 Spielern (beide setzen `DebugSeason "koloss"`, die Saison-Uhr gilt je Spieler): beide füllen denselben Balken, beide bekommen ihre Stufe.
 
 ## Ego-Perspektive (Umstellung von dritter Person)
 

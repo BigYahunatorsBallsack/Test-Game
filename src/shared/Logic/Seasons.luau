@@ -254,12 +254,12 @@ function Seasons.lastEnded(unixNow: any, data: Data?): (any?, number?)
     return found, unixNow - foundEnd
 end
 
--- Studio-Hilfe: "off", "clear", "ended" oder "week:N" (N = 1 bis Anzahl Wochen). Alles andere ergibt nil.
+-- Studio-Hilfe: "off", "clear", "ended", "koloss" (Paket 5.6, die Zeit rechnet Logic/Koloss) oder "week:N" (N = 1 bis Anzahl Wochen). Alles andere ergibt nil.
 function Seasons.parseDebug(value: any, data: Data?): (string?, number?)
     if type(value) ~= "string" then
         return nil, nil
     end
-    if value == "off" or value == "clear" or value == "ended" then
+    if value == "off" or value == "clear" or value == "ended" or value == "koloss" then
         return value, nil
     end
     local text = string.match(value, "^week:(%d+)$")
