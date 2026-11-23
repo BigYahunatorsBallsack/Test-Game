@@ -15,6 +15,7 @@ local catalog = luau.load(main.Catalog.Source, {
     environment = { script = main.Catalog, require = readData },
 })().build(base.list)
 local sprites = readData(main.TierArt)
+local navigation = readData(main.Navigation)
 
 T.describe("Werkstatt-Export", function()
     T.it("sechs Geräte mit je 48 Knoten und 75 Knoten für den Lauf", function()
@@ -90,6 +91,27 @@ T.describe("Werkstatt-Export", function()
                 used[key] = true
             end
         end
+    end)
+    T.it("zeigt Pflichtwege und Alternativen bis zum nächsten gelernten Upgrade", function()
+        local owned = { collect_tool_2 = true }
+        local function learned(id)
+            return owned[id] == true
+        end
+        local nodes, paths = navigation.route(catalog.byId, "tiefstich_master", learned)
+        T.expect(nodes.tiefstich_master).toBe(2)
+        T.expect(nodes.tiefstich_a).toBe(1)
+        T.expect(nodes.tiefstich_b).toBe(1)
+        T.expect(nodes.collect_tool_2).toBe(1)
+        T.expect(paths.collect_tool_2).toBeNil()
+        T.expect(nodes.shovel_p3_1).toBeNil()
+        owned.tiefstich_a_m1_2 = true
+        nodes, paths = navigation.route(catalog.byId, "tiefstich_master", learned)
+        T.expect(paths.tiefstich_master.tiefstich_a_m1_2).toBe(2)
+        T.expect(nodes.tiefstich_b).toBeNil()
+        T.expect(nodes.tiefstich_a_m1_1).toBeNil()
+        nodes = navigation.route(catalog.byId, "shovel_p3_4", learned)
+        T.expect(nodes.shovel_p3_2).toBe(2)
+        T.expect(nodes.shovel_p3_3).toBe(2)
     end)
 end)
 T.finish()

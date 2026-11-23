@@ -2,7 +2,9 @@
 
 Der Knopf **Baum** öffnet die Werkstatt, sobald ihn das Tutorial freigibt. Jeder Gerätereiter enthält 48 Knoten. In der Detailkarte lassen sich benachbarte Ausbaustufen anhand ihrer tatsächlichen Sprites vergleichen und direkt anwählen. Der gemerkte Knoten trägt eine Raute. Auf schmalen Displays öffnet sich die Detailkarte unter der verschiebbaren Karte.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Ansicht aus dem Spieltest](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+**Übersicht** zeigt den gesamten gewählten Baum und die Zahl der bereits gelernten Knoten. In **Ziele und Voraussetzungen** lassen sich Fähigkeiten, Meilensteine und das gemerkte Upgrade direkt aufrufen, auch wenn es in einem anderen Reiter liegt. Türkise Pfade zeigen nötige Knoten. Bernsteinfarbene Pfade zeigen mögliche Alternativen. Über **Karte** kommst du zum vorherigen Kartenausschnitt zurück. Den bisherigen **Laufbaum** findest du rechts in der Reiterleiste.
+
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 

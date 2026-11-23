@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local Input = game:GetService("UserInputService")
 local Art = require(script.Art)
 local Catalog = require(script.Catalog)
+local Navigation = require(script.Navigation)
 local Preview = require(script.Preview)
 local Workshop = {}
 local C = Art.c
@@ -39,6 +40,7 @@ local colors = {
     locked = C.lock,
     grant = C.leaf,
 }
+local alternative = Color3.fromRGB(216, 159, 89)
 local function clampPan(value, content, viewport)
     return Vector2.new(
         math.clamp(value.X, 0, math.max(0, content.X - viewport.X)),
@@ -109,9 +111,11 @@ function Workshop.mount(gui, config)
     Art.edge(mapWrap, C.brass, 2)
     local mapBar = Art.box(mapWrap, "Werkzeugleiste", C.panel, 120)
     local tabTitle = Art.text(mapBar, "Gerät", "", 18, C.ivory, true)
+    local progress = Art.text(mapBar, "Fortschritt", "", 11, C.mute, true)
+    local overviewButton = Art.button(mapBar, "Uebersicht", "Übersicht")
     local zoomOut = Art.button(mapBar, "ZoomOut", "−")
     local zoomIn = Art.button(mapBar, "ZoomIn", "+")
-    local legacy = Art.button(mapBar, "Laufbaum", "Laufbaum")
+    local legacy = Art.button(nav, "Laufbaum", "Laufbaum")
     legacy.Visible = config.onLegacy ~= nil
     local map = scroll(mapWrap, "Karte")
     map.ScrollingDirection = Enum.ScrollingDirection.XY
@@ -145,15 +149,18 @@ function Workshop.mount(gui, config)
         tone.PlaybackSpeed = pitch
         tone:Play()
     end
-    local tabs, entries, edges = {}, {}, {}
+    local tabs, entries, edges, shortcutStates = {}, {}, {}, {}
     local selected, page = nil, book.byTab.hand
     local owned, coins, walletText = {}, 0, "0"
     local training = config.trialOnly == true
     local trialOwned, variants, trialCoins = nil, {}, 0
     local zoom = 1
+    local overview = false
+    local detailPan = Vector2.zero
     local compact = false
     local expanded = false
     local activePreview = nil
+    local renderedStatus = nil
     local busy = false
     local pin = nil
     local lastSelected = {}
@@ -217,6 +224,13 @@ function Workshop.mount(gui, config)
             Vector2.new(Catalog.width, page.height) * mapScale.Scale,
             vp
         )
+    end
+    local function showDetailMap()
+        if overview then
+            overview = false
+            setZoom(zoom, false)
+            map.CanvasPosition = detailPan
+        end
     end
     local function tabFocus()
         local button = tabs[page.id]
@@ -321,6 +335,7 @@ function Workshop.mount(gui, config)
         end
     end
     selectNode = function(n, center, openSheet)
+        showDetailMap()
         selected = n.id
         lastSelected[page.id] = n.id
         pendingFeedback = ""
@@ -340,6 +355,7 @@ function Workshop.mount(gui, config)
     end
     renderDetail = function(animate)
         stopPreview()
+        table.clear(shortcutStates)
         for _, obj in detailScroll:GetChildren() do
             if obj:IsA("GuiObject") then
                 obj:Destroy()
@@ -351,7 +367,9 @@ function Workshop.mount(gui, config)
             return
         end
         local st = status(n)
-        handle.Text = n.name .. (if expanded then "   ▾" else "   ▴")
+        renderedStatus = st
+        handle.Text = (if overview then "Ziele und Voraussetzungen" else n.name)
+            .. (if expanded then "   ▾" else "   ▴")
         if compact and not expanded then
             return
         end
@@ -365,6 +383,81 @@ function Workshop.mount(gui, config)
             row(detailScroll, b, 44)
             b.Activated:Connect(callback)
             return b
+        end
+        local function jump(target)
+            showDetailMap()
+            if target.page == page.id then
+                selectNode(target, true, true)
+            else
+                changeTab(target.page, target.id, true)
+            end
+        end
+        local function mapShortcut(target, key, label)
+            local line = button(key, "", function()
+                jump(target)
+            end)
+            local icon = Art.image(line, "Motiv")
+            Art.rect(icon, 6, 5, 42, 42)
+            Art.nodeIcon(icon, target)
+            local text = Art.text(line, "Name", label, 13, C.ivory, true)
+            text.Position = UDim2.fromOffset(54, 3)
+            text.Size = UDim2.new(1, -62, 0, 24)
+            local targetState = status(target)
+            local state =
+                Art.text(line, "Status", stateNames[targetState], 11, colors[targetState], false)
+            state.Position = UDim2.fromOffset(54, 26)
+            state.Size = UDim2.new(1, -62, 0, 20)
+            line.Size = UDim2.new(1, -16, 0, 52)
+            shortcutStates[target.id] = state
+        end
+        if overview then
+            local heading = caption("Knoten", page.name, 38, 25, C.bright, true)
+            heading.Font = Enum.Font.Antique
+            if pin and pin ~= selected then
+                local target = book.byId[pin]
+                caption(
+                    "Gemerkt",
+                    "GEMERKT  ·  " .. book.byTab[target.page].name,
+                    18,
+                    12,
+                    C.leaf,
+                    true
+                )
+                mapShortcut(target, "ZumGemerkt", target.name)
+            end
+            caption(
+                "Auswahl",
+                if selected == pin then "GEMERKT" else "AUSGEWÄHLTES UPGRADE",
+                18,
+                12,
+                C.leaf,
+                true
+            )
+            mapShortcut(n, "ZurAuswahl", n.name)
+            caption(
+                "Pfad",
+                "Türkis zeigt nötige Knoten. Bernstein markiert alternative Wege.",
+                44,
+                12,
+                C.mute,
+                false
+            )
+            local goals = {}
+            for _, candidate in page.nodes do
+                if (big[candidate.kind] or candidate.granted) and candidate.id ~= selected then
+                    table.insert(goals, candidate)
+                end
+            end
+            if #goals > 0 then
+                table.sort(goals, function(a, b)
+                    return if a.y == b.y then a.x < b.x else a.y < b.y
+                end)
+                caption("Ziele", "FÄHIGKEITEN UND MEILENSTEINE", 18, 12, C.leaf, true)
+                for _, goal in goals do
+                    mapShortcut(goal, "Ziel_" .. goal.id, goal.name)
+                end
+            end
+            return
         end
         caption(
             "Kategorie",
@@ -490,11 +583,18 @@ function Workshop.mount(gui, config)
     end
     updateStates = function()
         updateWallet()
+        local target = if pin and book.byId[pin].page == page.id then pin else selected
+        local routeNodes, routeEdges = Navigation.route(book.byId, target, learned)
+        local completed = 0
         for id, e in entries do
             local n = book.byId[id]
             local state = status(n)
             local chosen = id == selected
-            e.outline.Color = if chosen then C.leaf else colors[state]
+            local route = routeNodes[id]
+            e.outline.Color = if chosen or route == 2
+                then C.leaf
+                elseif route == 1 then alternative
+                else colors[state]
             e.outline.Thickness = if chosen then 4 elseif big[n.kind] then 3 else 2
             e.button.BackgroundColor3 = if chosen then C.panel else C.dark
             e.mark.Text = if id == pin then "◆" else marks[state]
@@ -502,10 +602,29 @@ function Workshop.mount(gui, config)
             e.icon.ImageColor3 = if state == "locked"
                 then Color3.fromRGB(150, 164, 156)
                 else Color3.new(1, 1, 1)
+            e.button.Interactable = not overview
+            e.button.Selectable = not overview
+            if state == "owned" or state == "active" then
+                completed += 1
+            end
+        end
+        progress.Text = completed .. " / " .. #page.nodes .. " gelernt"
+        for id, label in shortcutStates do
+            local state = status(book.byId[id])
+            label.Text = stateNames[state]
+            label.TextColor3 = colors[state]
         end
         for _, edge in edges do
             local lit = learned(edge.from)
-            edge.line.BackgroundColor3 = if lit then C.brass else C.edge
+            local parents = routeEdges[edge.to]
+            local path = if parents then parents[edge.from] else nil
+            edge.line.BackgroundColor3 = if path == 2
+                then C.leaf
+                elseif path == 1 then alternative
+                elseif lit then C.brass
+                else C.edge
+            edge.line.Size = UDim2.fromOffset(edge.line.Size.X.Offset, if path then 5 else 3)
+            edge.line.ZIndex = if path then 106 else 105
         end
     end
     local function badge(n)
@@ -586,7 +705,7 @@ function Workshop.mount(gui, config)
                             105,
                             "Pfad"
                         )
-                        table.insert(edges, { from = id, line = l })
+                        table.insert(edges, { from = id, to = n.id, line = l })
                     end
                 end
             end
@@ -635,12 +754,24 @@ function Workshop.mount(gui, config)
             b.BackgroundColor3 = if id == page.id then C.brass else C.panel
             b.TextColor3 = if id == page.id then C.dark else C.ivory
         end
-        tabTitle.Text = page.name .. "   ·   " .. #page.nodes
+        tabTitle.Text = page.name
     end
     setZoom = function(value, center)
         local previous = mapScale.Scale
-        local vp = map.AbsoluteWindowSize
-        local point = (map.CanvasPosition + vp / 2) / math.max(0.01, previous)
+        local vp = map.AbsoluteSize
+        if overview then
+            local fit =
+                math.max(0.01, math.min((vp.X - 12) / Catalog.width, (vp.Y - 12) / page.height))
+            mapScale.Scale = fit
+            local canvas = Vector2.new(Catalog.width, page.height) * fit
+            sheet.Position = UDim2.fromOffset((vp.X - canvas.X) / 2, (vp.Y - canvas.Y) / 2)
+            map.CanvasSize = UDim2.fromOffset(vp.X, vp.Y)
+            map.CanvasPosition = Vector2.zero
+            return
+        end
+        local offsetX = sheet.Position.X.Offset
+        local point = (map.CanvasPosition + vp / 2 - Vector2.new(offsetX, 0))
+            / math.max(0.01, previous)
         zoom = math.clamp(value, 0.86, 1.6)
         local fit = math.min(1.05, math.max(0.86, map.AbsoluteSize.X / Catalog.width))
         mapScale.Scale = math.max(0.86, fit * zoom)
@@ -648,7 +779,11 @@ function Workshop.mount(gui, config)
         map.CanvasSize = UDim2.fromOffset(canvas.X, canvas.Y)
         sheet.Position = UDim2.fromOffset(math.max(0, (map.AbsoluteWindowSize.X - canvas.X) / 2), 0)
         if center then
-            map.CanvasPosition = clampPan(point * mapScale.Scale - vp / 2, canvas, vp)
+            map.CanvasPosition = clampPan(
+                point * mapScale.Scale + Vector2.new(sheet.Position.X.Offset, 0) - vp / 2,
+                canvas,
+                vp
+            )
         end
     end
     position = function()
@@ -683,11 +818,21 @@ function Workshop.mount(gui, config)
         local mapH = if compact then usable - cardH - 5 else usable
         Art.rect(mapWrap, margin, mapY, mapW, math.max(44, mapH))
         Art.rect(mapBar, 0, 0, mapW, 47)
-        local extra = if config.onLegacy then 90 else 0
-        Art.rect(tabTitle, 10, 0, math.max(50, mapW - 122 - extra), 46)
-        Art.rect(legacy, mapW - 102 - extra, 1, extra - 2, 44)
-        Art.rect(zoomOut, mapW - 97, 1, 44, 44)
-        Art.rect(zoomIn, mapW - 47, 1, 44, 44)
+        local controls = if overview then 6 else 98
+        local controlStart = mapW - controls
+        local titleWidth = math.max(40, controlStart - 104)
+        Art.rect(tabTitle, 10, 1, titleWidth, 26)
+        tabTitle.TextSize = if titleWidth < 153 then 13 else 18
+        tabTitle.TextTruncate = Enum.TextTruncate.AtEnd
+        tabTitle.TextWrapped = false
+        Art.rect(progress, 10, 28, titleWidth, 14)
+        Art.rect(overviewButton, controlStart - 88, 1, 84, 44)
+        overviewButton.Text = if overview then "Karte" else "Übersicht"
+        zoomOut.Visible = not overview
+        zoomIn.Visible = not overview
+        map.ScrollingEnabled = not overview
+        Art.rect(zoomOut, mapW - 94, 1, 44, 44)
+        Art.rect(zoomIn, mapW - 46, 1, 44, 44)
         Art.rect(map, 0, 48, mapW, math.max(1, mapH - 48))
         Art.rect(
             detail,
@@ -710,7 +855,9 @@ function Workshop.mount(gui, config)
         position()
         updateStates()
         renderDetail(true)
-        if center and selected then
+        if overview then
+            detailPan = Vector2.zero
+        elseif (center or lastSelected[id]) and selected then
             focusWorld(book.byId[selected])
         else
             map.CanvasPosition = Vector2.new(
@@ -739,7 +886,24 @@ function Workshop.mount(gui, config)
             changeTab(t.id)
         end)
     end
+    if config.onLegacy then
+        Art.rect(legacy, x, 0, 103, 44)
+        x += 110
+    end
     nav.CanvasSize = UDim2.fromOffset(x, 0)
+    overviewButton.Activated:Connect(function()
+        if overview then
+            showDetailMap()
+            position()
+        else
+            detailPan = map.CanvasPosition
+            overview = true
+            expanded = false
+            position()
+        end
+        updateStates()
+        renderDetail(false)
+    end)
     zoomOut.Activated:Connect(function()
         setZoom(zoom / 1.18, true)
     end)
@@ -751,6 +915,7 @@ function Workshop.mount(gui, config)
         local offset = point - map.AbsolutePosition
         local s = map.AbsoluteWindowSize
         return root.Visible
+            and not overview
             and offset.X >= 0
             and offset.X <= s.X
             and offset.Y >= 0
@@ -845,9 +1010,7 @@ function Workshop.mount(gui, config)
             updateStates()
             local n = book.byId[selected]
             if n then
-                local change = api._status ~= status(n)
-                api._status = status(n)
-                if change then
+                if not overview and renderedStatus ~= status(n) then
                     renderDetail(false)
                 end
                 if owned[n.id] and not before[n.id] then
@@ -889,6 +1052,11 @@ function Workshop.mount(gui, config)
         if compact and expanded then
             expanded = false
             position()
+            renderDetail(false)
+        elseif overview then
+            showDetailMap()
+            position()
+            updateStates()
             renderDetail(false)
         else
             config.onClose()
