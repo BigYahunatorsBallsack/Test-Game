@@ -20,6 +20,8 @@ Die [Münzanimation](sale_feedback/README.md) zeigt nach einem bestätigten Verk
 
 Die [Weltkarte](world_map/README.md) verbindet die fünf Zonen entlang der Karawanenroute. Relief, Symbole, Kartenpunkte und Layoutentwürfe für Desktop und Handy liegen im Paket.
 
+Die [Werkstatt](skill_tree/werkstatt/README.md) öffnet sich über den Baum-Knopf. Sie enthält sechs Gerätebäume mit je 48 Knoten, fünf weitere Ausbauäste und einen Probelauf mit eigenen Testmünzen. Die Detailkarte zeigt Ausbaustufen und Ego-Vorschauen.
+
 
 ## Einbau
 

@@ -1,0 +1,1040 @@
+[
+  {
+    "id": "hand",
+    "name": "Hand",
+    "gate": "start",
+    "core": "hand",
+    "abilityId": "kornprobe",
+    "price": 8,
+    "atlasRow": 0,
+    "abilities": [
+      {
+        "name": "Kornprobe",
+        "description": "Streiche über eine Sandprobe. Eine vorhandene Fundspur im Umkreis von 4 Studs bleibt 2 s sichtbar.",
+        "cooldown": 12
+      },
+      {
+        "name": "Schichtleser",
+        "description": "Die Spur zeigt zusätzlich 3 s lang die Richtung zur fundführenden Schicht."
+      },
+      {
+        "name": "Sandsieb",
+        "description": "Eine gesiebte Spur bleibt bei der nächsten Handvoll erhalten."
+      },
+      {
+        "name": "Doppelprobe",
+        "description": "Eine zweite Probe innerhalb von 2 s vergleicht beide Stellen und markiert die nähere Spur."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Fingerspiel",
+          "Lockerer Griff",
+          "Daumentakt",
+          "Wechselgriff",
+          "Leichter Rückzug",
+          "Geübte Finger"
+        ],
+        "effects": [
+          {
+            "stat": "Sammeltempo",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Greifpause",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Tastkreis",
+          "Armlänge",
+          "Flache Hand",
+          "Suchbogen",
+          "Weiter Griff",
+          "Offene Hand"
+        ],
+        "effects": [
+          {
+            "stat": "Greifweite",
+            "delta": 0.15,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Tastradius",
+            "delta": 0.2,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Fingerkuppe",
+          "Hohle Hand",
+          "Handmulde",
+          "Sandfänger",
+          "Beidhändig",
+          "Volle Hände"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Griff",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Muldenbreite",
+            "delta": 0.1,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Feinsinn",
+          "Kornleser",
+          "Ruhige Finger",
+          "Spurkontrast",
+          "Feintaster",
+          "Sicherer Blick"
+        ],
+        "effects": [
+          {
+            "stat": "Spursichtdauer",
+            "delta": 0.3,
+            "unit": "s"
+          },
+          {
+            "stat": "Zieltoleranz der Probe",
+            "delta": 0.1,
+            "unit": "Studs"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Lesbare Spuren",
+        "stat": "Spurdauer",
+        "delta": 0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Nahprobe",
+        "stat": "Probenradius",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Farbkorn",
+        "stat": "Richtungsanzeige",
+        "delta": 0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Kreuzpeilung",
+        "stat": "Peilweite",
+        "delta": 0.7,
+        "unit": "Studs"
+      },
+      {
+        "name": "Feinmasche",
+        "stat": "Siebgedächtnis",
+        "delta": 1,
+        "unit": "Griff"
+      },
+      {
+        "name": "Siebkreis",
+        "stat": "Siebradius",
+        "delta": 0.3,
+        "unit": "Studs"
+      },
+      {
+        "name": "Spurenpaar",
+        "stat": "Vergleichsfenster",
+        "delta": 0.4,
+        "unit": "s"
+      },
+      {
+        "name": "Zweite Stichstelle",
+        "stat": "Abstand der Proben",
+        "delta": 1,
+        "unit": "Stud"
+      }
+    ],
+    "bridges": [
+      "Flinker Sucher",
+      "Fundleser",
+      "Wüstenkundige Hand"
+    ]
+  },
+  {
+    "id": "shovel",
+    "name": "Schaufel",
+    "gate": "collect_tool_2",
+    "core": "shovel",
+    "abilityId": "tiefstich",
+    "price": 42,
+    "atlasRow": 1,
+    "abilities": [
+      {
+        "name": "Tiefstich",
+        "description": "Der nächste Stich am Fadenkreuz schneidet 1,2 Studs tiefer in den Sand.",
+        "cooldown": 10
+      },
+      {
+        "name": "Schichtöffner",
+        "description": "Der Tiefstich öffnet einen schmalen, 2 Studs tiefen Schnitt und legt seine Schichtkante frei."
+      },
+      {
+        "name": "Grabenzieher",
+        "description": "Ziehe aus dem Einstich eine 3 Studs lange, flache Rinne in Blickrichtung."
+      },
+      {
+        "name": "Anschlussstich",
+        "description": "Triff innerhalb von 1,5 s das Ende des letzten Schnitts. Der nächste Stich setzt die Rinne fort."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Schneller Ansatz",
+          "Handwechsel",
+          "Kurzer Rückhub",
+          "Sandrhythmus",
+          "Lockere Schulter",
+          "Schneller Stich"
+        ],
+        "effects": [
+          {
+            "stat": "Stichtempo",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Rückholzeit",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Langer Stiel",
+          "Ausgriff",
+          "Flacher Winkel",
+          "Vorschub",
+          "Weitstich",
+          "Weite Führung"
+        ],
+        "effects": [
+          {
+            "stat": "Reichweite",
+            "delta": 0.2,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Vorgriff",
+            "delta": 0.12,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Schneidekante",
+          "Trittkante",
+          "Breites Blatt",
+          "Blattmulde",
+          "Stahlrücken",
+          "Voller Aushub"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Stich",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Muldenbreite",
+            "delta": 0.12,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Kerbmarke",
+          "Blattführung",
+          "Richtkorn",
+          "Schneidwinkel",
+          "Zielkerbe",
+          "Ruhiger Schnitt"
+        ],
+        "effects": [
+          {
+            "stat": "Treffertoleranz am Schnitt",
+            "delta": 0.08,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Sichtdauer der Schnittkante",
+            "delta": 0.4,
+            "unit": "s"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Tiefenkante",
+        "stat": "Stichtiefe",
+        "delta": 0.25,
+        "unit": "Studs"
+      },
+      {
+        "name": "Schneller Ansatzpunkt",
+        "stat": "Abklingzeit",
+        "delta": -0.4,
+        "unit": "s"
+      },
+      {
+        "name": "Schichtmesser",
+        "stat": "Schnitttiefe",
+        "delta": 0.3,
+        "unit": "Studs"
+      },
+      {
+        "name": "Offene Schicht",
+        "stat": "Sichtdauer der Schichtkante",
+        "delta": 0.6,
+        "unit": "s"
+      },
+      {
+        "name": "Zugkante",
+        "stat": "Rinnenlänge",
+        "delta": 0.45,
+        "unit": "Studs"
+      },
+      {
+        "name": "Räumkante",
+        "stat": "Rinnenbreite",
+        "delta": 0.2,
+        "unit": "Studs"
+      },
+      {
+        "name": "Nahtführung",
+        "stat": "Anschlussfenster",
+        "delta": 0.3,
+        "unit": "s"
+      },
+      {
+        "name": "Schnittfolge",
+        "stat": "Anschlusstoleranz",
+        "delta": 0.15,
+        "unit": "Studs"
+      }
+    ],
+    "bridges": [
+      "Langhub",
+      "Sauberer Aushub",
+      "Dünenschnitt"
+    ]
+  },
+  {
+    "id": "bucket_chain",
+    "name": "Eimerkette",
+    "gate": "collect_tool_3",
+    "core": "bucket_chain",
+    "abilityId": "doppeltakt",
+    "price": 420,
+    "atlasRow": 2,
+    "abilities": [
+      {
+        "name": "Doppeltakt",
+        "description": "Die Kette befördert 3 s lang zwei Eimer pro Takt zum Tank.",
+        "cooldown": 14
+      },
+      {
+        "name": "Doppelschacht",
+        "description": "Ein zweiter Einlauf nimmt während des Doppeltakts Sand von der gegenüberliegenden Seite auf."
+      },
+      {
+        "name": "Rücklauf",
+        "description": "Bei vollem Auslauf führt die Kette bis zu 3 gefüllte Eimer zum Einlauf zurück."
+      },
+      {
+        "name": "Vollumlauf",
+        "description": "Am Ende des Doppeltakts entleert die Kette alle wartenden Eimer, soweit im Tank Platz ist."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Kettenöl",
+          "Ruhige Rolle",
+          "Kurzer Takt",
+          "Messinglager",
+          "Spannrad",
+          "Schnelllauf"
+        ],
+        "effects": [
+          {
+            "stat": "Kettentempo",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Pause am Auslauf",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Einlaufblech",
+          "Stellfuß",
+          "Trichterlippe",
+          "Langer Rahmen",
+          "Seitenrinne",
+          "Weiter Einlauf"
+        ],
+        "effects": [
+          {
+            "stat": "Einlaufbreite",
+            "delta": 0.2,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Aufnahmetiefe",
+            "delta": 0.12,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Eimerboden",
+          "Tiefer Eimer",
+          "Volle Kette",
+          "Fördermulde",
+          "Lastbolzen",
+          "Schwerlast"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Eimer",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Eimervolumen",
+            "delta": 2,
+            "unit": "Sand"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Gleichlauf",
+          "Stauanzeige",
+          "Leitrolle",
+          "Füllsensor",
+          "Kettenspur",
+          "Feinsteuerung"
+        ],
+        "effects": [
+          {
+            "stat": "Stauwarnzeit",
+            "delta": 0.2,
+            "unit": "s"
+          },
+          {
+            "stat": "Toleranz am Einlauf",
+            "delta": 0.12,
+            "unit": "Studs"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Nachlauf",
+        "stat": "Doppeltaktdauer",
+        "delta": 0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Taktgeber",
+        "stat": "Abklingzeit",
+        "delta": -0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Zweiter Trichter",
+        "stat": "Zweite Einlaufbreite",
+        "delta": 0.25,
+        "unit": "Studs"
+      },
+      {
+        "name": "Seitenzulauf",
+        "stat": "Zweite Einlaufweite",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Rücklaufeimer",
+        "stat": "Rücklaufkapazität",
+        "delta": 1,
+        "unit": "Eimer"
+      },
+      {
+        "name": "Umkehrlager",
+        "stat": "Rücklauftempo",
+        "delta": 8,
+        "unit": "%"
+      },
+      {
+        "name": "Ablaufrad",
+        "stat": "Entladetempo",
+        "delta": 8,
+        "unit": "%"
+      },
+      {
+        "name": "Freier Auslauf",
+        "stat": "Entladefenster",
+        "delta": 0.4,
+        "unit": "s"
+      }
+    ],
+    "bridges": [
+      "Langförderer",
+      "Staufreier Takt",
+      "Kettenmeister"
+    ]
+  },
+  {
+    "id": "mini_digger",
+    "name": "Mini-Bagger",
+    "gate": "collect_tool_4",
+    "core": "excavator",
+    "abilityId": "querzug",
+    "price": 4200,
+    "atlasRow": 3,
+    "abilities": [
+      {
+        "name": "Querzug",
+        "description": "Ziehe den Löffel in einem 3 Studs breiten Bogen quer durch die oberste Sandschicht.",
+        "cooldown": 12
+      },
+      {
+        "name": "Räumhub",
+        "description": "Der Löffel nimmt eine 4 Studs breite, flache Bahn in einem Zug."
+      },
+      {
+        "name": "Feinhub",
+        "description": "Der Löffel stoppt 0,4 Studs vor einem Fundstück und legt seine Kontur frei."
+      },
+      {
+        "name": "Zweiter Hub",
+        "description": "Führe innerhalb von 2 s einen zweiten Hub entlang der ersten Fahrspur aus."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Öldruck",
+          "Flotter Rückhub",
+          "Schwenklager",
+          "Ventilspiel",
+          "Pumpentakt",
+          "Schnellschwenk"
+        ],
+        "effects": [
+          {
+            "stat": "Hubtempo",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Rückhubzeit",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Ausleger",
+          "Schwenkbogen",
+          "Teleskoparm",
+          "Bodenfenster",
+          "Langarm",
+          "Weitgriff"
+        ],
+        "effects": [
+          {
+            "stat": "Armreichweite",
+            "delta": 0.3,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Schwenkwinkel",
+            "delta": 2,
+            "unit": "°"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Löffelzahn",
+          "Stahlmulde",
+          "Schneidleiste",
+          "Tieflöffel",
+          "Lastarm",
+          "Vollhub"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Hub",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Schnitttiefe",
+            "delta": 0.15,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Sichtkante",
+          "Fahrermarke",
+          "Feinhebel",
+          "Fundfenster",
+          "Spurtreue",
+          "Feinventil"
+        ],
+        "effects": [
+          {
+            "stat": "Zieltoleranz",
+            "delta": 0.12,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Fundkontur-Dauer",
+            "delta": 0.4,
+            "unit": "s"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Breitlöffel",
+        "stat": "Zugbreite",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Schnellventil",
+        "stat": "Abklingzeit",
+        "delta": -0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Flachschneide",
+        "stat": "Räumbreite",
+        "delta": 0.5,
+        "unit": "Studs"
+      },
+      {
+        "name": "Räumschuh",
+        "stat": "Räumlänge",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Fühlzahn",
+        "stat": "Fundsuchradius",
+        "delta": 0.3,
+        "unit": "Studs"
+      },
+      {
+        "name": "Konturlicht",
+        "stat": "Konturdauer",
+        "delta": 0.6,
+        "unit": "s"
+      },
+      {
+        "name": "Doppelhebel",
+        "stat": "Folgehubfenster",
+        "delta": 0.4,
+        "unit": "s"
+      },
+      {
+        "name": "Parallelführung",
+        "stat": "Seitentoleranz",
+        "delta": 0.2,
+        "unit": "Studs"
+      }
+    ],
+    "bridges": [
+      "Weitschwenk",
+      "Grabungsmeister",
+      "Doppelterrasse"
+    ]
+  },
+  {
+    "id": "vacuum_robot",
+    "name": "Saugroboter",
+    "gate": "collect_tool_5",
+    "core": "suction_robot",
+    "abilityId": "wirbelsog",
+    "price": 46000,
+    "atlasRow": 4,
+    "abilities": [
+      {
+        "name": "Wirbelsog",
+        "description": "Die Düse bündelt 2,5 s lang losen Sand aus einem Radius von 3 Studs.",
+        "cooldown": 11
+      },
+      {
+        "name": "Fächersog",
+        "description": "Teile den Einzug in zwei seitliche Streifen, die zugleich zur Düse laufen."
+      },
+      {
+        "name": "Feinabscheidung",
+        "description": "Ein Sieb im Sog hält den nächsten bereits freigelegten Fund am Auslass sichtbar fest."
+      },
+      {
+        "name": "Nachsog",
+        "description": "Nach Ende des Sogs zieht ein zweiter Impuls den verbliebenen losen Sand zur Düse."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Turbinenöl",
+          "Luftstrom",
+          "Lüfterrad",
+          "Vorlauf",
+          "Freilauf",
+          "Schnellstart"
+        ],
+        "effects": [
+          {
+            "stat": "Saugleistung je Sekunde",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Anlaufzeit",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Düsenkranz",
+          "Schlauchstück",
+          "Saugtrichter",
+          "Seiteneinzug",
+          "Schlauchbogen",
+          "Weitdüse"
+        ],
+        "effects": [
+          {
+            "stat": "Düsenreichweite",
+            "delta": 0.25,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Seiteneinzug",
+            "delta": 0.15,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Filterfach",
+          "Staubkammer",
+          "Leichtschaufel",
+          "Druckstufe",
+          "Doppelkammer",
+          "Vollstrom"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Sogimpuls",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Kammervolumen",
+            "delta": 4,
+            "unit": "Sand"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Feinsensor",
+          "Linsenring",
+          "Spurlicht",
+          "Regelventil",
+          "Staubblende",
+          "Zielsensor"
+        ],
+        "effects": [
+          {
+            "stat": "Siebmarkierung",
+            "delta": 0.4,
+            "unit": "s"
+          },
+          {
+            "stat": "Sensorradius",
+            "delta": 0.2,
+            "unit": "Studs"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Seitendüsen",
+        "stat": "Wirbelradius",
+        "delta": 0.35,
+        "unit": "Studs"
+      },
+      {
+        "name": "Wirbelkern",
+        "stat": "Wirbeldauer",
+        "delta": 0.35,
+        "unit": "s"
+      },
+      {
+        "name": "Fächerblatt",
+        "stat": "Streifenbreite",
+        "delta": 0.25,
+        "unit": "Studs"
+      },
+      {
+        "name": "Breitstrahl",
+        "stat": "Streifenlänge",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Sieblinse",
+        "stat": "Fundmarkierung",
+        "delta": 0.6,
+        "unit": "s"
+      },
+      {
+        "name": "Sortierfach",
+        "stat": "Siebplätze",
+        "delta": 1,
+        "unit": "Fund"
+      },
+      {
+        "name": "Restluft",
+        "stat": "Nachsogradius",
+        "delta": 0.4,
+        "unit": "Studs"
+      },
+      {
+        "name": "Impulsrad",
+        "stat": "Nachsogstärke",
+        "delta": 8,
+        "unit": "%"
+      }
+    ],
+    "bridges": [
+      "Langer Atem",
+      "Klarer Filter",
+      "Wirbelmeister"
+    ]
+  },
+  {
+    "id": "mega_machine",
+    "name": "Dünen-Harvester",
+    "gate": "collect_tool_6",
+    "core": "harvester",
+    "abilityId": "pufferfahrt",
+    "price": 540000,
+    "atlasRow": 5,
+    "abilities": [
+      {
+        "name": "Pufferfahrt",
+        "description": "Bei vollem Tank nimmt der Harvester bis zu 6 s lang weitere 60 Sand in seinen Puffer auf. Freier Tankplatz löst die Übergabe aus.",
+        "cooldown": 18
+      },
+      {
+        "name": "Walzenspur",
+        "description": "Die Pufferfahrt verbreitert die Walzenspur an der Dünenkuppe um 2 Studs."
+      },
+      {
+        "name": "Umladewerk",
+        "description": "Entlade während der Fahrt einmal bis zu 30 gepufferten Sand in einen erreichbaren freien Tank."
+      },
+      {
+        "name": "Durchlauf",
+        "description": "Nach erfolgreicher Übergabe laufen die Walzen noch 3 s mit aktivem Puffer weiter."
+      }
+    ],
+    "lanes": [
+      {
+        "names": [
+          "Antriebsrad",
+          "Schwungrad",
+          "Walzentakt",
+          "Schaltwelle",
+          "Freilager",
+          "Marschtakt"
+        ],
+        "effects": [
+          {
+            "stat": "Walzentempo",
+            "delta": 4,
+            "unit": "%"
+          },
+          {
+            "stat": "Schaltpause",
+            "delta": -0.03,
+            "unit": "s"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Walzenrand",
+          "Seitenschild",
+          "Frontbügel",
+          "Kuppenlauf",
+          "Breitspur",
+          "Fernkante"
+        ],
+        "effects": [
+          {
+            "stat": "Arbeitsbreite",
+            "delta": 0.4,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Frontreichweite",
+            "delta": 0.25,
+            "unit": "Studs"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Räumzahn",
+          "Austragsfach",
+          "Doppeltrommel",
+          "Lastkammer",
+          "Stahlrippe",
+          "Vollwalze"
+        ],
+        "effects": [
+          {
+            "stat": "Sand je Umdrehung",
+            "delta": 5,
+            "unit": "%"
+          },
+          {
+            "stat": "Zwischenvolumen",
+            "delta": 8,
+            "unit": "Sand"
+          }
+        ]
+      },
+      {
+        "names": [
+          "Sichtschlitz",
+          "Spurlaser",
+          "Hangfühler",
+          "Leitkante",
+          "Nivellierung",
+          "Spurregler"
+        ],
+        "effects": [
+          {
+            "stat": "Spurtoleranz",
+            "delta": 0.2,
+            "unit": "Studs"
+          },
+          {
+            "stat": "Kuppenmarkierung",
+            "delta": 0.4,
+            "unit": "s"
+          }
+        ]
+      }
+    ],
+    "mods": [
+      {
+        "name": "Pufferbleche",
+        "stat": "Puffervolumen",
+        "delta": 15,
+        "unit": "Sand"
+      },
+      {
+        "name": "Reservegang",
+        "stat": "Pufferdauer",
+        "delta": 0.7,
+        "unit": "s"
+      },
+      {
+        "name": "Kuppenwalze",
+        "stat": "Zusätzliche Spurbreite",
+        "delta": 0.6,
+        "unit": "Studs"
+      },
+      {
+        "name": "Seitenzahn",
+        "stat": "Spurtiefe",
+        "delta": 0.25,
+        "unit": "Studs"
+      },
+      {
+        "name": "Laderüssel",
+        "stat": "Umladereichweite",
+        "delta": 0.8,
+        "unit": "Studs"
+      },
+      {
+        "name": "Übergabefach",
+        "stat": "Übergabemenge",
+        "delta": 10,
+        "unit": "Sand"
+      },
+      {
+        "name": "Freier Durchlauf",
+        "stat": "Nachlaufdauer",
+        "delta": 0.5,
+        "unit": "s"
+      },
+      {
+        "name": "Speicherring",
+        "stat": "Nachlaufpuffer",
+        "delta": 12,
+        "unit": "Sand"
+      }
+    ],
+    "bridges": [
+      "Fernfahrt",
+      "Lastverteilung",
+      "Wanderwerk"
+    ]
+  }
+]

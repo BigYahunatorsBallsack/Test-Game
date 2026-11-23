@@ -1,0 +1,10 @@
+{
+  "name": "ELG_Werkstatt",
+  "tree": {
+    "$className": "ScreenGui",
+    "$properties": {"ResetOnSpawn": false, "DisplayOrder": 8, "ZIndexBehavior": "Global"},
+    "Workshop": {"$path": "../../../../src/client/Interface/Workshop"},
+    "BaseTree": {"$path": "../../../../src/shared/Data/UpgradeTree.luau"},
+    "Werkbank": {"$path": "Werkbank.client.luau"}
+  }
+}

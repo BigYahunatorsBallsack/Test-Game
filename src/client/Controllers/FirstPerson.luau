@@ -209,6 +209,10 @@ local function shown(object: GuiObject): boolean
 end
 
 local function guiWantsCursor(playerGui: Instance): boolean
+    local tree = playerGui:FindFirstChild("DuneBaronTree")
+    if tree and tree:GetAttribute("WerkstattOffen") == true then
+        return true
+    end
     for _, name in Data.cursor.cursorGuis do
         local gui = playerGui:FindFirstChild(name)
         if gui ~= nil and gui:IsA("ScreenGui") and gui.Enabled then

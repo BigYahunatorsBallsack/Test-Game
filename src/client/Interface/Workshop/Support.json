@@ -1,0 +1,284 @@
+{
+  "tank": [
+    {
+      "id": "tank_messbecher",
+      "name": "Messbecher",
+      "requires": [
+        "tank_1"
+      ],
+      "description": "Eine Messmarke zeigt die Füllung in Vierteln an.",
+      "cost": 45
+    },
+    {
+      "id": "tank_ueberlauf",
+      "name": "Überlaufwanne",
+      "requires": [
+        "tank_messbecher"
+      ],
+      "description": "Fängt beim ersten Überfüllen bis zu 5 Sand auf. Leert sich beim Verkauf.",
+      "cost": 140
+    },
+    {
+      "id": "tank_dichtung",
+      "name": "Dichtring",
+      "requires": [
+        "tank_ueberlauf"
+      ],
+      "description": "Erhöht die Überlaufwanne von 5 auf 10 Sand.",
+      "cost": 280
+    },
+    {
+      "id": "tank_schwallwand",
+      "name": "Schwallwand",
+      "requires": [
+        "tank_dichtung"
+      ],
+      "description": "Erhöht die Überlaufwanne von 10 auf 20 Sand.",
+      "cost": 700
+    },
+    {
+      "id": "tank_schuette",
+      "name": "Schnellschütte",
+      "requires": [
+        "tank_4"
+      ],
+      "description": "Beim Entladen lässt sich eine zweite Teilfüllung für 2 s vormerken.",
+      "cost": 800
+    },
+    {
+      "id": "tank_doppelklappe",
+      "name": "Doppelklappe",
+      "requires": [
+        "tank_schuette"
+      ],
+      "description": "Verlängert das Vormerkfenster um 1 s.",
+      "cost": 1800
+    },
+    {
+      "id": "tank_reservefach",
+      "name": "Reservefach",
+      "requires": [
+        "tank_doppelklappe"
+      ],
+      "description": "Eine vorgemerkte Entladung kann 8 Sand für den nächsten Auftrag zurückhalten.",
+      "cost": 4800
+    },
+    {
+      "id": "tank_lastverteiler",
+      "name": "Lastverteiler",
+      "requires": [
+        "tank_schwallwand",
+        "tank_reservefach"
+      ],
+      "description": "Überträgt beim Entladen auch Inhalt aus der Überlaufwanne in das Reservefach.",
+      "cost": 14000
+    }
+  ],
+  "sell": [
+    {
+      "id": "sell_lieferschein",
+      "name": "Lieferschein",
+      "requires": [
+        "sell_1"
+      ],
+      "description": "Am Stand kannst du eine Lieferung von 30 Sand vormerken.",
+      "cost": 70
+    },
+    {
+      "id": "sell_mengenrabatt",
+      "name": "Mengenauftrag",
+      "requires": [
+        "sell_lieferschein"
+      ],
+      "description": "Eine vollständige vorgemerkte Lieferung erzielt 6 % mehr Münzen.",
+      "cost": 220
+    },
+    {
+      "id": "sell_grosslos",
+      "name": "Großlos",
+      "requires": [
+        "sell_mengenrabatt"
+      ],
+      "description": "Wähle alternativ ein Los von 90 Sand mit 9 % Lieferbonus.",
+      "cost": 600
+    },
+    {
+      "id": "sell_teillieferung",
+      "name": "Teillieferung",
+      "requires": [
+        "sell_grosslos"
+      ],
+      "description": "Ein Großlos darf in zwei Gängen abgegeben werden.",
+      "cost": 1700
+    },
+    {
+      "id": "sell_farbprobe",
+      "name": "Farbprobe",
+      "requires": [
+        "sell_3"
+      ],
+      "description": "Schaltet einen Auftrag für eine bestimmte freigeschaltete Sandsorte frei.",
+      "cost": 1500
+    },
+    {
+      "id": "sell_roter_sand",
+      "name": "Oasenvertrag",
+      "requires": [
+        "sell_farbprobe"
+      ],
+      "description": "Aufträge für roten Oasensand zahlen zusätzlich 5 %.",
+      "cost": 4400
+    },
+    {
+      "id": "sell_weisser_sand",
+      "name": "Canyonvertrag",
+      "requires": [
+        "sell_roter_sand"
+      ],
+      "description": "Aufträge für weißen Canyonsand zahlen zusätzlich 5 %.",
+      "cost": 11000
+    },
+    {
+      "id": "sell_karawanenbrief",
+      "name": "Karawanenbrief",
+      "requires": [
+        "sell_teillieferung",
+        "sell_weisser_sand"
+      ],
+      "description": "Ein passender Sortenauftrag darf als Großlos mit beiden Boni abgegeben werden.",
+      "cost": 36000
+    }
+  ],
+  "luck": [
+    {
+      "id": "luck_spurbuch",
+      "name": "Spurbuch",
+      "requires": [
+        "luck_1"
+      ],
+      "description": "Markiere ein unvollständiges Set deiner aktuellen Zone im Fundbuch.",
+      "cost": 75
+    },
+    {
+      "id": "luck_kreide",
+      "name": "Fundkreide",
+      "requires": [
+        "luck_spurbuch"
+      ],
+      "description": "Spuren bereits vorhandener Funde erhalten für 2 s einen Kreidering.",
+      "cost": 260
+    },
+    {
+      "id": "luck_index",
+      "name": "Fundindex",
+      "requires": [
+        "luck_kreide"
+      ],
+      "description": "Der Kreidering zeigt zusätzlich das Setzeichen.",
+      "cost": 720
+    },
+    {
+      "id": "luck_pauspapier",
+      "name": "Pauspapier",
+      "requires": [
+        "luck_index"
+      ],
+      "description": "Die letzte Kreidemarkierung bleibt nach dem Weitergehen 4 s im Buch sichtbar.",
+      "cost": 1900
+    },
+    {
+      "id": "luck_lupe",
+      "name": "Feldlupe",
+      "requires": [
+        "luck_3"
+      ],
+      "description": "Prüfe eine freigelegte Spur auf Zugehörigkeit zum markierten Set.",
+      "cost": 1700
+    },
+    {
+      "id": "luck_lichtkante",
+      "name": "Streiflicht",
+      "requires": [
+        "luck_lupe"
+      ],
+      "description": "Vergrößert die Prüfweite der Feldlupe um 2 Studs.",
+      "cost": 4500
+    },
+    {
+      "id": "luck_abdruck",
+      "name": "Siegelabdruck",
+      "requires": [
+        "luck_lichtkante"
+      ],
+      "description": "Merkt die zuletzt geprüfte passende Fundstelle bis zum Zonenwechsel.",
+      "cost": 12000
+    },
+    {
+      "id": "luck_kartentisch",
+      "name": "Kartentisch",
+      "requires": [
+        "luck_pauspapier",
+        "luck_abdruck"
+      ],
+      "description": "Zeigt die zwei zuletzt geprüften Stellen des Zielsets gemeinsam im Buch.",
+      "cost": 39000
+    }
+  ],
+  "sandstorm": [
+    {
+      "id": "sandstorm_lager",
+      "name": "Karawanenlager",
+      "requires": [
+        "sandstorm_1"
+      ],
+      "description": "Im neuen Lauf zeigt ein Wegweiser die Richtung zum Händler.",
+      "cost": 300
+    },
+    {
+      "id": "sandstorm_wimpel",
+      "name": "Sturmwimpel",
+      "requires": [
+        "sandstorm_lager"
+      ],
+      "description": "Der Wegweiser markiert zusätzlich den Rückweg zur Startdüne.",
+      "cost": 1200
+    },
+    {
+      "id": "sandstorm_wegmarke",
+      "name": "Wegmarke",
+      "requires": [
+        "sandstorm_wimpel"
+      ],
+      "description": "Setze im aktuellen Lauf eine eigene sichtbare Karawanenmarke.",
+      "cost": 3600
+    },
+    {
+      "id": "sandstorm_relief",
+      "name": "Ruinenrelief",
+      "requires": [
+        "sandstorm_ruins"
+      ],
+      "description": "Eine Tafel zeigt die Richtung zur nächsten bekannten Ruine dieser Zone.",
+      "cost": 800000
+    },
+    {
+      "id": "sandstorm_grundriss",
+      "name": "Grundriss",
+      "requires": [
+        "sandstorm_relief"
+      ],
+      "description": "Am Zugang der Ruine erscheint 5 s lang ihr Grundriss.",
+      "cost": 2600000
+    },
+    {
+      "id": "sandstorm_archiv",
+      "name": "Sturmarchiv",
+      "requires": [
+        "sandstorm_wegmarke",
+        "sandstorm_grundriss"
+      ],
+      "description": "Die Karawanenmarke kann direkt auf den zuletzt gelesenen Ruinengrundriss gesetzt werden.",
+      "cost": 8500000
+    }
+  ]
+}

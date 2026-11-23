@@ -108,6 +108,7 @@ local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: an
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
 local UnlockPlayer = require(script.Parent:WaitForChild("UnlockPlayer") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local Workshop = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Workshop") :: ModuleScript) :: any
 
 local SkillTree = {}
 
@@ -761,8 +762,13 @@ function SkillTree.Start()
     end
 
     ---------------------------------------------------------------- Aktualisieren
+    local workshop: any = nil
     local function refresh(newSnapshot: any)
         snapshot = newSnapshot
+        if workshop ~= nil then
+            local balance = BigNum.deserialize(newSnapshot.coins)
+            workshop.sync(newSnapshot, BigNum.toNumber(balance), BigNum.format(balance))
+        end
 
         -- Neu gekaufte Knoten gegenüber dem vorigen StateSync. Läuft noch eine Sequenz, endet sie
         -- jetzt (Endzustand), bevor der Baum neu gezeichnet wird.
@@ -873,6 +879,8 @@ function SkillTree.Start()
         selectedId = nil
         refresh(snapshot)
         focusCamera()
+        overlay.Visible = false
+        workshop.open(highlightId)
     end
 
     local function close()
@@ -881,6 +889,7 @@ function SkillTree.Start()
         end
         isOpen = false
         player.stop()
+        workshop.close()
         overlay.Visible = false
         selectedId = nil
         card.Visible = false
@@ -889,6 +898,31 @@ function SkillTree.Start()
             refresh(snapshot)
         end
     end
+
+    workshop = Workshop.mount(gui, {
+        baseNodes = UpgradeTree.list,
+        onClose = close,
+        onLegacy = function()
+            workshop.close()
+            overlay.Visible = true
+            focusCamera()
+        end,
+        purchase = function(id: string)
+            if UpgradeTree.byId[id] == nil then
+                return { ok = false, reason = "unknown" }
+            end
+            return purchase:InvokeServer(id)
+        end,
+    })
+    local workbenchButton = roundButton(overlay, "WerkstattOeffnen", "Werkstatt", UDim2.fromOffset(110, 44))
+    workbenchButton.AnchorPoint = Vector2.new(1, 0)
+    workbenchButton.Position = UDim2.new(1, -BUTTON_MARGIN * 2 - ICON_BUTTON_SIZE, 0, BUTTON_MARGIN)
+    workbenchButton.ZIndex = 21
+    workbenchButton.Activated:Connect(function()
+        overlay.Visible = false
+        player.stop()
+        workshop.open()
+    end)
 
     openButton.Activated:Connect(function()
         if isOpen then
@@ -916,8 +950,8 @@ function SkillTree.Start()
     end)
 
     UserInputService.InputBegan:Connect(function(input: InputObject, _processed: boolean)
-        if isOpen and input.KeyCode == Enum.KeyCode.Escape then
-            close()
+        if isOpen and (input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.ButtonB) then
+            if workshop.visible() then workshop.back() else close() end
         end
     end)
 
@@ -986,7 +1020,7 @@ function SkillTree.Start()
     end
 
     UserInputService.InputChanged:Connect(function(input: InputObject, _processed: boolean)
-        if not isOpen then
+        if not isOpen or not overlay.Visible then
             return
         end
         if input.UserInputType == Enum.UserInputType.Touch then
