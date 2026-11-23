@@ -46,6 +46,11 @@ function Input.isHolding(): boolean
     return holding
 end
 
+-- Ist das Sammeln gerade pausiert (Skilltree offen)? Die Ego-Perspektive gibt dann die Maus frei.
+function Input.isSuspended(): boolean
+    return suspended
+end
+
 local function bindCollect()
     -- Kein Standard-Knopf von Roblox: Am Handy gibt es den eigenen Graben-Knopf.
     ContextActionService:BindAction(ACTION_NAME, function(_name: string, inputState: Enum.UserInputState, _input: InputObject)

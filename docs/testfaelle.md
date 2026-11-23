@@ -627,3 +627,26 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 - [ ] [Lune] Der Fortschritt zählt nur serverseitig gemeldeten Sand aus der Event-Zone.
 - [ ] [Lune] Die Belohnung wird pro Spieler einmal vergeben und nach Beitrag gestaffelt.
+
+## Ego-Perspektive (Umstellung von dritter Person)
+
+Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand mit dem Werkzeug (Schaufel), links unten die Hand mit dem Eimer, beide bewegen sich beim Graben und Laufen, und alle Menüs bleiben bedienbar. Vorbild: Waltuhs Referenzbilder vom 22.11.2026.
+
+- [x] [Lune] Die Tabelle `Data/FirstPerson` ist fehlerfrei, jedes Werkzeug aus `Data/Tools` hat einen Eintrag, und `check` meldet fehlenden Eintrag, unbekanntes Teil, unbekannten Grabstil, falsches Sichtfeld, leere Tasten, fehlenden Standard, Periode 0, `fadeTo` außerhalb 0 bis 1, kaputte Teile (Form, Größe, Farbe, Bemalung), falschen Füllstand und Hände hinter der Kamera.
+- [x] [Lune] Rechte Hand vorn rechts, Eimer vorn links. Hand und Schaufel ersetzen das Weltmodell, Maschinen bleiben in der Welt und die Hand hält die Fernsteuerung.
+- [x] [Lune] Bewegung: im Stand ohne Graben am Anker, Schaufel sticht nach vorn unten und kommt zurück (kein Rückwärts-Stich), der Eimer wippt mit, Hand greift nach vorn unten, Fernsteuerung zittert unter 0,1 Studs, Wippen beim Laufen wächst mit der Geschwindigkeit, NaN und unendlich ergeben keine Bewegung.
+- [x] [Lune] Nachziehen beim Umsehen: gegen die Drehung, begrenzt auf `maxDegrees`, klingt ab.
+- [x] [Lune] Eimer: leer dünne Schicht, voll knapp unter dem Rand, halb voll in der Mitte, Werte außerhalb begrenzt, Kapazität 0 oder NaN ergibt leer.
+- [x] [Lune] Maus: gesperrt ohne Fenster, Baum, Karte und Taste, jeder einzelne Grund gibt sie frei, nur Alt schaltet um.
+- [x] [Lune] Eigene Maschine: Hand und Schaufel verdecken nichts, der Körper von Saugroboter und Mega-Maschine wird durchscheinend, Ketten neben dem Charakter bleiben sichtbar, Teile hinter oder hoch über dem Charakter zählen nicht, Drehungen werden mitgerechnet.
+- [ ] [Studio] Spawn: Die Kamera sitzt im Kopf, Mausrad zoomt nicht heraus. Rechts unten Hand (Hautfarbe des Avatars), links unten Hand mit Eimer, wie auf den Referenzbildern.
+- [ ] [Studio] Schaufel kaufen: Die Schaufel liegt in der rechten Hand, der Stiel zeigt zur Bildmitte, das Blatt nach vorn unten. Die Schaufel vor dem Charakter in der Welt ist für einen selbst weg.
+- [ ] [Studio] Linke Maustaste halten (und Graben-Knopf am Handy): Hand greift, Schaufel sticht, Fernsteuerung zittert. Der Sand im Eimer steigt mit dem Tank und ist nach dem Verkaufen wieder unten.
+- [ ] [Studio] Laufen, Springen, schnelles Umsehen: Hände wippen leicht und ziehen nach, nichts flackert. Umhang und Schärpe des eigenen Skins sind nicht im Bild.
+- [ ] [Studio] Werkzeug-Wechsel bis zur Mega-Maschine: Die Kamera bleibt im Kopf, der Teil der Maschine direkt vor den Augen ist durchscheinend, das Loch vorn ist zu sehen.
+- [ ] [Studio] PC: Fadenkreuz in der Mitte, Hinweis "Alt: Maus frei" für 10 Sekunden. Alt gibt die Maus frei, Menüleiste anklickbar, Alt sperrt wieder. Fenster (Zonen, Shop, Sammlung ...), Baum, Offline-Karte und Kisten-Reveal geben die Maus von selbst frei und sperren sie beim Schließen wieder. Fund-Karten beim Graben lassen die Maus gesperrt.
+- [ ] [Studio] Handy (Emulator): Wischen dreht die Kamera, Steuerknüppel, Sprung- und Graben-Knopf und Menüleiste funktionieren wie vorher, die Hände verdecken keine Knöpfe.
+- [ ] [Studio] Händlerstand: Der Prompt "Verkaufen" erscheint in der Ego-Perspektive und E verkauft.
+- [ ] [Studio] Zweiter Spieler (Test mit 2 Spielern): Der andere sieht den ganzen Avatar mit Skin und Werkzeug, keine schwebenden Hände.
+- [x] [Lune] Zielen beim Graben (`Logic/DigAim`): Für jedes Werkzeug gilt min < Arbeitsspitze < max, und das Loch erreicht den Charakter-Quader in keiner Richtung. Treffer in Reichweite: genau dort. Zu nah: auf min hinausgeschoben. Zu weit: auf max zurückgeholt. Seitlich oder hinter dem Charakter geht. Kein Treffer (Himmel): Arbeitsspitze in Blickrichtung. Ungültige Eingaben ergeben nil. `flowSpeed`: schnell genug für die Strecke, nie unter der Grundgeschwindigkeit.
+- [ ] [Studio] Graben folgt dem Fadenkreuz: Nach links, rechts, nah und weit zielen, das Loch und der Staub entstehen dort. Vor die Füße zielen: Das Loch bleibt so weit weg, dass man nicht hineinfällt. In den Himmel zielen: Es wird vor einem gegraben. Mit Alt (freie Maus) folgt das Loch dem Mauszeiger. Ab der Eimerkette beginnt der Sandfluss der Maschine am Grabpunkt und fliegt zur Maschine.

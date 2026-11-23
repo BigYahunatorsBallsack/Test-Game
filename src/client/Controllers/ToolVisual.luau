@@ -40,6 +40,9 @@ end
 local ToolLook = loadShared("Logic", "ToolLook")
 local ToolLooks = loadShared("Data", "ToolLooks")
 local ItemLooks = loadShared("Data", "ItemLooks")
+local FirstPersonData = loadShared("Data", "FirstPerson")
+local DigAim = loadShared("Logic", "DigAim")
+local Dig = require(script.Parent:WaitForChild("Dig") :: ModuleScript) :: any
 local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local ToolVisual = {}
@@ -209,8 +212,9 @@ local function buildEntry(player: Player, toolId: string, animated: boolean, var
     local parts: { BasePart } = {}
     local baseSizes: { Vector3 } = {}
     local baseCFrames: { CFrame } = {}
-    for _, spec in look.parts do
+    for index, spec in look.parts do
         local part = Instance.new("Part")
+        part.Name = `Part{index}` -- Controllers/FirstPerson blendet Teile vor den Augen über die Nummer aus
         part.Anchored = true
         part.CanCollide = false
         part.CanQuery = false
@@ -262,6 +266,11 @@ local function buildEntry(player: Player, toolId: string, animated: boolean, var
 end
 
 local function applyCamera(look: any, animated: boolean)
+    -- In der Ego-Perspektive bleibt die Kamera im Kopf (Controllers/FirstPerson), große Maschinen
+    -- werden dort vor den Augen durchscheinend statt die Kamera zurückzuziehen.
+    if FirstPersonData.enabled then
+        return
+    end
     local target = BASE_MIN_ZOOM + look.cameraBonusStuds
     if cameraTween ~= nil then
         cameraTween:Cancel()
@@ -389,7 +398,24 @@ local function updateEntry(player: Player, entry: Entry, root: BasePart, humanoi
     if entry.flowPart ~= nil then
         table.insert(list, entry.flowPart)
         local fp = entry.flowCFrame
-        table.insert(cframes, ground * (CFrame.new(fp.Position * scale) * (fp - fp.Position)))
+        local flowWorld = ground * (CFrame.new(fp.Position * scale) * (fp - fp.Position))
+        -- Ego-Perspektive: Beim eigenen Charakter beginnt der Sandfluss dort, wo gerade gegraben
+        -- wird (Fadenkreuz, Controllers/Dig), und fliegt zur Maschine.
+        local aim = if player == localPlayer then Dig.aimPoint() else nil
+        if aim ~= nil then
+            local flow = entry.look.sandFlow
+            local toWorld = ground * Vector3.new(flow.to.x * scale, flow.to.y * scale, flow.to.z * scale)
+            local dir = toWorld - aim
+            flowWorld = CFrame.new(aim) * alignY(if dir.Magnitude > 1e-4 then dir.Unit else Vector3.yAxis)
+            if entry.emitter ~= nil then
+                local speed = DigAim.flowSpeed(dir.Magnitude, flow.lifetime, flow.speed)
+                entry.emitter.Speed = NumberRange.new(speed * 0.8, speed)
+            end
+        elseif entry.emitter ~= nil and player == localPlayer then
+            local flow = entry.look.sandFlow
+            entry.emitter.Speed = NumberRange.new(flow.speed * 0.8, flow.speed)
+        end
+        table.insert(cframes, flowWorld)
     end
     if #list > 0 then
         workspace:BulkMoveTo(list, cframes, Enum.BulkMoveMode.FireCFrameChanged)

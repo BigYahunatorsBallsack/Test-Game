@@ -1,6 +1,6 @@
 # Dune Baron (Arbeitstitel): Roblox-Sand-Inkremental-Spiel
 
-Inkremental-Sim in dritter Person: Sand sammeln, verkaufen, mit immer größeren Werkzeugen aufrüsten, Fundstücke mit Seltenheit sammeln, Sandsturm (Prestige). Weich-realistische Optik, Sand als verformbares Terrain (nur auf dem Client). Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md. Testfälle: docs/testfaelle.md.
+Inkremental-Sim in Ego-Perspektive mit sichtbaren Armen: Sand sammeln, verkaufen, mit immer größeren Werkzeugen aufrüsten, Fundstücke mit Seltenheit sammeln, Sandsturm (Prestige). Weich-realistische Optik, Sand als verformbares Terrain (nur auf dem Client). Monetarisierung über Kisten (Gems, Quoten sichtbar), Gamepasses, Saison-Pass. Kein Trading. Konzept: docs/konzept.md. Plan: docs/umsetzungsplan.md. Testfälle: docs/testfaelle.md.
 
 ## Technik-Regeln
 
