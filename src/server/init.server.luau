@@ -14,7 +14,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- SeasonPasses (Paket 5.5b) steht nach Shop und Events: Es registriert seine Kauf-Handler schon in
 -- Init (Shop.Init hat Purchases vorher angelegt), also vor Shop.Start (ProcessReceipt) und vor
 -- Shop.AfterStart; die Remotes kommen in Start, zur Laufzeit nutzt es die Sperre von Crates.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes" }
+-- Friends (Paket 5.7, Freunde-Bonus) und Leaderboard (Rangliste, Besuch) stehen am Ende: Friends setzt den
+-- Münz-Faktor über Sand, Leaderboard liest Profile über PlayerData und registriert seine Remotes in Start.
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes", "Friends", "Leaderboard" }
 
 type Service = {
     Init: () -> (),

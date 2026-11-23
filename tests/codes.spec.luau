@@ -652,7 +652,7 @@ T.describe("Codes nur auf dem Server, nie Kisten oder Items", function()
             end
         end
         T.expect(string.find(SERVICE_SOURCE, 'servicesFolder.Parent:WaitForChild("Data"):WaitForChild("Codes")', 1, true) ~= nil).toBe(true)
-        T.expect(string.find(BOOTSTRAP_SOURCE, '"Daily", "Codes" }', 1, true) ~= nil).toBe(true)
+        T.expect(string.find(BOOTSTRAP_SOURCE, '"Daily", "Codes"', 1, true) ~= nil).toBe(true)
     end)
 
     T.it("jede Belohnung der Server-Tabelle ist Gems, Münz- oder Glücks-Boost, ohne Kisten- oder Item-Felder", function()

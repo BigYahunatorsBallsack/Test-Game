@@ -646,14 +646,14 @@ Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: 
 
 Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, Plan". Fertig, wenn: Boni und Rangliste laufen, der Besuch zeigt eine fremde Sammlung.
 
-- [ ] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Friends`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
-- [ ] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
-- [ ] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
-- [ ] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.
-- [ ] [Lune] Auszug (Showcase): enthält nur bekannte Fundstück-IDs, nie mehr Einträge als der Katalog; ein kaputter oder fremder Auszug wird beim Lesen bereinigt; die Ansicht rechnet Wert und Set-Fortschritt mit `Logic/Collection`.
-- [ ] [Lune] Besuchsregel: erlaubt für sich selbst und für Freunde, sonst "notFriend"; ungültige UserId ergibt "error"; nichts Schreibendes in der Ansicht.
-- [ ] [Lune] RemoteSpec: `GetLeaderboard` (keine Argumente) und `ViewCollection` (ganze UserId) mit Rate-Limit; der Wächtertest findet keine Remote, die einen Wert vom Client übernimmt.
-- [ ] [Lune] Anbindung: `Friends` und `Leaderboard` stehen in `SERVICE_NAMES`, `Sand.optionsFor` multipliziert den Freunde-Faktor in den Münz-Faktor, Offline-Ertrag nutzt ihn nicht, DataStore-Aufrufe laufen in pcall, Studio nutzt einen eigenen Speichernamen.
+- [x] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Social`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
+- [x] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
+- [x] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
+- [x] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.
+- [x] [Lune] Auszug (Showcase): enthält nur bekannte Fundstück-IDs, nie mehr Einträge als der Katalog; ein kaputter oder fremder Auszug wird beim Lesen bereinigt; die Ansicht rechnet Wert und Set-Fortschritt mit `Logic/Collection`.
+- [x] [Lune] Besuch: Der Client nennt nie einen Spieler, nur einen Platz (1 bis maxFriends) in der Freundesliste, die der Server selbst gebaut hat; ungültiger Platz, Text, NaN oder zu groß ergibt nil (notFriend); die Freundesliste wird bereinigt (ganze UserIds, einmal, Namen gekürzt, höchstens maxFriends); nichts Schreibendes in der Ansicht.
+- [x] [Lune] RemoteSpec: `GetLeaderboard` und `GetFriends` (keine Argumente) und `ViewCollection` (Platz 1 bis maxFriends, keine UserId) mit Rate-Limit; der Wächtertest (policyguards) lässt die Zahl nur mit Begründung zu.
+- [x] [Lune] Anbindung: `Friends` und `Leaderboard` stehen in `SERVICE_NAMES`, `Sand.optionsFor` multipliziert den Freunde-Faktor in den Münz-Faktor, Offline-Ertrag nutzt ihn nicht, DataStore-Aufrufe laufen in pcall, Studio nutzt einen eigenen Speichernamen.
 - [ ] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund.
 - [ ] [Studio] Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
 - [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.

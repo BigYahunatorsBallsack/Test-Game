@@ -109,6 +109,7 @@ export type DataSet = {
     Seasons: any,
     SeasonPass: any,
     Koloss: any,
+    Social: any,
 }
 
 local DataCheck = {}
@@ -143,6 +144,7 @@ function DataCheck.defaults(): DataSet
         Seasons = require("../Data/Seasons"),
         SeasonPass = require("../Data/SeasonPass"),
         Koloss = require("../Data/Koloss"),
+        Social = require("../Data/Social"),
     }
 end
 
@@ -3058,6 +3060,53 @@ local function checkKoloss(errors: { string }, data: DataSet)
     end
 end
 
+-- Soziales (Paket 5.7): Freunde-Bonus und Rangliste. Ganze Zahlen ab 1, Bonus-Grenze mindestens der Bonus
+-- je Freund, Speichernamen nicht leer.
+local function checkSocial(errors: { string }, data: DataSet)
+    local social = data.Social
+    if type(social) ~= "table" then
+        table.insert(errors, "Social: Tabelle fehlt")
+        return
+    end
+    local friends = social.friends
+    if type(friends) ~= "table" then
+        table.insert(errors, "Social.friends fehlt")
+    else
+        if not isInt(friends.perFriendBp) or friends.perFriendBp < 1 then
+            table.insert(errors, "Social.friends.perFriendBp muss eine ganze Zahl ab 1 sein")
+        end
+        if not isInt(friends.maxBp) or friends.maxBp < 1 then
+            table.insert(errors, "Social.friends.maxBp muss eine ganze Zahl ab 1 sein")
+        elseif isInt(friends.perFriendBp) and friends.maxBp < friends.perFriendBp then
+            table.insert(errors, "Social.friends.maxBp muss mindestens perFriendBp sein")
+        end
+    end
+    local board = social.leaderboard
+    if type(board) ~= "table" then
+        table.insert(errors, "Social.leaderboard fehlt")
+        return
+    end
+    if not isInt(board.topCount) or board.topCount < 1 or board.topCount > 100 then
+        table.insert(errors, "Social.leaderboard.topCount muss eine ganze Zahl von 1 bis 100 sein")
+    end
+    if not isInt(board.maxFriends) or board.maxFriends < 1 or board.maxFriends > 200 then
+        table.insert(errors, "Social.leaderboard.maxFriends muss eine ganze Zahl von 1 bis 200 sein")
+    end
+    for _, field in { "writeSeconds", "readSeconds", "friendCacheSeconds" } do
+        if not isFinite(board[field]) or board[field] < 1 then
+            table.insert(errors, `Social.leaderboard.{field} muss eine Zahl ab 1 sein`)
+        end
+    end
+    for _, field in { "store", "showcaseStore", "studioSuffix" } do
+        if type(board[field]) ~= "string" or board[field] == "" then
+            table.insert(errors, `Social.leaderboard.{field} muss ein Text sein`)
+        end
+    end
+    if board.store == board.showcaseStore then
+        table.insert(errors, "Social.leaderboard: store und showcaseStore müssen verschieden heißen")
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -3090,6 +3139,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkSeasons(errors, data)
     checkSeasonPass(errors, data)
     checkKoloss(errors, data)
+    checkSocial(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

@@ -12,6 +12,7 @@ local Crates = require("../Data/Crates")
 local CrateItems = require("../Data/CrateItems")
 local Equipment = require("../Logic/Equipment")
 local Codes = require("../Logic/Codes") -- nur die Längen; die Codes selbst stehen nur auf dem Server
+local Social = require("../Data/Social") -- Platzzahl der Freundesliste (Paket 5.7)
 local SeasonPass = require("../Logic/SeasonPass") -- Spuren und höchste Stufennummer (Paket 5.5b)
 
 export type Limit = RateLimiter.Limit
@@ -155,6 +156,32 @@ local list: { RemoteDef } = {
         },
         limit = { calls = 5, per = 1 }, -- mehrere Stufen kurz nacheinander abholen
         description = "Spieler holt die Belohnung einer Stufe des Saison-Passes ab (Paket 5.5b). Antwort: ok, tier, track, reward oder Grund.",
+    },
+    {
+        name = "GetLeaderboard",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = {}, -- keine Argumente: der Server antwortet mit seinem Zwischenspeicher (Paket 5.7)
+        limit = { calls = 1, per = 5 }, -- Fenster öffnen oder Knopf "Aktualisieren"
+        description = "Spieler fragt die Wochen-Rangliste ab (Paket 5.7). Antwort: ok, Woche, Top-Liste mit Rang, Name und Wert, der eigene Wert.",
+    },
+    {
+        name = "GetFriends",
+        kind = "Function",
+        direction = "ClientToServer",
+        schema = {}, -- keine Argumente: der Server nimmt die Roblox-Freundesliste des Spielers selbst
+        limit = { calls = 1, per = 5 },
+        description = "Spieler fragt seine Freunde zum Besuchen ab (Paket 5.7). Antwort: ok und Liste mit Platz und Name, oder Grund.",
+    },
+    {
+        name = "ViewCollection",
+        kind = "Function",
+        direction = "ClientToServer",
+        -- Der Client nennt nie einen Spieler, sondern nur einen Platz in der Liste von GetFriends, die der
+        -- Server für ihn aufgebaut hat. Ohne gültigen Platz gibt es "notFriend".
+        schema = { Validate.int(1, Social.leaderboard.maxFriends) },
+        limit = { calls = 1, per = 2 },
+        description = "Spieler sieht die Sammlung eines Freundes (Paket 5.7, nur lesen). Antwort: ok und Ansicht, oder Grund notFriend, noShowcase, busy, error.",
     },
     {
         name = "StateSync",

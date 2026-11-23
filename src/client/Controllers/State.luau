@@ -35,6 +35,7 @@ export type Snapshot = {
     autoDig: boolean?, -- Einstellung "Auto-Dig an" (wirkt nur mit Pass)
     autoDigOwned: boolean?, -- Auto-Dig-Pass vorhanden
     coinMultiplier: number?, -- Faktor aus 2x-Pass und Münz-Boost (steckt schon in pricePerSand)
+    friendFactor: number?, -- Freunde-Bonus allein, steckt auch schon in coinMultiplier (Paket 5.7)
     coinBoostSeconds: number?, -- Restzeit des Münz-Boosts in Sekunden (Server-Uhr zum Zeitpunkt des Snapshots)
     offline: { id: number, ok: boolean, reason: string?, seconds: number, awaySeconds: number, capSeconds: number, capped: boolean, coins: { m: number, e: number }? }?, -- Offline-Bericht (Paket 5.3)
     luckBoostSeconds: number?, -- Restzeit des Glücks-Boosts in Sekunden (Paket 5.1)
