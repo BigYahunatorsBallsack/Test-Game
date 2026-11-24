@@ -263,10 +263,10 @@ T.describe("Werkstatt-Export", function()
         T.expect(all.coins).toBe(1000000000)
         T.expect(all.variants).toEqual({})
     end)
-    T.it("ordnet jedem Gerät ein Grundmotiv und zwei eigene Ego-Szenen zu", function()
+    T.it("ordnet jedem Gerät vier eigene Ego-Szenen zu", function()
         local portraits = {}
         for row = 0, 5 do
-            for variant = 1, 3 do
+            for variant = 1, 4 do
                 local label: any = {}
                 art.scene(label, row, variant)
                 local rect = label.ImageRectOffset
@@ -275,9 +275,9 @@ T.describe("Werkstatt-Export", function()
                 assert(not portraits[key], "Ego-Szene doppelt verwendet")
                 assert(rect.X + size.X <= 1008 and rect.Y + size.Y <= 1008)
                 portraits[key] = true
-                local mastery: any = {}
-                art.scene(mastery, row, 4)
-                T.expect(mastery.Image).toBe(art.scenes)
+                if variant == 4 then
+                    T.expect(label.Image).toBe(art.masteryScenes)
+                end
             end
         end
     end)

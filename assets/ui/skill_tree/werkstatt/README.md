@@ -16,7 +16,7 @@ Ziehe die Karte mit der Maus oder mit einem Finger. Das Mausrad zoomt zum Mausze
 
 Mit **Pfeiltasten** oder **Steuerkreuz** gehst du zum nächsten Knoten in der gewählten Richtung. Die Karte folgt der Auswahl. **Bild hoch/runter** oder **LB/RB** wechseln den Gerätereiter. **Enter** oder **A** öffnen die Knotendetails. Am Controller führt **B** aus den Details zurück zur Karte.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Probelauf](Werkstatt_Probelauf.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Meisterschaft](Werkstatt_Meisterschaft.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Probelauf](Werkstatt_Probelauf.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 
@@ -47,7 +47,7 @@ Der [Katalog](../../../../src/client/Interface/Workshop/Catalog.luau) baut die D
 
 Für die Gameplay-Anbindung liegen Käufe, Speichern, aktiver Variantenslot, Anwendung der Gerätewerte beim Graben und die Behandlung des Sandsturms beim Server. Neue Käufe sind als laufbezogen entworfen. Bereits geltende Dauerfreischaltungen wie der erste Sandsturm folgen der vorhandenen Spiellogik.
 
-Die Ego-Karten verwenden 18 Illustrationen mit 24 animierten Wirkungsverläufen. Die Vorschauen dauern je nach Gerät 2,4 bis 3,6 Sekunden. Bei reduzierter Bewegung erscheint das Endbild. Es handelt sich um UI-Animationen mit dem Ziel **Ego-Vorschaufläche**. Die Spieler-Rigs werden davon nicht bewegt.
+Die Ego-Karten verwenden 24 Illustrationen mit 24 animierten Wirkungsverläufen. Jede Meisterschaft zeigt ihren Ablauf in zwei beschrifteten Phasen. Die Vorschauen dauern je nach Gerät 2,4 bis 3,6 Sekunden. Bei reduzierter Bewegung erscheinen beide Schritte zusammen als Standbild. Es handelt sich um UI-Animationen mit dem Ziel **Ego-Vorschaufläche**. Die Spieler-Rigs werden davon nicht bewegt.
 
 ## Studio und Bildassets
 
@@ -59,6 +59,7 @@ Das einzelne Modell lässt sich als `ScreenGui` in `StarterGui` einsetzen und im
 | Ego-Szenen | 133913310301503 | Sechs Ego-Illustrationen |
 | [Ego-Varianten für Hand, Schaufel und Förderband](Werkstatt_Ego_Hand_Schaufel_Foerderband.png) | 127194462292023 | Je zwei Szenen pro Gerät |
 | [Ego-Varianten für Bagger, Saugroboter und Harvester](Werkstatt_Ego_Bagger_Roboter_Harvester.png) | 139759034484553 | Je zwei Szenen pro Gerät |
+| [Ego-Meisterschaften](Werkstatt_Ego_Meisterschaften.png) | 85422764371102 | Je eine Szene pro Gerät |
 | Gerätestufen | 134288678818985 | 24 passive Motive und 120 gerätespezifische Stufensprites |
 | Lauf-Upgrades | 71482682642103 | 75 Ausbausprites |
 
