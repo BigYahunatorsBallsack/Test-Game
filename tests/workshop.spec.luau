@@ -18,6 +18,7 @@ local sprites = readData(main.TierArt)
 local navigation = readData(main.Navigation)
 local search = readData(main.Search)
 local planner = readData(main.StudyPlan)
+local trial = readData(main.Trial)
 local mapView = luau.load(main.MapView.Source, {
     environment = { Vector2 = roblox.Vector2 },
 })()
@@ -235,6 +236,24 @@ T.describe("Werkstatt-Export", function()
         T.expect(mapView.neighbor(nodes, origin, v(-1, 0))).toBe("links")
         T.expect(mapView.neighbor(nodes, origin, v(0, 1))).toBe("naechsteStufe")
         T.expect(mapView.neighbor(nodes, origin, v(0, -1))).toBeNil()
+    end)
+    T.it("startet eigenständige Probeläufe mit getrenntem Besitz und Guthaben", function()
+        local owned = { collect_tool_2 = true }
+        local gates = { "start", "collect_tool_2", "collect_tool_3" }
+        local hand = trial.start("hand", owned, 72, gates)
+        T.expect(hand.owned).toEqual({})
+        T.expect(hand.coins).toBe(100)
+        local copied = trial.start("snapshot", owned, 72, gates)
+        T.expect(copied.owned).toEqual(owned)
+        T.expect(copied.coins).toBe(72)
+        copied.owned.collect_tool_2 = false
+        copied.variants.shovel = "tiefstich_a"
+        T.expect(owned.collect_tool_2).toBe(true)
+        local all = trial.start("all", owned, 72, gates)
+        T.expect(all.owned)
+            .toEqual({ collect_tool_2 = true, collect_tool_3 = true, sandstorm_1 = true })
+        T.expect(all.coins).toBe(1000000000)
+        T.expect(all.variants).toEqual({})
     end)
 end)
 T.finish()

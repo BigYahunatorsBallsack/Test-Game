@@ -14,6 +14,8 @@ local VariantPanel = require(script.VariantPanel)
 local UnlockFX = require(script.UnlockFX)
 local StudyPlan = require(script.StudyPlan)
 local MapView = require(script.MapView)
+local Trial = require(script.Trial)
+local TrialPanel = require(script.TrialPanel)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -179,8 +181,12 @@ function Workshop.mount(gui, config)
     local tabs, entries, edges, shortcutStates = {}, {}, {}, {}
     local selected, page = nil, book.byTab.hand
     local owned, coins, walletText = {}, 0, "0"
+    local gates = {}
+    for _, device in book.devices do
+        table.insert(gates, device.gate)
+    end
     local training = config.trialOnly == true
-    local trialOwned, variants, trialCoins = nil, {}, 0
+    local trial: Trial.Run? = if training then Trial.start("all", owned, coins, gates) else nil
     local zoom = 1
     local overview = false
     local mapViewport = Vector2.zero
@@ -202,28 +208,20 @@ function Workshop.mount(gui, config)
     local dialogOpen = false
     local search
     local comparison
+    local trialMenu
     local compareButton: TextButton? = nil
     local api = {}
 
-    local function startTrial()
-        if trialOwned then
-            return
-        end
-        trialOwned = table.clone(owned)
-        trialCoins = 1000000000
-        for _, dev in book.devices do
-            if dev.gate ~= "start" then
-                trialOwned[dev.gate] = true
-            end
-        end
-        trialOwned.sandstorm_1 = true
-    end
     local function learned(id)
-        return id == "start" or (if training then trialOwned[id] else owned[id]) == true
+        return id == "start" or (if training and trial then trial.owned[id] else owned[id]) == true
     end
     local function status(n)
         if learned(n.id) then
-            return if training and variants[n.device or ""] == n.id then "active" else "owned"
+            return if training
+                    and trial
+                    and trial.variants[n.device or ""] == n.id
+                then "active"
+                else "owned"
         end
         if n.granted then
             return "grant"
@@ -245,7 +243,9 @@ function Workshop.mount(gui, config)
                 return "locked"
             end
         end
-        return if (if training then trialCoins else coins) >= n.cost then "ready" else "dear"
+        return if (if training and trial then trial.coins else coins) >= n.cost
+            then "ready"
+            else "dear"
     end
     local function stopPreview()
         if activePreview then
@@ -346,10 +346,10 @@ function Workshop.mount(gui, config)
         end
     end
     local function updateWallet()
-        wallet.Text = if training
-            then readable(trialCoins) .. "  Testmünzen"
+        wallet.Text = if training and trial
+            then readable(trial.coins) .. "  Testmünzen"
             else walletText .. "  Münzen"
-        mode.Text = if training then "Probelauf beenden" else "Probelauf"
+        mode.Text = if training then "Testoptionen" else "Probelauf"
     end
     local function presentUnlock(n, before, after, equipped)
         local e = entries[n.id]
@@ -381,48 +381,45 @@ function Workshop.mount(gui, config)
         sound(if equipped then 1.23 elseif major then 1.36 else 1.15)
         unlockFX.show(n, nextNames, linked, major, equipped)
     end
-    local function toggleTrial()
-        if config.trialOnly then
-            return
-        end
+    local function setTraining(active: boolean)
         unlockFX.clear()
-        training = not training
-        if training then
-            startTrial()
-        end
+        training = active
         pendingFeedback = ""
         updateStates()
         renderDetail(false)
+    end
+    local function openTrialMenu()
+        trialMenu.open(if trial then trial.preset else nil, training)
     end
     local function act(n)
         if busy then
             return
         end
         if not training and not n.live then
-            toggleTrial()
+            openTrialMenu()
             return
         end
         local state = status(n)
-        if training and state == "owned" and n.kind == "variant" then
-            variants[n.device] = n.id
+        if training and trial and state == "owned" and n.kind == "variant" then
+            trial.variants[n.device] = n.id
             updateStates()
             renderDetail(false)
-            presentUnlock(n, trialOwned, trialOwned, true)
+            presentUnlock(n, trial.owned, trial.owned, true)
             return
         end
         if state ~= "ready" then
             return
         end
-        if training then
-            local before = table.clone(trialOwned)
-            trialCoins -= n.cost
-            trialOwned[n.id] = true
-            if n.kind == "variant" and not variants[n.device] then
-                variants[n.device] = n.id
+        if training and trial then
+            local before = table.clone(trial.owned)
+            trial.coins -= n.cost
+            trial.owned[n.id] = true
+            if n.kind == "variant" and not trial.variants[n.device] then
+                trial.variants[n.device] = n.id
             end
             updateStates()
             renderDetail(false)
-            presentUnlock(n, before, trialOwned, false)
+            presentUnlock(n, before, trial.owned, false)
         elseif config.purchase then
             busy = true
             pendingFeedback = "Wird geprüft …"
@@ -539,7 +536,11 @@ function Workshop.mount(gui, config)
         end
         if planTarget then
             local goal = book.byId[planTarget]
-            local plan = StudyPlan.find(book.byId, goal.id, if training then trialOwned else owned)
+            local plan = StudyPlan.find(
+                book.byId,
+                goal.id,
+                if training and trial then trial.owned else owned
+            )
             button("PlanZurueck", "Zurück zu den Details", function()
                 planTarget = nil
                 renderDetail(false)
@@ -1040,9 +1041,8 @@ function Workshop.mount(gui, config)
         local trialW = if w < 520 then 87 else 148
         Art.rect(mode, w - trialW - 58, 4, trialW, 44)
         mode.TextSize = if w < 520 then 11 else 14
-        mode.Visible = not config.trialOnly
         Art.rect(exit, w - 50, 4, 44, 44)
-        local walletEnd = if config.trialOnly then w - 57 else w - trialW - 66
+        local walletEnd = w - trialW - 66
         local walletStart = if w < 490 then 112 else 218
         if w >= 1260 then
             Art.rect(
@@ -1183,6 +1183,27 @@ function Workshop.mount(gui, config)
         end,
         setOpen = function(open)
             setDialogOpen(open, compareButton)
+        end,
+    })
+    trialMenu = TrialPanel.mount(root, {
+        trialOnly = config.trialOnly,
+        start = function(preset)
+            trial = Trial.start(preset, owned, coins, gates)
+            setTraining(true)
+            if preset == "hand" then
+                changeTab("hand")
+            end
+        end,
+        resume = function()
+            if trial then
+                setTraining(true)
+            end
+        end,
+        leave = function()
+            setTraining(false)
+        end,
+        setOpen = function(open)
+            setDialogOpen(open, mode)
         end,
     })
     searchButton.Activated:Connect(search.open)
@@ -1352,7 +1373,7 @@ function Workshop.mount(gui, config)
         position()
         renderDetail(false)
     end)
-    mode.Activated:Connect(toggleTrial)
+    mode.Activated:Connect(openTrialMenu)
     exit.Activated:Connect(config.onClose)
     if config.onLegacy then
         legacy.Activated:Connect(config.onLegacy)
@@ -1398,9 +1419,6 @@ function Workshop.mount(gui, config)
         end
     end
     function api.open(id)
-        if training then
-            startTrial()
-        end
         root.Visible = true
         gui:SetAttribute("WerkstattOffen", true)
         expanded = false
@@ -1440,6 +1458,7 @@ function Workshop.mount(gui, config)
         pinch, dragStart = nil, nil
         search.dismiss()
         comparison.dismiss()
+        trialMenu.dismiss()
         unlockFX.clear()
         stopPreview()
         root.Visible = false
@@ -1452,7 +1471,7 @@ function Workshop.mount(gui, config)
         return root.Visible
     end
     function api.back()
-        if search.dismiss() or comparison.dismiss() then
+        if search.dismiss() or comparison.dismiss() or trialMenu.dismiss() then
             return
         end
         local focused = GuiService.SelectedObject

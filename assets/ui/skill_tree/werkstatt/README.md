@@ -16,7 +16,7 @@ Ziehe die Karte mit der Maus oder mit einem Finger. Das Mausrad zoomt zum Mausze
 
 Mit **Pfeiltasten** oder **Steuerkreuz** gehst du zum nächsten Knoten in der gewählten Richtung. Die Karte folgt der Auswahl. **Bild hoch/runter** oder **LB/RB** wechseln den Gerätereiter. **Enter** oder **A** öffnen die Knotendetails. Am Controller führt **B** aus den Details zurück zur Karte.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Probelauf](Werkstatt_Probelauf.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 
@@ -37,7 +37,9 @@ Die fünf weiteren Reiter enthalten 17 Werkzeug- und Ratenstufen, 20 Tank-Upgrad
 
 Die 45 bisherigen Knoten beziehen Beschreibung, Kosten, Wirkung und Voraussetzungen direkt aus dem Spiel. Reguläre Käufe laufen über den vorhandenen servergeprüften Kaufweg. Der erste Sandsturm wird vergeben. **Laufbaum** öffnet die bisherige Ansicht.
 
-Die 318 neuen Knoten sind im **Probelauf** lernbar. Die Werkstatt kopiert beim ersten Start der Probe den Besitz und stellt alle Geräte, den ersten Sturm und eine Milliarde Testmünzen bereit. Das Probeguthaben, Markierungen und die ausgerüstete Probevariante existieren nur in der Sitzung. Beim Verlassen der Probe zeigt die Werkstatt wieder die echten Münzen und den echten Besitz. Die neuen Preise, Zeitfenster und Wirkungswerte sind für den Playtest vorgesehen.
+Die 318 neuen Knoten sind im **Probelauf** lernbar. **Mit der Hand starten** beginnt mit 100 Testmünzen und ohne gelernte Upgrades. **Aktuellen Fortschritt kopieren** übernimmt Besitz und Münzen aus dem aktuellen Lauf. **Alle Geräte testen** stellt die sechs Geräte, die erste Sturmbelohnung und eine Milliarde Testmünzen bereit.
+
+Über **Testoptionen** kannst du einen neuen Probelauf beginnen oder zum Spielstand zurückkehren. Ein neuer Startpunkt ersetzt die bisherige Probe. **Fortsetzen** lädt den letzten Probelauf der Sitzung mit seinem Guthaben, Besitz und den ausgerüsteten Varianten. Die Preise, Zeitfenster und Wirkungswerte der neuen Knoten sind für den Playtest vorgesehen.
 
 ## Übergabe an Claude
 
