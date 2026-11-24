@@ -4,7 +4,9 @@ Der Knopf **Baum** öffnet die Werkstatt, sobald ihn das Tutorial freigibt. Jede
 
 **Übersicht** zeigt den gesamten gewählten Baum und die Zahl der bereits gelernten Knoten. In **Ziele und Voraussetzungen** lassen sich Fähigkeiten, Meilensteine und das gemerkte Upgrade direkt aufrufen, auch wenn es in einem anderen Reiter liegt. Türkise Pfade zeigen nötige Knoten. Bernsteinfarbene Pfade zeigen mögliche Alternativen. Über **Karte** kommst du zum vorherigen Kartenausschnitt zurück. Den bisherigen **Laufbaum** findest du rechts in der Reiterleiste.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+**Suche** durchsucht alle 363 Upgrades nach Name, Gerät oder Upgrade-Art. Begriffe lassen sich kombinieren, etwa „Schaufel Meisterschaft“. Auch „Foerderband“ findet die Eimerkette. Ein Treffer öffnet den Knoten in seinem Baum. Enter öffnet den ersten Treffer, solange das Suchfeld fokussiert ist.
+
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 

@@ -8,6 +8,7 @@ local Art = require(script.Art)
 local Catalog = require(script.Catalog)
 local Navigation = require(script.Navigation)
 local Preview = require(script.Preview)
+local SearchPanel = require(script.SearchPanel)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -113,6 +114,7 @@ function Workshop.mount(gui, config)
     local tabTitle = Art.text(mapBar, "Gerät", "", 18, C.ivory, true)
     local progress = Art.text(mapBar, "Fortschritt", "", 11, C.mute, true)
     local overviewButton = Art.button(mapBar, "Uebersicht", "Übersicht")
+    local searchButton = Art.button(mapBar, "Suche", "Suche")
     local zoomOut = Art.button(mapBar, "ZoomOut", "−")
     local zoomIn = Art.button(mapBar, "ZoomIn", "+")
     local legacy = Art.button(nav, "Laufbaum", "Laufbaum")
@@ -167,6 +169,8 @@ function Workshop.mount(gui, config)
     local pendingFeedback = ""
     local dragUntil = 0
     local renderPage, renderDetail, updateStates, position, changeTab, selectNode, setZoom
+    local searchOpen = false
+    local search
     local api = {}
 
     local function startTrial()
@@ -230,6 +234,15 @@ function Workshop.mount(gui, config)
             overview = false
             setZoom(zoom, false)
             map.CanvasPosition = detailPan
+        end
+    end
+    local function jumpTo(target)
+        showDetailMap()
+        if target.page == page.id then
+            selectNode(target, true, true)
+        else
+            expanded = true
+            changeTab(target.page, target.id, true)
         end
     end
     local function tabFocus()
@@ -384,17 +397,9 @@ function Workshop.mount(gui, config)
             b.Activated:Connect(callback)
             return b
         end
-        local function jump(target)
-            showDetailMap()
-            if target.page == page.id then
-                selectNode(target, true, true)
-            else
-                changeTab(target.page, target.id, true)
-            end
-        end
         local function mapShortcut(target, key, label)
             local line = button(key, "", function()
-                jump(target)
+                jumpTo(target)
             end)
             local icon = Art.image(line, "Motiv")
             Art.rect(icon, 6, 5, 42, 42)
@@ -609,6 +614,9 @@ function Workshop.mount(gui, config)
             end
         end
         progress.Text = completed .. " / " .. #page.nodes .. " gelernt"
+        if searchOpen then
+            search.refresh()
+        end
         for id, label in shortcutStates do
             local state = status(book.byId[id])
             label.Text = stateNames[state]
@@ -820,13 +828,14 @@ function Workshop.mount(gui, config)
         Art.rect(mapBar, 0, 0, mapW, 47)
         local controls = if overview then 6 else 98
         local controlStart = mapW - controls
-        local titleWidth = math.max(40, controlStart - 104)
+        local titleWidth = math.max(38, controlStart - 166)
         Art.rect(tabTitle, 10, 1, titleWidth, 26)
         tabTitle.TextSize = if titleWidth < 153 then 13 else 18
         tabTitle.TextTruncate = Enum.TextTruncate.AtEnd
         tabTitle.TextWrapped = false
         Art.rect(progress, 10, 28, titleWidth, 14)
         Art.rect(overviewButton, controlStart - 88, 1, 84, 44)
+        Art.rect(searchButton, controlStart - 150, 1, 58, 44)
         overviewButton.Text = if overview then "Karte" else "Übersicht"
         zoomOut.Visible = not overview
         zoomIn.Visible = not overview
@@ -891,6 +900,24 @@ function Workshop.mount(gui, config)
         x += 110
     end
     nav.CanvasSize = UDim2.fromOffset(x, 0)
+    search = SearchPanel.mount(root, {
+        book = book,
+        kinds = kinds,
+        choose = jumpTo,
+        statusText = function(node)
+            return stateNames[status(node)]
+        end,
+        setOpen = function(open)
+            searchOpen = open
+            for _, panel in { header, nav, mapWrap, detail } do
+                panel.Interactable = not open
+            end
+            if not open and Input:GetLastInputType().Name:find("Gamepad") then
+                GuiService.SelectedObject = searchButton
+            end
+        end,
+    })
+    searchButton.Activated:Connect(search.open)
     overviewButton.Activated:Connect(function()
         if overview then
             showDetailMap()
@@ -916,6 +943,7 @@ function Workshop.mount(gui, config)
         local s = map.AbsoluteWindowSize
         return root.Visible
             and not overview
+            and not searchOpen
             and offset.X >= 0
             and offset.X <= s.X
             and offset.Y >= 0
@@ -937,6 +965,7 @@ function Workshop.mount(gui, config)
         Input.InputChanged:Connect(function(input)
             if
                 not root.Visible
+                or searchOpen
                 or not dragStart
                 or input.UserInputType ~= Enum.UserInputType.MouseMovement
             then
@@ -966,7 +995,12 @@ function Workshop.mount(gui, config)
         Input.TouchPinch:Connect(function(points, scale, _velocity, state)
             if state == Enum.UserInputState.Begin then
                 pinchZoom = if points[1] and insideMap(points[1]) then zoom else nil
-            elseif state == Enum.UserInputState.Change and pinchZoom and root.Visible then
+            elseif
+                state == Enum.UserInputState.Change
+                and pinchZoom
+                and root.Visible
+                and not searchOpen
+            then
                 setZoom(pinchZoom * scale, true)
                 dragUntil = os.clock() + 0.2
             elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
@@ -1038,6 +1072,7 @@ function Workshop.mount(gui, config)
         scaleIn(header, 0.987, 0.18)
     end
     function api.close()
+        search.dismiss()
         stopPreview()
         root.Visible = false
         gui:SetAttribute("WerkstattOffen", false)
@@ -1049,6 +1084,9 @@ function Workshop.mount(gui, config)
         return root.Visible
     end
     function api.back()
+        if search.dismiss() then
+            return
+        end
         if compact and expanded then
             expanded = false
             position()
