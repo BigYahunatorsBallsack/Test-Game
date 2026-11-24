@@ -308,7 +308,7 @@ local list: { Node } = {
         description = "Werkzeug: Saugroboter, saugt die Fläche leer",
         branch = "collect",
         requires = { "collect_tool_4" },
-        cost = 90_000,
+        cost = 700_000,
         effect = { kind = "setTool", toolId = "vacuum_robot" },
         milestone = 3,
     },
@@ -372,7 +372,7 @@ local list: { Node } = {
         description = "Werkzeug: Großmaschine, frisst ganze Dünen",
         branch = "collect",
         requires = { "collect_tool_5" },
-        cost = 1_100_000,
+        cost = 30_000_000,
         effect = { kind = "setTool", toolId = "mega_machine" },
     },
     {

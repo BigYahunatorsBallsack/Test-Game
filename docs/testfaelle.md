@@ -686,9 +686,11 @@ Plan: kurz in docs/analytics.md. Fertig, wenn: Die wichtigsten Zahlen sind einse
 
 Plan: Simulation durch den `balance-analyst`, Bericht in docs/balance-6.4.md. Fertig, wenn: Kein Engpass, an dem Spieler hängen bleiben.
 
-- [ ] [Shell] Simulationsskript `tools/balance_sim.luau` läuft und nutzt die echten Module und Tabellen.
-- [ ] [Shell] Bericht mit Meilensteinen, Engpässen und Zahlenvorschlägen liegt vor; Waltuh entscheidet über die Zahlen.
-- [ ] [Lune] Angenommene Änderungen der Zahlen bestehen DataCheck und alle Tests.
+- [x] [Shell] Simulationsskript `tools/balance_sim.luau` läuft und nutzt die echten Module und Tabellen.
+- [x] [Shell] Bericht mit Meilensteinen, Engpässen und Zahlenvorschlägen liegt vor; Waltuh entscheidet über die Zahlen.
+- [x] [Lune] Angenommene Änderungen der Zahlen bestehen DataCheck und alle Tests. Angenommen (nach Waltuhs "was du am besten hältst"): D1 `maxCrystals` 5 Mio., D2 Saugroboter 700.000 und Großmaschine 30 Mio. (in `Tools` und `UpgradeTree`), Zielzeiten in `tests/skilltree.spec.luau` auf 16:33 und 21:19.
+- [ ] [Offen, Entscheidung] D3 (Ruinen-Ast mit 18 Knoten) und die Logik-Vorschläge L1 bis L4 sind nicht umgesetzt, siehe docs/balance-6.4.md.
+- [ ] [Studio] Laufweg zum Händler messen und im Skript `WALK` setzen; Lauf 1 soll mit den neuen Preisen etwa 28 bis 36 min dauern.
 
 ## Ego-Perspektive (Umstellung von dritter Person)
 
