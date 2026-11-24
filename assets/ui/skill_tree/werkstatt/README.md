@@ -12,11 +12,13 @@ Beim Lernen zeigt eine Freischaltmeldung das Upgrade und die Knoten, deren Vorau
 
 Der **Lernplan** zeigt die noch fehlenden Schritte und deren Gesamtkosten. Bei alternativen Voraussetzungen berechnet er den günstigsten verbleibenden Weg. Bereits gelernte Knoten fallen aus der Rechnung. Ein Klick auf einen Schritt öffnet den Knoten im Baum. In der Übersicht führt der Lernplan direkt zum gemerkten Ziel.
 
+**Gerätewerte** zeigt die addierten Boni pro Gerät und Fähigkeit. Bei einem noch ungelernten Upgrade zeigt die Übersicht außerdem den Wert nach Hinzurechnen seines Bonus. Die Abklingzeit ergibt sich aus der Grundzeit und den gelernten Reduktionen. Gelernte Varianten behalten eigene Werte, und der Status zeigt, welche im Probelauf ausgerüstet ist.
+
 Ziehe die Karte mit der Maus oder mit einem Finger. Das Mausrad zoomt zum Mauszeiger, die Zwei-Finger-Geste zur Mitte der Berührungspunkte. Die Plus- und Minusknöpfe zoomen zur Kartenmitte. Jeder Reiter merkt sich Ausschnitt und Zoom für die laufende Spielsitzung. Die Rückkehr aus der Übersicht stellt den vorherigen Ausschnitt wieder her.
 
 Mit **Pfeiltasten** oder **Steuerkreuz** gehst du zum nächsten Knoten in der gewählten Richtung. Die Karte folgt der Auswahl. **Bild hoch/runter** oder **LB/RB** wechseln den Gerätereiter. **Enter** oder **A** öffnen die Knotendetails. Am Controller führt **B** aus den Details zurück zur Karte.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Meisterschaft](Werkstatt_Meisterschaft.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Probelauf](Werkstatt_Probelauf.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Meisterschaft](Werkstatt_Meisterschaft.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Gerätewerte](Werkstatt_Geraetewerte.jpg) · [Probelauf](Werkstatt_Probelauf.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 

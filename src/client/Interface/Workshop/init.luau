@@ -16,6 +16,7 @@ local StudyPlan = require(script.StudyPlan)
 local MapView = require(script.MapView)
 local Trial = require(script.Trial)
 local TrialPanel = require(script.TrialPanel)
+local DeviceStatsView = require(script.DeviceStatsView)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -201,6 +202,7 @@ function Workshop.mount(gui, config)
     local busy = false
     local pin = nil
     local planTarget: string? = nil
+    local statsOpen = false
     local lastSelected = {}
     local pendingFeedback = ""
     local dragUntil = 0
@@ -325,6 +327,7 @@ function Workshop.mount(gui, config)
     end
     local function jumpTo(target)
         planTarget = nil
+        statsOpen = false
         showDetailMap()
         if target.page == page.id then
             selectNode(target, true, true)
@@ -443,6 +446,7 @@ function Workshop.mount(gui, config)
     selectNode = function(n, center, openSheet)
         unlockFX.clear()
         planTarget = nil
+        statsOpen = false
         showDetailMap()
         selected = n.id
         lastSelected[page.id] = n.id
@@ -478,8 +482,9 @@ function Workshop.mount(gui, config)
         local st = status(n)
         renderedStatus = st
         handle.Text = (
-            if planTarget
-                then "Lernplan"
+            if statsOpen
+                then "Gerätewerte"
+                elseif planTarget then "Lernplan"
                 elseif overview then "Ziele und Voraussetzungen"
                 else n.name
         ) .. (if expanded then "   ▾" else "   ▴")
@@ -497,10 +502,14 @@ function Workshop.mount(gui, config)
             b.Activated:Connect(callback)
             return b
         end
-        local function addComparison()
+        local function addDeviceActions()
             if page.variants then
                 compareButton = button("Varianten", "Varianten vergleichen", function()
                     comparison.open(page)
+                end)
+                button("Geraetewerte", "Gerätewerte", function()
+                    statsOpen = true
+                    renderDetail(false)
                 end)
             end
         end
@@ -533,6 +542,22 @@ function Workshop.mount(gui, config)
         local function openPlan(id: string)
             planTarget = id
             renderDetail(false)
+        end
+        if statsOpen then
+            DeviceStatsView.render(page, n, if training and trial then trial.owned else owned, {
+                button = button,
+                caption = caption,
+                shortcut = mapShortcut,
+                training = training,
+                status = function(node)
+                    return stateNames[status(node)]
+                end,
+                back = function()
+                    statsOpen = false
+                    renderDetail(false)
+                end,
+            })
+            return
         end
         if planTarget then
             local goal = book.byId[planTarget]
@@ -614,7 +639,7 @@ function Workshop.mount(gui, config)
         if overview then
             local heading = caption("Knoten", page.name, 38, 25, C.bright, true)
             heading.Font = Enum.Font.Antique
-            addComparison()
+            addDeviceActions()
             button(
                 "Lernplan",
                 if pin then "Lernplan zum gemerkten Ziel" else "Lernplan zur Auswahl",
@@ -678,7 +703,7 @@ function Workshop.mount(gui, config)
         )
         local name = caption("Knoten", n.name, 48, 25, C.bright, true)
         name.Font = Enum.Font.Antique
-        addComparison()
+        addDeviceActions()
         local siblings = book.families[n.family]
         if siblings and #siblings > 1 then
             local tierNo = table.find(siblings, n.id) or 1
@@ -1109,6 +1134,7 @@ function Workshop.mount(gui, config)
         rememberView()
         pinch, dragStart = nil, nil
         planTarget = nil
+        statsOpen = false
         page = book.byTab[id]
         local view = savedViews[id]
         zoom = if view then view.zoom else 1
@@ -1214,6 +1240,7 @@ function Workshop.mount(gui, config)
     searchButton.Activated:Connect(search.open)
     overviewButton.Activated:Connect(function()
         planTarget = nil
+        statsOpen = false
         if overview then
             showDetailMap()
         else
@@ -1404,7 +1431,7 @@ function Workshop.mount(gui, config)
             local n = book.byId[selected]
             if n then
                 local planChanged = false
-                if planTarget then
+                if planTarget or statsOpen then
                     for id, candidate in book.byId do
                         if candidate.live and before[id] ~= owned[id] then
                             planChanged = true
@@ -1413,7 +1440,13 @@ function Workshop.mount(gui, config)
                     end
                 end
                 if
-                    planChanged or (not overview and not planTarget and renderedStatus ~= status(n))
+                    planChanged
+                    or (
+                        not overview
+                        and not planTarget
+                        and not statsOpen
+                        and renderedStatus ~= status(n)
+                    )
                 then
                     renderDetail(false)
                 end
@@ -1480,7 +1513,10 @@ function Workshop.mount(gui, config)
             return
         end
         local focused = GuiService.SelectedObject
-        if planTarget then
+        if statsOpen then
+            statsOpen = false
+            renderDetail(false)
+        elseif planTarget then
             planTarget = nil
             renderDetail(false)
         elseif compact and expanded then

@@ -19,6 +19,7 @@ local navigation = readData(main.Navigation)
 local search = readData(main.Search)
 local planner = readData(main.StudyPlan)
 local trial = readData(main.Trial)
+local deviceStats = readData(main.DeviceStats)
 local art = luau.load(main.Art.Source, {
     environment = {
         script = main.Art,
@@ -280,6 +281,31 @@ T.describe("Werkstatt-Export", function()
                 end
             end
         end
+    end)
+    T.it("addiert Werte je Gerät und Fähigkeit, ohne Bonusgruppen zu vermischen", function()
+        local ids = {
+            tiefstich = true,
+            tiefstich_m2_1 = true,
+            tiefstich_m2_2 = true,
+            shovel_crown = true,
+            shovel_p1_1 = true,
+            shovel_p1_3 = true,
+            tiefstich_a = true,
+            tiefstich_a_m1_1 = true,
+            tiefstich_b = true,
+            tiefstich_b_m1_1 = true,
+        }
+        local groups, byTarget = deviceStats.collect(catalog.byTab.shovel.nodes, ids)
+        T.expect(#groups).toBe(5)
+        T.expect(deviceStats.format(byTarget.tiefstich.cooldown, "s")).toBe("7,2 s")
+        T.expect(deviceStats.format(groups[1].values[1].total, "%", true)).toBe("+8 %")
+        T.expect(#byTarget.tiefstich_a.values).toBe(1)
+        T.expect(byTarget.tiefstich_a.values[1].stat).toBe("Schnitttiefe")
+        T.expect(#byTarget.tiefstich_b.values).toBe(1)
+        T.expect(byTarget.tiefstich_b.values[1].stat).toBe("Rinnenlänge")
+        local before, after = deviceStats.projection(catalog.byId.tiefstich_m2_3, byTarget)
+        T.expect(deviceStats.format(before, "s")).toBe("7,2 s")
+        T.expect(deviceStats.format(after, "s")).toBe("6,8 s")
     end)
 end)
 T.finish()
