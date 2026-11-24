@@ -110,6 +110,7 @@ export type DataSet = {
     SeasonPass: any,
     Koloss: any,
     Social: any,
+    Analytics: any,
 }
 
 local DataCheck = {}
@@ -145,6 +146,7 @@ function DataCheck.defaults(): DataSet
         SeasonPass = require("../Data/SeasonPass"),
         Koloss = require("../Data/Koloss"),
         Social = require("../Data/Social"),
+        Analytics = require("../Data/Analytics"),
     }
 end
 
@@ -3162,6 +3164,62 @@ local function checkSocial(errors: { string }, data: DataSet)
     end
 end
 
+-- Analytics (Paket 6.3): Ereignisnamen nicht leer und verschieden, Eimer aufsteigend und der letzte offen.
+local function checkAnalytics(errors: { string }, data: DataSet)
+    local analytics = data.Analytics
+    if type(analytics) ~= "table" then
+        table.insert(errors, "Analytics: Tabelle fehlt")
+        return
+    end
+    local events = analytics.events
+    if type(events) ~= "table" then
+        table.insert(errors, "Analytics.events fehlt")
+    else
+        local seen: { [string]: boolean } = {}
+        for key, name in events do
+            if type(name) ~= "string" or name == "" or #name > 100 then
+                table.insert(errors, `Analytics.events.{tostring(key)} muss ein Text von 1 bis 100 Zeichen sein`)
+            elseif seen[name] then
+                table.insert(errors, `Analytics.events: Name "{name}" ist doppelt`)
+            else
+                seen[name] = true
+            end
+        end
+    end
+    for _, field in { "onboardingDoneName", "currencyName" } do
+        if type(analytics[field]) ~= "string" or analytics[field] == "" then
+            table.insert(errors, `Analytics.{field} muss ein Text sein`)
+        end
+    end
+    for _, field in { "newPlayerSeconds", "maxReturnDays", "maxFieldLength", "tickSeconds" } do
+        if not isFinite(analytics[field]) or analytics[field] < 1 then
+            table.insert(errors, `Analytics.{field} muss eine Zahl ab 1 sein`)
+        end
+    end
+    if type(analytics.logInStudio) ~= "boolean" then
+        table.insert(errors, "Analytics.logInStudio muss true oder false sein")
+    end
+    local buckets = analytics.sessionBuckets
+    if not isList(buckets) or #buckets < 1 then
+        table.insert(errors, "Analytics.sessionBuckets braucht mindestens einen Eimer")
+        return
+    end
+    local last = 0
+    for index, bucket in buckets do
+        if type(bucket) ~= "table" or type(bucket.name) ~= "string" or bucket.name == "" then
+            table.insert(errors, `Analytics.sessionBuckets[{index}]: name muss Text sein`)
+        elseif type(bucket.maxSeconds) ~= "number" or bucket.maxSeconds ~= bucket.maxSeconds or bucket.maxSeconds <= last then
+            table.insert(errors, `Analytics.sessionBuckets[{index}]: maxSeconds muss aufsteigend sein`)
+        else
+            last = bucket.maxSeconds
+        end
+    end
+    local final = buckets[#buckets]
+    if type(final) == "table" and final.maxSeconds ~= math.huge then
+        table.insert(errors, "Analytics.sessionBuckets: der letzte Eimer muss nach oben offen sein (math.huge)")
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -3195,6 +3253,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkSeasonPass(errors, data)
     checkKoloss(errors, data)
     checkSocial(errors, data)
+    checkAnalytics(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)

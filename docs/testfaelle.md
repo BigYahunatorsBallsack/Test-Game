@@ -670,6 +670,26 @@ Plan: Claude-Dokument "Paket 6.1: Exploit-Review, Plan". Fertig, wenn: Die Revie
 - [x] [Lune] Starterpaket (Befund 6.1, mittel): Erstkauf im Fenster gibt das volle Paket; ein zweiter Beleg, ein Beleg vor dem Auslöser und einer nach Fensterende plus Nachfrist (`receiptGraceMinutes`) geben nur `duplicateGems` Ersatz-Gems, keine Items, ohne den Merker "gekauft" zu ändern; Nachfrist-Grenzen; Kappung bei maxGems (auch 0 Gems); derselbe Beleg zweimal (nacheinander, gleichzeitig) und Speicherfehler buchen nie doppelt; zehn gleichzeitige Belege geben genau ein Paket; kaputte Uhr oder Daten: NotProcessedYet (tests/offers.spec.luau, "Einmalkauf auf dem Server").
 - [x] [Lune] DataCheck: `duplicateGems` ganze Zahl von 0 bis maxGems und höchstens der Gem-Gegenwert des Produktpreises zum besten Paketkurs; `receiptGraceMinutes` ganze Zahl von 0 bis 60 (tests/data.spec.luau, "Angebote (4.5)").
 
+## 6.3 Analytics
+
+Plan: kurz in docs/analytics.md. Fertig, wenn: Die wichtigsten Zahlen sind einsehbar (Tutorial-Abbruch, Käufe, Sitzungslänge, Rückkehr im Creator Dashboard).
+
+- [x] [Lune] Tutorial-Trichter: Schritt n wird mit Nummer und Name aus `Data/Tutorial` gemeldet, "fertig" als letzter Schritt; ein Schritt wird je Sitzung nur einmal gemeldet; kaputte Schritte ergeben nichts.
+- [x] [Lune] Käufe: Neue Einträge im Kaufprotokoll werden genau einmal gemeldet (nach `purchaseId`), beim Laden bereits vorhandene nicht; kaputte Einträge werden übersprungen.
+- [x] [Lune] Sitzungslänge in Eimern (unter 1 Min., 1 bis 5, 5 bis 15, 15 bis 30, 30 bis 60, über 60), kaputte Zahl ergibt nil; Rückkehr: neuer Spieler, Tage seit dem letzten Besuch (0 bis 30, gedeckelt).
+- [x] [Lune] Zusatzfelder werden bereinigt: nur Text bis 100 Zeichen und endliche Zahlen, nie Spielernamen; Event-Namen kommen aus `Data/Analytics`, DataCheck prüft sie.
+- [x] [Lune] Anbindung: Service `Analytics` steht in `SERVICE_NAMES`, jeder Aufruf von `AnalyticsService` läuft in pcall, in Studio wird nur geloggt, es gibt keine Remote.
+- [ ] [Studio] Im Ausgabefenster erscheinen `[Analytics]`-Zeilen für Tutorial-Schritte, Testkauf (`DebugPurchase`), Sitzungsende.
+- [ ] [Studio/Live] Im Creator Dashboard unter Analytics: Onboarding-Trichter, Wirtschaft (Gems) und Custom Events `session_start` und `session_end` sind sichtbar (erscheint mit Verzögerung).
+
+## 6.4 Balancing
+
+Plan: Simulation durch den `balance-analyst`, Bericht in docs/balance-6.4.md. Fertig, wenn: Kein Engpass, an dem Spieler hängen bleiben.
+
+- [ ] [Shell] Simulationsskript `tools/balance_sim.luau` läuft und nutzt die echten Module und Tabellen.
+- [ ] [Shell] Bericht mit Meilensteinen, Engpässen und Zahlenvorschlägen liegt vor; Waltuh entscheidet über die Zahlen.
+- [ ] [Lune] Angenommene Änderungen der Zahlen bestehen DataCheck und alle Tests.
+
 ## Ego-Perspektive (Umstellung von dritter Person)
 
 Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand mit dem Werkzeug (Schaufel), links unten die Hand mit dem Eimer, beide bewegen sich beim Graben und Laufen, und alle Menüs bleiben bedienbar. Vorbild: Waltuhs Referenzbilder vom 22.11.2026.

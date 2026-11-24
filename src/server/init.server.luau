@@ -16,7 +16,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Shop.AfterStart; die Remotes kommen in Start, zur Laufzeit nutzt es die Sperre von Crates.
 -- Friends (Paket 5.7, Freunde-Bonus) und Leaderboard (Rangliste, Besuch) stehen am Ende: Friends setzt den
 -- Münz-Faktor über Sand, Leaderboard liest Profile über PlayerData und registriert seine Remotes in Start.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes", "Friends", "Leaderboard" }
+-- Analytics (Paket 6.3) steht ganz am Ende: Es liest nur Profile (Tutorial, Kaufprotokoll) und ändert nichts.
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes", "Friends", "Leaderboard", "Analytics" }
 
 type Service = {
     Init: () -> (),

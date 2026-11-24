@@ -428,7 +428,7 @@ local CODE_ONLY = "\n" .. table.concat(codeLines, "\n")
 
 T.describe("Anbindung der Services", function()
     T.it("Friends und Leaderboard stehen am Ende von SERVICE_NAMES, die Remotes gibt es genau einmal", function()
-        T.expect(string.find(BOOTSTRAP_SOURCE, '"Codes", "Friends", "Leaderboard" }', 1, true) ~= nil).toBe(true)
+        T.expect(string.find(BOOTSTRAP_SOURCE, '"Codes", "Friends", "Leaderboard"', 1, true) ~= nil).toBe(true)
         for _, name in { "GetLeaderboard", "GetFriends", "ViewCollection" } do
             T.expect(RemoteSpec.byName[name].direction).toBe("ClientToServer")
             T.expect(string.find(BOARD_SOURCE, `Net.on("{name}"`, 1, true) ~= nil).toBe(true)
