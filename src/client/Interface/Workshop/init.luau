@@ -10,6 +10,7 @@ local Navigation = require(script.Navigation)
 local Preview = require(script.Preview)
 local SearchPanel = require(script.SearchPanel)
 local VariantPanel = require(script.VariantPanel)
+local UnlockFX = require(script.UnlockFX)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -123,6 +124,7 @@ function Workshop.mount(gui, config)
     local map = scroll(mapWrap, "Karte")
     map.ScrollingDirection = Enum.ScrollingDirection.XY
     local sheet = Art.box(map, "Diagramm", nil, 103)
+    local unlockFX = UnlockFX.mount(mapWrap, sheet)
     local mapScale = Instance.new("UIScale")
     mapScale.Parent = sheet
     local detail = Art.box(root, "Detail", C.panel, 130)
@@ -266,34 +268,43 @@ function Workshop.mount(gui, config)
             else walletText .. "  Münzen"
         mode.Text = if training then "Probelauf beenden" else "Probelauf"
     end
-    local function pulse(n)
+    local function presentUnlock(n, before, after, equipped)
         local e = entries[n.id]
-        if not e then
+        if not e or dialogOpen then
             return
         end
-        scaleIn(e.button, 0.82, if big[n.kind] then 0.55 else 0.25)
-        sound(if big[n.kind] then 1.36 else 1.15)
-        if reduced() then
-            return
+        local nextNames, linked = {}, {}
+        if not equipped then
+            for _, section in book.tabs do
+                for _, id in Navigation.newlyReachable(section.nodes, before, after) do
+                    local node = book.byId[id]
+                    if (training or node.live) and not node.granted then
+                        table.insert(nextNames, node.name)
+                        if
+                            node.page == n.page
+                            and (
+                                table.find(node.requires, n.id) or table.find(
+                                    node.requiresAny,
+                                    n.id
+                                )
+                            )
+                        then
+                            table.insert(linked, node)
+                        end
+                    end
+                end
+            end
         end
-        local ring = Art.box(e.button, "Freischaltring", nil, e.button.ZIndex + 5)
-        ring.AnchorPoint = Vector2.new(0.5, 0.5)
-        ring.Position = UDim2.fromScale(0.5, 0.5)
-        ring.Size = UDim2.fromScale(1, 1)
-        Art.round(ring, if big[n.kind] then 12 else 100)
-        local edge = Art.edge(ring, C.bright, 3)
-        local duration = if big[n.kind] then 0.55 else 0.25
-        TweenService:Create(ring, TweenInfo.new(duration), { Size = UDim2.fromScale(1.55, 1.55) })
-            :Play()
-        TweenService:Create(edge, TweenInfo.new(duration), { Transparency = 1 }):Play()
-        task.delay(duration, function()
-            ring:Destroy()
-        end)
+        local major = big[n.kind] == true
+        scaleIn(e.button, if major then 0.78 else 0.88, if major then 0.5 else 0.24)
+        sound(if equipped then 1.23 elseif major then 1.36 else 1.15)
+        unlockFX.show(n, nextNames, linked, major, equipped)
     end
     local function toggleTrial()
         if config.trialOnly then
             return
         end
+        unlockFX.clear()
         training = not training
         if training then
             startTrial()
@@ -315,13 +326,14 @@ function Workshop.mount(gui, config)
             variants[n.device] = n.id
             updateStates()
             renderDetail(false)
-            pulse(n)
+            presentUnlock(n, trialOwned, trialOwned, true)
             return
         end
         if state ~= "ready" then
             return
         end
         if training then
+            local before = table.clone(trialOwned)
             trialCoins -= n.cost
             trialOwned[n.id] = true
             if n.kind == "variant" and not variants[n.device] then
@@ -329,7 +341,7 @@ function Workshop.mount(gui, config)
             end
             updateStates()
             renderDetail(false)
-            pulse(n)
+            presentUnlock(n, before, trialOwned, false)
         elseif config.purchase then
             busy = true
             pendingFeedback = "Wird geprüft …"
@@ -351,6 +363,7 @@ function Workshop.mount(gui, config)
         end
     end
     selectNode = function(n, center, openSheet)
+        unlockFX.clear()
         showDetailMap()
         selected = n.id
         lastSelected[page.id] = n.id
@@ -701,6 +714,7 @@ function Workshop.mount(gui, config)
         end)
     end
     renderPage = function()
+        unlockFX.clear()
         for _, v in sheet:GetChildren() do
             if v ~= mapScale then
                 v:Destroy()
@@ -916,6 +930,9 @@ function Workshop.mount(gui, config)
     nav.CanvasSize = UDim2.fromOffset(x, 0)
     local function setDialogOpen(open: boolean, returnTo: GuiObject?)
         dialogOpen = open
+        if open then
+            unlockFX.clear()
+        end
         for _, panel in { header, nav, mapWrap, detail } do
             panel.Interactable = not open
         end
@@ -1077,7 +1094,7 @@ function Workshop.mount(gui, config)
                     renderDetail(false)
                 end
                 if owned[n.id] and not before[n.id] then
-                    pulse(n)
+                    presentUnlock(n, before, owned, false)
                 end
             end
         end
@@ -1103,6 +1120,7 @@ function Workshop.mount(gui, config)
     function api.close()
         search.dismiss()
         comparison.dismiss()
+        unlockFX.clear()
         stopPreview()
         root.Visible = false
         gui:SetAttribute("WerkstattOffen", false)

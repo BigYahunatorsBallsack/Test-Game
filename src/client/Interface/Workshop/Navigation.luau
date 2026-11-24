@@ -9,6 +9,34 @@ type Node = {
     requiresAny: { string },
 }
 
+local function open(node: Node, owned: { [string]: boolean }): boolean
+    for _, parent in node.requires do
+        if parent ~= "start" and not owned[parent] then
+            return false
+        end
+    end
+    for _, parent in node.requiresAny do
+        if parent == "start" or owned[parent] then
+            return true
+        end
+    end
+    return #node.requiresAny == 0
+end
+
+function Navigation.newlyReachable(
+    nodes: { Node },
+    before: { [string]: boolean },
+    after: { [string]: boolean }
+)
+    local reached: { string } = {}
+    for _, node in nodes do
+        if not after[node.id] and open(node, after) and not open(node, before) then
+            table.insert(reached, node.id)
+        end
+    end
+    return reached
+end
+
 -- When an OR requirement is already fulfilled, trace the learned branches.
 -- Otherwise show each option in amber. A shared mandatory edge takes precedence.
 function Navigation.route(byId: { [string]: Node }, target: string?, learned: (string) -> boolean)

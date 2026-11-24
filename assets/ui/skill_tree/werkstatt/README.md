@@ -8,7 +8,9 @@ Der Knopf **Baum** öffnet die Werkstatt, sobald ihn das Tutorial freigibt. Jede
 
 **Varianten vergleichen** zeigt die beiden Fähigkeiten eines Geräts mit Wirkung, Lernstatus, Preis und Voraussetzung. Die Ego-Vorschauen starten gemeinsam und lassen sich wiederholen. In der schmalen Ansicht stehen die Karten untereinander. **Zum Knoten** springt zurück in den Baum.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+Beim Lernen zeigt eine Freischaltmeldung das Upgrade und die Knoten, deren Voraussetzungen jetzt erfüllt sind. Eine Lichtspur verbindet direkte Nachfolger auf derselben Karte. Große Fähigkeiten und Meisterschaften erhalten einen kräftigeren Effekt. Beim Ausrüsten einer Variante bestätigt die Meldung den Wechsel. Bei reduzierter Bewegung erscheint nur die Meldung.
+
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 

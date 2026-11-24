@@ -123,6 +123,24 @@ T.describe("Werkstatt-Export", function()
         T.expect(nodes.shovel_p3_2).toBe(2)
         T.expect(nodes.shovel_p3_3).toBe(2)
     end)
+    T.it("meldet nur neu erfüllte Voraussetzungen, auch bei verzweigten Pfaden", function()
+        local shovel = catalog.byTab.shovel.nodes
+        local before = { collect_tool_2 = true }
+        local after = { collect_tool_2 = true, tiefstich = true }
+        T.expect(navigation.newlyReachable(shovel, before, after)).toEqual({
+            "tiefstich_upgrade",
+            "tiefstich_m2_1",
+        })
+        local oneBranch = { collect_tool_2 = true, shovel_p3_1 = true, shovel_p3_2 = true }
+        local bothBranches = table.clone(oneBranch)
+        bothBranches.shovel_p3_3 = true
+        T.expect(navigation.newlyReachable(shovel, oneBranch, bothBranches))
+            .toEqual({ "shovel_p3_4" })
+        local firstVariant = { tiefstich_a_m1_1 = true }
+        local completed = { tiefstich_a_m1_1 = true, tiefstich_a_m1_2 = true }
+        T.expect(navigation.newlyReachable(shovel, firstVariant, completed))
+            .toEqual({ "tiefstich_master" })
+    end)
     T.it("findet exakte Stufen, gemischte Gerätenamen und Umlaute in allen Ästen", function()
         local index = search.build(catalog.tabs, { mastery = "Meisterschaft" })
         T.expect(#index).toBe(363)
