@@ -29,6 +29,7 @@ function TrialPanel.mount(root, config)
     panel.SelectionBehaviorRight = Enum.SelectionBehavior.Stop
     Art.round(panel, 10)
     Art.edge(panel, C.brass, 2)
+    Art.round(Art.surface(panel, "steel", 0.32), 10)
     local bounds = Instance.new("UISizeConstraint")
     bounds.MaxSize = Vector2.new(530, if config.trialOnly then 365 else 453)
     bounds.Parent = panel

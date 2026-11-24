@@ -22,6 +22,7 @@ Art.symbols = "rbxassetid://121329522523108"
 Art.scenes = "rbxassetid://133913310301503"
 Art.variantScenes = { "rbxassetid://127194462292023", "rbxassetid://139759034484553" }
 Art.masteryScenes = "rbxassetid://85422764371102"
+Art.materials = "rbxassetid://76841357655479"
 Art.gearTiers = "rbxassetid://134288678818985"
 Art.supportTiers = "rbxassetid://71482682642103"
 local core = "rbxassetid://108358749257413"
@@ -113,6 +114,23 @@ function Art.image(parent, name)
     o.Parent = parent
     return o
 end
+local swatches = {
+    chart = Vector2.new(0, 0),
+    wood = Vector2.new(504, 0),
+    steel = Vector2.new(0, 504),
+    brass = Vector2.new(504, 504),
+}
+
+function Art.surface(parent, material, transparency)
+    local image = Art.image(parent, "Oberflaeche")
+    image.ZIndex = parent.ZIndex
+    image.Size = UDim2.fromScale(1, 1)
+    image.Image = Art.materials
+    image.ImageRectOffset = swatches[material]
+    image.ImageRectSize = Vector2.new(504, 504)
+    image.ImageTransparency = transparency
+    return image
+end
 function Art.icon(image, sprite, iconName)
     if sprite ~= nil then
         image.Image = Art.symbols
@@ -175,27 +193,5 @@ function Art.line(parent, a, b, color, width, z, name)
     line.Size = UDim2.fromOffset((b - a).Magnitude, width)
     line.Rotation = math.deg(math.atan2(b.Y - a.Y, b.X - a.X))
     return line
-end
--- Contours of two dune crests, drawn once per page, behind interactive nodes.
-function Art.contours(parent)
-    local tone = hex("1B3838")
-    for island = 1, 2 do
-        for band = 1, 4 do
-            local last
-            for step = 0, 16 do
-                local t = step * math.pi / 8
-                local r = (68 + band * 24)
-                    * (1 + 0.18 * math.sin(3 * t + island) + 0.09 * math.sin(5 * t))
-                local p = Vector2.new(
-                    (if island == 1 then 160 else 837) + r * 1.3 * math.cos(t),
-                    (if island == 1 then 358 else 1120) + r * 0.74 * math.sin(t)
-                )
-                if last then
-                    Art.line(parent, last, p, tone, 1, parent.ZIndex, "Contour")
-                end
-                last = p
-            end
-        end
-    end
 end
 return Art

@@ -2,6 +2,8 @@
 
 Der Knopf **Baum** öffnet die Werkstatt, sobald ihn das Tutorial freigibt. Jeder Gerätereiter enthält 48 Knoten. In der Detailkarte lassen sich benachbarte Ausbaustufen anhand ihrer tatsächlichen Sprites vergleichen und direkt anwählen. Der gemerkte Knoten trägt eine Raute. Auf schmalen Displays öffnet sich die Detailkarte unter der verschiebbaren Karte.
 
+Eine petrolfarbene Kartentafel mit Höhenlinien, Holz in der Kopfzeile und Messing an den Fassungen prägen die Werkstatt. Die Dialoge und Detailkarten verwenden dieselbe dunkle Stahltextur. [Aktuelle Studio-Ansicht](Werkstatt_Tafel.jpg)
+
 **Übersicht** zeigt den gesamten gewählten Baum und die Zahl der bereits gelernten Knoten. In **Ziele und Voraussetzungen** lassen sich Fähigkeiten, Meilensteine und das gemerkte Upgrade direkt aufrufen, auch wenn es in einem anderen Reiter liegt. Türkise Pfade zeigen nötige Knoten. Bernsteinfarbene Pfade zeigen mögliche Alternativen. Über **Karte** kommst du zum vorherigen Kartenausschnitt zurück. Den bisherigen **Laufbaum** findest du rechts in der Reiterleiste.
 
 **Suche** durchsucht alle 363 Upgrades nach Name, Gerät oder Upgrade-Art. Begriffe lassen sich kombinieren, etwa „Schaufel Meisterschaft“. Auch „Foerderband“ findet die Eimerkette. Ein Treffer öffnet den Knoten in seinem Baum. Enter öffnet den ersten Treffer, solange das Suchfeld fokussiert ist.
@@ -62,6 +64,7 @@ Das einzelne Modell lässt sich als `ScreenGui` in `StarterGui` einsetzen und im
 | [Ego-Varianten für Hand, Schaufel und Förderband](Werkstatt_Ego_Hand_Schaufel_Foerderband.png) | 127194462292023 | Je zwei Szenen pro Gerät |
 | [Ego-Varianten für Bagger, Saugroboter und Harvester](Werkstatt_Ego_Bagger_Roboter_Harvester.png) | 139759034484553 | Je zwei Szenen pro Gerät |
 | [Ego-Meisterschaften](Werkstatt_Ego_Meisterschaften.png) | 85422764371102 | Je eine Szene pro Gerät |
+| [Werkstattmaterialien](Werkstatt_Materialien.png) | 76841357655479 | Kartentafel, Holz, Stahl und Messing |
 | Gerätestufen | 134288678818985 | 24 passive Motive und 120 gerätespezifische Stufensprites |
 | Lauf-Upgrades | 71482682642103 | 75 Ausbausprites |
 

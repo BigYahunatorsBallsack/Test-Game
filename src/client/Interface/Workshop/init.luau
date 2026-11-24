@@ -49,6 +49,9 @@ local colors = {
     locked = C.lock,
     grant = C.leaf,
 }
+local function stateTextColor(state)
+    return if state == "locked" then C.mute else colors[state]
+end
 local alternative = Color3.fromRGB(216, 159, 89)
 local directions = {
     [Enum.KeyCode.Left] = Vector2.new(-1, 0),
@@ -120,7 +123,25 @@ function Workshop.mount(gui, config)
     root.Active = true
     local header = Art.box(root, "Messingleiste", Color3.new(1, 1, 1), 101)
     Art.gradient(header, C.wood, C.dark)
+    Art.surface(header, "wood", 0.27)
+    local headerEdge = Art.box(header, "Fassung", C.wood, 102)
+    headerEdge.Position = UDim2.new(0, 0, 1, -4)
+    headerEdge.Size = UDim2.new(1, 0, 0, 4)
+    Art.surface(headerEdge, "brass", 0.13)
+    local titlePlate = Art.box(header, "Titelplatte", C.ink, 102)
+    Art.round(titlePlate, 6)
+    Art.edge(titlePlate, C.brass, 1.5)
+    Art.round(Art.surface(titlePlate, "steel", 0.39), 6)
+    for _, side in { 0, 1 } do
+        local rivet = Art.box(titlePlate, "Niete", C.brass, 103)
+        rivet.AnchorPoint = Vector2.new(0.5, 0.5)
+        rivet.Position = UDim2.new(side, if side == 0 then 6 else -6, 0.5, 0)
+        rivet.Size = UDim2.fromOffset(5, 5)
+        Art.round(rivet, 3)
+        Art.gradient(rivet, C.bright, C.wood)
+    end
     local title = Art.text(header, "Title", "WERKSTATT", 30, C.bright, true)
+    title.ZIndex = 103
     title.Font = Enum.Font.Antique
     local controlsHint = Art.text(header, "Tasten", "", 12, C.mute, false)
     controlsHint.TextXAlignment = Enum.TextXAlignment.Center
@@ -136,7 +157,13 @@ function Workshop.mount(gui, config)
     local mapWrap = Art.box(root, "Tafel", C.board, 101)
     mapWrap.ClipsDescendants = true
     Art.edge(mapWrap, C.brass, 2)
+    Art.surface(mapWrap, "chart", 0.13)
     local mapBar = Art.box(mapWrap, "Werkzeugleiste", C.panel, 120)
+    Art.surface(mapBar, "steel", 0.28)
+    local divider = Art.box(mapBar, "Kante", C.brass, 121)
+    divider.Position = UDim2.new(0, 0, 1, -1)
+    divider.Size = UDim2.new(1, 0, 0, 1)
+    divider.BackgroundTransparency = 0.3
     local tabTitle = Art.text(mapBar, "Gerät", "", 18, C.ivory, true)
     local progress = Art.text(mapBar, "Fortschritt", "", 11, C.mute, true)
     local overviewButton = Art.button(mapBar, "Uebersicht", "Übersicht")
@@ -155,6 +182,7 @@ function Workshop.mount(gui, config)
     local detail = Art.box(root, "Detail", C.panel, 130)
     Art.edge(detail, C.brass, 2)
     detail.ClipsDescendants = true
+    Art.surface(detail, "steel", 0.35)
     local detailScroll = scroll(detail, "Inhalt")
     detailScroll.ScrollingDirection = Enum.ScrollingDirection.Y
     detailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -529,7 +557,7 @@ function Workshop.mount(gui, config)
                 "Status",
                 context or stateNames[targetState],
                 11,
-                if context then C.mute else colors[targetState],
+                if context then C.mute else stateTextColor(targetState),
                 false
             )
             state.Position = UDim2.fromOffset(54, 26)
@@ -771,7 +799,7 @@ function Workshop.mount(gui, config)
                 .. (if n.granted then "" else "   ·   " .. readable(n.cost) .. " Münzen"),
             36,
             14,
-            colors[st],
+            stateTextColor(st),
             true
         )
         local showTrial = not training and not n.live
@@ -859,7 +887,7 @@ function Workshop.mount(gui, config)
         for id, label in shortcutStates do
             local state = status(book.byId[id])
             label.Text = stateNames[state]
-            label.TextColor3 = colors[state]
+            label.TextColor3 = stateTextColor(state)
         end
         for _, edge in edges do
             local lit = learned(edge.from)
@@ -942,7 +970,6 @@ function Workshop.mount(gui, config)
         entries = {}
         edges = {}
         sheet.Size = UDim2.fromOffset(Catalog.width, page.height)
-        Art.contours(sheet)
         local gatePos = Vector2.new(525, 62)
         for _, n in page.nodes do
             local hasLocal = false
@@ -1066,7 +1093,15 @@ function Workshop.mount(gui, config)
         local navY = headerH + 6
         local mapY = navY + 55
         Art.rect(header, 0, 0, w, headerH)
-        Art.rect(title, if compact then 10 else 20, 0, if w < 490 then 105 else 211, headerH)
+        titlePlate.Visible = not compact
+        Art.rect(titlePlate, 9, 8, 211, headerH - 20)
+        Art.rect(
+            title,
+            if compact then 10 else 20,
+            if compact then 0 else -1,
+            if w < 490 then 105 else 211,
+            headerH
+        )
         title.TextSize = if w < 490 then 16 elseif compact then 21 else 30
         local trialW = if w < 520 then 87 else 148
         Art.rect(mode, w - trialW - 58, 4, trialW, 44)
@@ -1210,7 +1245,7 @@ function Workshop.mount(gui, config)
         statusText = function(node)
             local state = status(node)
             return stateNames[state] .. "  ·  " .. readable(node.cost) .. " Münzen",
-                if state == "locked" then C.mute else colors[state]
+                stateTextColor(state)
         end,
         setOpen = function(open)
             setDialogOpen(open, compareButton)

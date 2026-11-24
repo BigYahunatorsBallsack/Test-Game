@@ -27,6 +27,7 @@ function VariantPanel.mount(root, config)
     bounds.Parent = panel
     Art.edge(panel, C.brass, 2)
     Art.round(panel, 10)
+    Art.round(Art.surface(panel, "steel", 0.32), 10)
 
     local heading = Art.text(panel, "Titel", "", 24, C.bright, true)
     heading.Font = Enum.Font.Antique

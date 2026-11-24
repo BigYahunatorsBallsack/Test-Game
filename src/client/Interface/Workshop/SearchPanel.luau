@@ -29,6 +29,7 @@ function SearchPanel.mount(root, config)
     bounds.Parent = card
     Art.round(card, 10)
     Art.edge(card, C.brass, 2)
+    Art.round(Art.surface(card, "steel", 0.32), 10)
 
     local close = Art.button(card, "Schliessen", "×")
     close.TextSize = 24
