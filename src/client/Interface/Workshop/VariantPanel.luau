@@ -23,7 +23,7 @@ function VariantPanel.mount(root, config)
     panel.SelectionBehaviorLeft = Enum.SelectionBehavior.Stop
     panel.SelectionBehaviorRight = Enum.SelectionBehavior.Stop
     local bounds = Instance.new("UISizeConstraint")
-    bounds.MaxSize = Vector2.new(860, 575)
+    bounds.MaxSize = Vector2.new(860, 645)
     bounds.Parent = panel
     Art.edge(panel, C.brass, 2)
     Art.round(panel, 10)
@@ -60,8 +60,13 @@ function VariantPanel.mount(root, config)
     local openPage
     local cardsById = {}
     local function resize()
-        local wide = cards.AbsoluteSize.X >= 595
-        grid.CellSize = if wide then UDim2.new(0.5, -7, 0, 420) else UDim2.new(1, -7, 0, 420)
+        local availableWidth = cards.AbsoluteSize.X
+        local wide = availableWidth >= 595
+        local cardWidth = if wide then availableWidth * 0.5 - 7 else availableWidth - 7
+        local imageHeight = math.clamp(math.floor((cardWidth - 24) * 2 / 3), 128, 252)
+        grid.CellSize = if wide
+            then UDim2.new(0.5, -7, 0, imageHeight + 245)
+            else UDim2.new(1, -7, 0, imageHeight + 245)
         grid.FillDirectionMaxCells = if wide then 2 else 1
         heading.TextSize = if wide then 24 else 18
     end
@@ -104,6 +109,7 @@ function VariantPanel.mount(root, config)
     end
     local function newCard(page, node, index)
         local accent = if index == 1 then C.bright else C.leaf
+        local variant = node.sprite % 4 + 1
         local shell = Art.box(cards, node.id, C.ink, 153)
         shell.LayoutOrder = index
         Art.round(shell, 7)
@@ -118,23 +124,23 @@ function VariantPanel.mount(root, config)
         name.Size = UDim2.new(1, -80, 0, 50)
 
         local scene = Art.image(shell, "Ego")
-        Art.scene(scene, page.row)
+        Art.scene(scene, page.row, variant)
         scene.Position = UDim2.fromOffset(12, 64)
-        scene.Size = UDim2.new(1, -24, 0, 175)
+        scene.Size = UDim2.new(1, -24, 1, -245)
         scene.ClipsDescendants = true
         Art.round(scene, 5)
-        local function label(key, value, y, height, size, color)
+        local function label(key, value, fromBottom, height, size, color)
             local item = Art.text(shell, key, value, size, color, false)
-            item.Position = UDim2.fromOffset(12, y)
+            item.Position = UDim2.new(0, 12, 1, -fromBottom)
             item.Size = UDim2.new(1, -24, 0, height)
             return item
         end
-        label("Wirkung", node.description, 246, 64, 14, C.ivory).TextYAlignment =
+        label("Wirkung", node.description, 174, 64, 14, C.ivory).TextYAlignment =
             Enum.TextYAlignment.Top
-        local status = label("Status", "", 313, 22, 13, C.bright)
+        local status = label("Status", "", 107, 22, 13, C.bright)
         local requirement = config.book.byId[node.requires[1]]
         if requirement then
-            label("Voraussetzung", "Setzt " .. requirement.name .. " voraus", 334, 23, 12, C.mute)
+            label("Voraussetzung", "Setzt " .. requirement.name .. " voraus", 86, 23, 12, C.mute)
         end
         local view = Art.button(shell, "ZumKnoten", "Zum Knoten")
         view.Position = UDim2.new(0, 12, 1, -54)
@@ -147,7 +153,7 @@ function VariantPanel.mount(root, config)
         cardsById[node.id] = {
             frame = shell,
             preview = Preview.new(scene),
-            variant = node.sprite % 4 + 1,
+            variant = variant,
             accent = accent,
             status = status,
         }

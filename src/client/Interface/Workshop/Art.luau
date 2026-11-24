@@ -20,6 +20,7 @@ Art.c = {
 }
 Art.symbols = "rbxassetid://121329522523108"
 Art.scenes = "rbxassetid://133913310301503"
+Art.variantScenes = { "rbxassetid://127194462292023", "rbxassetid://139759034484553" }
 Art.gearTiers = "rbxassetid://134288678818985"
 Art.supportTiers = "rbxassetid://71482682642103"
 local core = "rbxassetid://108358749257413"
@@ -123,9 +124,14 @@ function Art.icon(image, sprite, iconName)
         image.ImageRectOffset = Vector2.new(p[1], p[2])
     end
 end
-function Art.scene(image, row)
-    image.Image = Art.scenes
-    image.ImageRectOffset = Vector2.new(row % 2 * 504, math.floor(row / 2) * 336)
+function Art.scene(image, row, variant)
+    if variant == 2 or variant == 3 then
+        image.Image = Art.variantScenes[if row < 3 then 1 else 2]
+        image.ImageRectOffset = Vector2.new((variant - 2) * 504, (row % 3) * 336)
+    else
+        image.Image = Art.scenes
+        image.ImageRectOffset = Vector2.new(row % 2 * 504, math.floor(row / 2) * 336)
+    end
     image.ImageRectSize = Vector2.new(504, 336)
 end
 function Art.nodeIcon(image, node)

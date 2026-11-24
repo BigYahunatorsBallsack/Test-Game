@@ -712,15 +712,20 @@ function Workshop.mount(gui, config)
             strip.CanvasPosition = Vector2.new(math.max(0, (tierNo - 2) * 54), 0)
         end
         if page.row ~= nil then
+            local variant = if n.sprite and n.sprite < 24 then n.sprite % 4 + 1 else 1
             local picture = Art.image(detailScroll, "Ego")
-            row(detailScroll, picture, if compact then 104 else 142)
-            Art.scene(picture, page.row)
+            local sceneHeight = math.clamp(
+                math.floor((detail.AbsoluteSize.X - 16) * 2 / 3),
+                125,
+                if compact then 163 else 216
+            )
+            row(detailScroll, picture, sceneHeight)
+            Art.scene(picture, page.row, variant)
             picture.ScaleType = Enum.ScaleType.Stretch
             picture.ClipsDescendants = true
             Art.round(picture, 6)
             Art.edge(picture, C.brass, 1)
             activePreview = Preview.new(picture)
-            local variant = if n.sprite and n.sprite < 24 then n.sprite % 4 + 1 else 1
             activePreview.show(page.id, variant, reduced() or not animate)
             local play = Art.button(picture, "Wiederholen", "Start")
             play.Size = UDim2.fromOffset(44, 44)

@@ -19,6 +19,14 @@ local navigation = readData(main.Navigation)
 local search = readData(main.Search)
 local planner = readData(main.StudyPlan)
 local trial = readData(main.Trial)
+local art = luau.load(main.Art.Source, {
+    environment = {
+        script = main.Art,
+        require = readData,
+        Vector2 = roblox.Vector2,
+        Color3 = roblox.Color3,
+    },
+})()
 local mapView = luau.load(main.MapView.Source, {
     environment = { Vector2 = roblox.Vector2 },
 })()
@@ -254,6 +262,24 @@ T.describe("Werkstatt-Export", function()
             .toEqual({ collect_tool_2 = true, collect_tool_3 = true, sandstorm_1 = true })
         T.expect(all.coins).toBe(1000000000)
         T.expect(all.variants).toEqual({})
+    end)
+    T.it("ordnet jedem Gerät ein Grundmotiv und zwei eigene Ego-Szenen zu", function()
+        local portraits = {}
+        for row = 0, 5 do
+            for variant = 1, 3 do
+                local label: any = {}
+                art.scene(label, row, variant)
+                local rect = label.ImageRectOffset
+                local size = label.ImageRectSize
+                local key = label.Image .. tostring(rect)
+                assert(not portraits[key], "Ego-Szene doppelt verwendet")
+                assert(rect.X + size.X <= 1008 and rect.Y + size.Y <= 1008)
+                portraits[key] = true
+                local mastery: any = {}
+                art.scene(mastery, row, 4)
+                T.expect(mastery.Image).toBe(art.scenes)
+            end
+        end
     end)
 end)
 T.finish()
