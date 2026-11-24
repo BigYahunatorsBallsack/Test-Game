@@ -118,6 +118,8 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
         -- Eine gesperrte aktuelle Zone zahlt nie (der Sand-Service setzt sie beim Laden zurück, hier zur Sicherheit).
         local sandTypeId = if ZoneLogic.isUnlocked(profile, profile.currentZone) then Collecting.sandTypeOf(profile) else ZoneData.list[1].sandTypeId
         local price = Collecting.priceOf(profile, sandTypeId, { coinMultiplier = pass })
+        -- Für die Kristalle zählt der Preis ohne Münz-Faktor (Paket 6.4, L1).
+        local runPrice = Collecting.priceOf(profile, sandTypeId, nil)
         local amount = rate * seconds * config.rateFactor * price
         if not isFinite(amount) or amount <= 0 then
             return nil
@@ -126,10 +128,12 @@ function Offline.apply(profile: any, unixNow: any, data: any?): Report
         if earned.m <= 0 then
             return nil
         end
+        local runAmount = rate * seconds * config.rateFactor * runPrice
+        local runEarned = if isFinite(runAmount) and runAmount > 0 then BigNum.min(BigNum.floor(BigNum.new(runAmount)), earned) else BigNum.zero()
         return {
             coins = earned,
             newCoins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), earned)),
-            newRunEarned = BigNum.serialize(BigNum.add(Wind.runEarned(profile), earned)),
+            newRunEarned = BigNum.serialize(BigNum.add(Wind.runEarned(profile), runEarned)),
         }
     end)
     if not ok then

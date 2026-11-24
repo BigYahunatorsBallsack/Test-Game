@@ -714,3 +714,14 @@ Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand
 - [ ] [Studio] Zweiter Spieler (Test mit 2 Spielern): Der andere sieht den ganzen Avatar mit Skin und Werkzeug, keine schwebenden Hände.
 - [x] [Lune] Zielen beim Graben (`Logic/DigAim`): Für jedes Werkzeug gilt min < Arbeitsspitze < max, und das Loch erreicht den Charakter-Quader in keiner Richtung. Treffer in Reichweite: genau dort. Zu nah: auf min hinausgeschoben. Zu weit: auf max zurückgeholt. Seitlich oder hinter dem Charakter geht. Kein Treffer (Himmel): Arbeitsspitze in Blickrichtung. Ungültige Eingaben ergeben nil. `flowSpeed`: schnell genug für die Strecke, nie unter der Grundgeschwindigkeit.
 - [ ] [Studio] Graben folgt dem Fadenkreuz: Nach links, rechts, nah und weit zielen, das Loch und der Staub entstehen dort. Vor die Füße zielen: Das Loch bleibt so weit weg, dass man nicht hineinfällt. In den Himmel zielen: Es wird vor einem gegraben. Mit Alt (freie Maus) folgt das Loch dem Mauszeiger. Ab der Eimerkette beginnt der Sandfluss der Maschine am Grabpunkt und fliegt zur Maschine.
+
+
+## 6.4 L1: Münz-Faktor zählt nicht für Kristalle
+
+Entscheidung (Waltuh: "was du am besten hältst", Empfehlung Koordinator): `runEarned` zählt den Münz-Faktor aus 2x-Pass und Münz-Boost nicht, damit sich Windkristalle nicht kaufen lassen (docs/balance-6.4.md, L1). Geändert: `Wind.credit` (optionaler `runAmount`), `Collecting.sell`, `Offline.apply`, `Sandstorm.runTotal`.
+
+- [x] [Lune] Verkauf mit Münz-Faktor 3: Münzen mal 3, `runEarned` ohne Faktor (`tests/sandstorm.spec.luau`, `tests/perks.spec.luau`).
+- [x] [Lune] Sandsturm-Vorschau mit und ohne Faktor zeigt dieselben Einnahmen und dieselben Kristalle.
+- [x] [Lune] Offline mit 2x-Pass: Münzen höher, `runEarned` gleich wie ohne Pass (`tests/offline.spec.luau`).
+- [x] [Lune] `Wind.credit` mit `runAmount`: höchstens der Betrag, 0 oder negativ zählt nichts, Münzen bleiben voll.
+- [ ] [Studio] Mit 2x-Pass einen Sturm vorbereiten: Die Kristallvorschau ist gleich hoch wie ohne Pass, nur die Münzanzeige wächst schneller.
