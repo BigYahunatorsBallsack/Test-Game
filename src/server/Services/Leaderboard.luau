@@ -3,7 +3,8 @@
 -- eines Freundes. Die Regeln stehen im reinen Modul Logic/Social (Lune-Tests tests/social.spec.luau),
 -- Werte in Data/Social. Hier hängen nur DataStore, Freundesliste, Namen und die Remotes dran.
 --
--- Rangliste: Der Wert einer Sammlung (Logic/Social.collectionValue) wird höchstens alle
+-- Rangliste: Gewertet wird der Wochenfortschritt: Wert der Sammlung (Logic/Social.collectionValue) jetzt
+-- minus Wert zu Beginn der Woche (profile.weekly). Dieser Wert wird höchstens alle
 -- `writeSeconds` je Spieler und beim Verlassen in einen OrderedDataStore der Woche geschrieben (nur
 -- steigend, UpdateAsync mit Maximum). Alle `readSeconds` liest der Server die Top-Liste neu in einen
 -- Zwischenspeicher. Der Client fragt nur diesen Speicher ab.
@@ -57,7 +58,7 @@ local Net: any = nil
 
 local Leaderboard = {}
 
-type Pending = { value: number, showcase: any }
+type Pending = { value: number, total: number, showcase: any }
 
 -- Zuletzt berechneter Wert je Spieler (mit Auszug), zuletzt geschriebener Wert und Zeitpunkt.
 local latest: { [number]: Pending } = {}
@@ -90,23 +91,32 @@ local function warnStoreOnce(err: any)
     end
 end
 
--- Wert und Auszug des Spielers neu berechnen. Wartet nie.
+-- Wochenfortschritt, Gesamtwert und Auszug des Spielers neu berechnen. Wartet nie. Die Basis zu Beginn der
+-- Woche steht im Profil (`weekly`, nur der Server schreibt, Logic/Social.rollWeek).
 local function refreshLatest(player: Player)
     local profile = PlayerData.get(player)
     if profile == nil or not PlayerData.isActive(player.UserId) then
         return
     end
-    local ok, value = pcall(SocialLogic.collectionValue, profile)
-    if not ok or type(value) ~= "number" then
+    local week = SocialLogic.weekIndex(unixNow())
+    if week == nil then
         return
     end
+    local ok, total = pcall(SocialLogic.collectionValue, profile)
+    if not ok or type(total) ~= "number" then
+        return
+    end
+    local weekly, progress = SocialLogic.rollWeek(profile.weekly, week, total)
+    if type(profile.weekly) ~= "table" or profile.weekly.week ~= weekly.week or profile.weekly.base ~= weekly.base then
+        profile.weekly = weekly -- eine neue Tabelle, kein Warten dazwischen
+    end
     local old = latest[player.UserId]
-    if old ~= nil and old.value == value then
+    if old ~= nil and old.value == progress and old.total == total then
         return
     end
     local built, showcase = pcall(SocialLogic.buildShowcase, profile, unixNow())
     if built then
-        latest[player.UserId] = { value = value, showcase = showcase }
+        latest[player.UserId] = { value = progress, total = total, showcase = showcase }
     end
 end
 
@@ -233,7 +243,7 @@ local function onGetLeaderboard(player: Player): any
             week = week,
             secondsLeft = SocialLogic.secondsLeftInWeek(now),
             entries = entries,
-            you = { value = SocialLogic.collectionValue(profile), rank = rankOf(player.UserId) },
+            you = { value = select(2, SocialLogic.rollWeek(profile.weekly, week, SocialLogic.collectionValue(profile))), rank = rankOf(player.UserId) },
         }
     end)
     if not ok then

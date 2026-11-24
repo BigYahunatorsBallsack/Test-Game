@@ -69,6 +69,16 @@ function Social.bonusFactor(friendCount: any, data: Data?): number
     return 1 + bp / 10000
 end
 
+-- Zählt ein Freund mit diesem Kontoalter (Tage, Player.AccountAge) für den Bonus? Neue Konten zählen
+-- nicht, damit frisch angelegte Alt-Accounts den Bonus nicht liefern. Kaputtes Alter zählt nicht.
+function Social.accountOldEnough(ageDays: any, data: Data?): boolean
+    local cfg = socialOf(data).friends
+    if type(cfg) ~= "table" or not isFinite(cfg.minAccountAgeDays) or not isFinite(ageDays) then
+        return false
+    end
+    return ageDays >= cfg.minAccountAgeDays
+end
+
 -- Wie viele der anwesenden Spieler sind Freunde von `selfId`? `known[userId] == true` heißt befreundet.
 -- Man zählt sich nie selbst, jede UserId nur einmal, nur Anwesende.
 function Social.countFriends(selfId: any, presentIds: any, known: any): number
@@ -129,6 +139,25 @@ function Social.secondsLeftInWeek(unixNow: any): number
         return 0
     end
     return MONDAY_OFFSET + (week + 1) * Seasons.WEEK_SECONDS - math.floor(unixNow)
+end
+
+-- Wochenfortschritt: `weekly` ist { week, base } aus dem Profil (Sammlungswert zu Beginn der Woche).
+-- Gibt (neues weekly, Fortschritt) zurück. Beginnt eine neue Woche (oder ist weekly kaputt), wird der
+-- aktuelle Wert zur Basis, Fortschritt 0. Sinkt der Wert unter die Basis (zum Beispiel Datenänderung),
+-- wird die Basis gesenkt. Der Fortschritt ist nie negativ.
+function Social.rollWeek(weekly: any, week: any, value: any): ({ week: number, base: number }, number)
+    local total = if isFinite(value) and value >= 0 then math.floor(value) else 0
+    if not isFinite(week) then
+        return { week = 0, base = total }, 0
+    end
+    if type(weekly) ~= "table" or weekly.week ~= week or not isFinite(weekly.base) or weekly.base < 0 then
+        return { week = week, base = total }, 0
+    end
+    local base = math.floor(weekly.base)
+    if base > total then
+        base = total
+    end
+    return { week = week, base = base }, total - base
 end
 
 -- Name des OrderedDataStore dieser Woche. nil bei kaputter Zeit.

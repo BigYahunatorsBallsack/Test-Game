@@ -24,11 +24,18 @@
 -- (der Server ruft migrateStart beim Laden mit seiner Unix-Uhr auf, die reine Migration kennt keine
 -- Uhr).
 --
--- Kauf (`offerHandler`, Handler für Logic/Purchases): Bezahlt ist bezahlt. Ein Beleg wird auch
--- außerhalb des Fensters und nach einem früheren Kauf gutgeschrieben (sonst käme er ewig wieder,
--- NotProcessedYet für immer). Der Inhalt ist fest, es gibt keinen Zufall: Gems (gekappt bei
--- maxGems, über Gems.grant), je ein Exemplar der Items im passenden Inventar-Feld und der Merker
--- `bought`. Der Handler rechnet auf der Profil-Kopie von Purchases, ändert sie nicht und wartet nie.
+-- Kauf (`offerHandler`, Handler für Logic/Purchases): Das Paket gibt es nur einmal (Exploit-Review
+-- 6.1). Ein Beleg bekommt es, wenn das Angebot zur Server-Uhr beim Buchen "active" ist oder seit
+-- weniger als `receiptGraceMinutes` abgelaufen und nicht gekauft (`receiptGetsPackage`). Inhalt fest,
+-- kein Zufall: Gems (gekappt bei maxGems, über Gems.grant), je ein Exemplar der Items im passenden
+-- Inventar-Feld und der Merker `bought`. Jeder andere bezahlte Beleg (schon gekauft, nicht gestartet,
+-- abgelaufen; auch über einen selbst aufgerufenen PromptProductPurchase) bekommt nur `duplicateGems`
+-- Ersatz-Gems aus Data/Offers (gekappt bei maxGems), keine Items, `offers` bleibt unverändert (ein
+-- noch nicht gestartetes Angebot bleibt später kaufbar). Bezahlt ist bezahlt: auch dieser Beleg wird
+-- gebucht und bestätigt, nie NotProcessedYet für immer. nil (NotProcessedYet) nur bei kaputter Uhr
+-- oder kaputten Daten. Der Handler rechnet auf der Profil-Kopie von Purchases, ändert sie nicht und
+-- wartet nie. Meldung nach dem bestätigten Speichern: "offerBought" mit { offerId, gems, items },
+-- beim Ersatz zusätzlich `duplicate = true` (items leer).
 --
 -- Hinweise beim Client (`nextHint`): höchstens ein Angebots-Hinweis zur Zeit, nie während eines
 -- Reveals (läuft oder wartet), des Tutorials oder eines offenen Fensters, je Angebot höchstens einmal
@@ -45,8 +52,9 @@ local RaritiesData = require("../Data/Rarities")
 local Equipment = require("./Equipment")
 local Gems = require("./Gems")
 
--- Umrechnung von windowHours in Sekunden.
+-- Umrechnung von windowHours und receiptGraceMinutes in Sekunden.
 local SECONDS_PER_HOUR = 3600
+local SECONDS_PER_MINUTE = 60
 -- So weit darf ein Start nach der Server-Uhr liegen und zählt noch (als "gerade gestartet"), weil die
 -- Uhren verschiedener Server leicht auseinanderlaufen. Weiter in der Zukunft ist der Wert kaputt und
 -- zählt als nicht gestartet (ein Auslöser startet das Fenster dann neu).
@@ -90,6 +98,7 @@ Offers.OFFER_BOUGHT_KIND = "offerBought"
 -- Angebots-ID des Starterpakets in Data/Offers.
 Offers.STARTER_OFFER_ID = "starter"
 Offers.SECONDS_PER_HOUR = SECONDS_PER_HOUR
+Offers.SECONDS_PER_MINUTE = SECONDS_PER_MINUTE
 Offers.FUTURE_TOLERANCE_SECONDS = FUTURE_TOLERANCE_SECONDS
 
 local function offersOf(data: any?): any
@@ -148,6 +157,17 @@ function Offers.windowSeconds(offer: any): number?
     return if isFinite(seconds) then seconds else nil
 end
 
+-- Nachfrist nach dem Fensterende in Sekunden (`receiptGraceMinutes`, ganze Zahl ab 0) oder nil bei
+-- kaputtem Wert (DataCheck verhindert das).
+function Offers.graceSeconds(offer: any): number?
+    local minutes = if type(offer) == "table" then offer.receiptGraceMinutes else nil
+    if not isWholeAtLeastZero(minutes) then
+        return nil
+    end
+    local seconds = minutes * SECONDS_PER_MINUTE
+    return if isFinite(seconds) then seconds else nil
+end
+
 -- Roher Eintrag des Angebots im Profil (oder nil).
 local function rawEntry(profile: any, offerId: string): any
     local offers = if type(profile) == "table" then profile.offers else nil
@@ -193,6 +213,29 @@ function Offers.stateOf(profile: any, offerId: string, unixNow: number, data: an
         return "expired", 0
     end
     return "active", math.ceil(math.min(left, window))
+end
+
+-- Bekommt ein Beleg, der zur Unix-Zeit `unixNow` (Server-Uhr beim Buchen) gebucht wird, das volle
+-- Paket? Ja bei "active" und bei "expired", solange `unixNow` vor Fensterende plus Nachfrist
+-- (`receiptGraceMinutes`) liegt. Nein bei "bought" (Einmalkauf), "hidden" (nicht gestartet, auch
+-- kaputte Uhr oder unbekanntes Angebot) und nach der Nachfrist. Gibt (ja/nein, Zustand aus stateOf)
+-- zurück; der Zustand ist fürs Protokoll.
+function Offers.receiptGetsPackage(profile: any, offerId: string, unixNow: number, data: any?): (boolean, State)
+    local state = Offers.stateOf(profile, offerId, unixNow, data)
+    if state == "active" then
+        return true, state
+    end
+    if state ~= "expired" then
+        return false, state
+    end
+    local offer = offersOf(data).byId[offerId]
+    local window = Offers.windowSeconds(offer)
+    local grace = Offers.graceSeconds(offer)
+    local since = validStart(rawEntry(profile, offerId), unixNow)
+    if window == nil or grace == nil or since == nil then
+        return false, state
+    end
+    return unixNow < since + window + grace, state
 end
 
 -- Zustand aller Angebote aus Data/Offers für den StateSync: { [offerId] = { state, secondsLeft } }.
@@ -326,9 +369,12 @@ function Offers.migrateStart(profile: any, unixNow: number, data: any?): ({ [str
 end
 
 -- Kauf-Handler für ein Angebot (Shop.registerProduct(angebot.productId, ...)). `clock` ist die
--- Unix-Uhr (im Spiel os.time) und dient nur dem Protokoll; `log` (optional) meldet Kappen und Käufe
--- außerhalb des Fensters. Gibt nil nur bei kaputten Daten oder Profil zurück (dann NotProcessedYet):
--- unbekanntes Angebot, falsches Produkt, unbekanntes Item, ungültige Gems.
+-- Unix-Uhr des Servers (im Spiel os.time): Sie entscheidet, ob der Beleg das Paket bekommt
+-- (`receiptGetsPackage`) oder nur Ersatz-Gems (`duplicateGems`, keine Items, `offers` unverändert).
+-- `log` (optional) meldet Ersatz-Gems, Belege in der Nachfrist und Kappen. Gibt nil nur bei kaputter
+-- Uhr, kaputten Daten oder ohne Profil zurück (dann NotProcessedYet, Roblox wiederholt): unbekanntes
+-- Angebot, falsches Produkt, unbekanntes Item, ungültige gems, duplicateGems, windowHours oder
+-- receiptGraceMinutes, Uhr nicht endlich oder nicht über 0.
 function Offers.offerHandler(offerId: string, clock: () -> number, log: ((message: string) -> ())?): (profile: any, product: any, data: any?) -> Prepared?
     local function report(message: string)
         if log ~= nil then
@@ -353,11 +399,18 @@ function Offers.offerHandler(offerId: string, clock: () -> number, log: ((messag
             report(`Angebot "{offerId}": gems oder items ungültig, keine Gutschrift`)
             return nil
         end
+        if not isWholeAtLeastZero(offer.duplicateGems) then
+            report(`Angebot "{offerId}": duplicateGems ungültig ({tostring(offer.duplicateGems)}), keine Gutschrift`)
+            return nil
+        end
+        if Offers.windowSeconds(offer) == nil or Offers.graceSeconds(offer) == nil then
+            report(`Angebot "{offerId}": windowHours oder receiptGraceMinutes ungültig, keine Gutschrift`)
+            return nil
+        end
 
-        -- Items: je ein Exemplar im Feld der Art (Equipment.INVENTORY_FIELDS), neue Tabellen.
+        -- Items prüfen (auch wenn der Beleg nur Ersatz-Gems bekommt: kaputte Daten buchen nie).
         local itemData = crateItemsOf(data)
-        local inventory: { [string]: any } = if type(profile.inventory) == "table" then table.clone(profile.inventory) else {}
-        local given: { string } = {}
+        local items: { any } = {}
         for _, itemId in offer.items do
             local item = if type(itemId) == "string" then itemData.byId[itemId] else nil
             local field = if item ~= nil then Equipment.INVENTORY_FIELDS[item.kind] else nil
@@ -365,6 +418,49 @@ function Offers.offerHandler(offerId: string, clock: () -> number, log: ((messag
                 report(`Angebot "{offerId}": Item "{tostring(itemId)}" ist unbekannt, keine Gutschrift`)
                 return nil
             end
+            table.insert(items, item)
+        end
+
+        local now = clock()
+        if not isFinite(now) or now <= 0 then
+            report(`Angebot "{offerId}": ungültige Uhr {tostring(now)}, keine Gutschrift`)
+            return nil
+        end
+        local maxGems = economyOf(data).purchases.maxGems
+        local resultOfferId: string = offer.id
+        local getsPackage, state = Offers.receiptGetsPackage(profile, offer.id, now, data)
+
+        if not getsPackage then
+            -- Kein Paket (schon gekauft, nicht gestartet, abgelaufen): nur Ersatz-Gems über Gems.grant
+            -- (gekappt bei maxGems) auf einer Hilfstabelle, keine Items, offers bleibt unverändert.
+            local duplicateGems: number = offer.duplicateGems
+            local scratch = { gems = Gems.balance(profile, data) }
+            local replaced = 0
+            if duplicateGems > 0 then
+                replaced = Gems.grant(scratch, duplicateGems, `purchase:{offer.productId}:duplicate`, data)
+            end
+            report(`Angebot "{offerId}": Beleg im Zustand "{state}" (schon gekauft oder Fenster nicht offen), {replaced} Ersatz-Gems statt des Pakets, keine Items`)
+            if replaced < duplicateGems then
+                report(`Angebot "{offerId}": bei maxGems ({maxGems}) gekappt, {replaced} statt {duplicateGems} Ersatz-Gems gutgeschrieben`)
+            end
+            local replacement: { [string]: any } = {}
+            if replaced > 0 then
+                replacement.gems = scratch.gems
+            end
+            return {
+                changes = replacement,
+                gems = replaced,
+                announce = function(_current: any): (string, { [string]: any })
+                    return Offers.OFFER_BOUGHT_KIND, { offerId = resultOfferId, gems = replaced, items = {}, duplicate = true }
+                end,
+            }
+        end
+
+        -- Paket. Items: je ein Exemplar im Feld der Art (Equipment.INVENTORY_FIELDS), neue Tabellen.
+        local inventory: { [string]: any } = if type(profile.inventory) == "table" then table.clone(profile.inventory) else {}
+        local given: { string } = {}
+        for _, item in items do
+            local field = Equipment.INVENTORY_FIELDS[item.kind]
             local bucket: { [string]: any } = if type(inventory[field]) == "table" then table.clone(inventory[field]) else {}
             local current = bucket[item.id]
             local count = if isFinite(current) and current >= 0 then math.floor(current) else 0
@@ -382,23 +478,20 @@ function Offers.offerHandler(offerId: string, clock: () -> number, log: ((messag
             added = Gems.grant(scratch, offer.gems, `purchase:{offer.productId}`, data)
             changes.gems = scratch.gems
             if added < offer.gems then
-                report(`Angebot "{offerId}": bei maxGems ({economyOf(data).purchases.maxGems}) gekappt, {added} statt {offer.gems} Gems gutgeschrieben`)
+                report(`Angebot "{offerId}": bei maxGems ({maxGems}) gekappt, {added} statt {offer.gems} Gems gutgeschrieben`)
             end
         end
 
-        -- Merker "gekauft". Bezahlt ist bezahlt: Ein Beleg außerhalb des Fensters oder nach einem
-        -- früheren Kauf wird trotzdem gutgeschrieben, das Protokoll nennt es.
-        local now = clock()
-        local state = Offers.stateOf(profile, offer.id, now, data)
+        -- Merker "gekauft" (Einmalkauf). Ein Beleg in der Nachfrist bekommt das Paket, das Protokoll
+        -- nennt es.
         if state ~= "active" then
-            report(`Angebot "{offerId}": Beleg im Zustand "{state}" (außerhalb des Fensters oder schon gekauft), trotzdem gutgeschrieben`)
+            report(`Angebot "{offerId}": Beleg im Zustand "{state}" in der Nachfrist nach dem Fensterende, Paket gutgeschrieben`)
         end
         local offers = Offers.cleanOffers(profile.offers, data)
         local before = offers[offer.id]
         offers[offer.id] = { since = if before ~= nil then before.since else 0, bought = true }
         changes.offers = offers
 
-        local resultOfferId: string = offer.id
         return {
             changes = changes,
             gems = added,

@@ -36,7 +36,7 @@ local list: { RemoteDef } = {
         kind = "Event",
         direction = "ClientToServer",
         schema = { Validate.boolean() }, -- holding
-        limit = { calls = 10, per = 1 },
+        limit = { calls = 5, per = 1 }, -- jede Änderung schaltet ein repliziertes Attribut um (Spam-Schutz, Review 6.1)
         description = "Spieler hält oder lässt die Sammeltaste los.",
     },
     {

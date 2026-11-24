@@ -2,7 +2,8 @@
 -- Friends-Service (Paket 5.7): Freunde-Bonus.
 -- Der Server zählt, wie viele Spieler im selben Server mit dem Spieler befreundet sind
 -- (`Player:IsFriendsWith`, je Paar einmal geprüft und gemerkt). Aus der Zahl macht Logic/Social den
--- Münz-Faktor (10 % je Freund, höchstens 50 %, Data/Social). Den Faktor übernimmt Sand
+-- Münz-Faktor (10 % je Freund, höchstens 50 %, Data/Social). Nur Freunde mit einem Konto von mindestens
+-- `minAccountAgeDays` Tagen zählen (gegen frisch angelegte Alt-Accounts). Den Faktor übernimmt Sand
 -- (`Sand.setFriendFactor`): Er gilt beim Verkauf, in der Anzeige und bei den Sandsturm-Münzen (Upgrades
 -- nutzt Sand.optionsFor), nicht beim Offline-Ertrag.
 -- Der Client sendet nichts. Ein Fehler bei der Freundschaftsprüfung ändert den Faktor nicht (kein Freund).
@@ -29,7 +30,10 @@ end
 local function countFor(player: Player): number
     local present = {}
     for _, other in Players:GetPlayers() do
-        table.insert(present, other.UserId)
+        -- Nur Freunde mit genug altem Konto zählen (Data/Social.friends.minAccountAgeDays).
+        if SocialLogic.accountOldEnough(other.AccountAge) then
+            table.insert(present, other.UserId)
+        end
     end
     return SocialLogic.countFriends(player.UserId, present, friendOf[player.UserId])
 end

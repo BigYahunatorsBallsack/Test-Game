@@ -128,13 +128,14 @@ local function distribute()
     if seasonId == nil then
         return
     end
+    local diggers = KolossLogic.diggerCount(event)
     for _, player in Players:GetPlayers() do
         local profile = PlayerData.get(player)
         if profile ~= nil and PlayerData.isActive(player.UserId) then
             local contribution = event.contributions[player.UserId] or 0
             local ok, result = pcall(function(): any
                 -- Boosts laufen mit der echten Server-Uhr, eine Studio-Verschiebung verlängert sie nicht.
-                return KolossLogic.claim(profile, seasonId, contribution, { boostNow = os.time() })
+                return KolossLogic.claim(profile, seasonId, contribution, { boostNow = os.time(), diggers = diggers })
             end)
             if not ok then
                 log(`Belohnung für {player.Name} fehlgeschlagen: {tostring(result)}`)

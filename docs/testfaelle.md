@@ -469,13 +469,13 @@ Tests: tests/offers.spec.luau (Auslöser, Zustände, alte Spielstände, Kauf, Ve
 - [x] [Lune] Zustand des Angebots: verborgen vor dem Auslöser, aktiv bis Start + 24 h, danach abgelaufen, nach dem Kauf gekauft; kaputte Zeiten zählen als nicht gestartet.
 - [x] [Lune] Alte Spielstände mit schon vorhandenem Selten-Fund bekommen das Fenster ab dem ersten Laden nach dem Update.
 - [x] [Lune] Kauf "starter_pack" über ProcessReceipt: genau 300 Gems (gekappt bei maxGems), je ein Exemplar der festen Items aus den Daten, Merker "gekauft"; derselbe Beleg zweimal bucht nur einmal; kein Zufall.
-- [x] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gutgeschrieben (nie NotProcessedYet für immer).
+- [x] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gebucht und bestätigt (nie NotProcessedYet für immer), seit 6.1 aber nur mit Ersatz-Gems (siehe 6.1).
 - [x] [Lune] Migration 6 → 7 legt `offers` an; `sanitize` repariert kaputte Werte; Sandsturm behält `offers`.
 - [x] [Lune] Reihenfolge der Hinweise: ein Angebots-Hinweis wartet, solange ein Reveal läuft oder wartet und solange das Tutorial läuft; je Angebot höchstens ein Hinweis pro Sitzung.
 - [x] [Lune] DataCheck: Angebote verweisen auf bekannte Produkte und Items, die Items sind fest (keine Kiste, kein Zufall), Fenster und Gems sind gültig.
 - [ ] [Studio] `DebugFindZone` oder ein echter Selten-Fund: Nach dem Reveal erscheint der kleine Angebots-Hinweis, nie davor; Sammeln und Laufen gehen weiter.
 - [ ] [Studio] Der Hinweis lässt sich schließen; "Ansehen" öffnet den Shop im Bereich "Angebote" mit Countdown.
-- [ ] [Studio] `DebugPurchase` "starter_pack": 300 Gems, Glasschaufel und Begleiter im Inventar, das Angebot verschwindet; Rejoin: bleibt gekauft.
+- [ ] [Studio] `DebugOffer` "starter", dann `DebugPurchase` "starter_pack": 300 Gems, Glasschaufel und Begleiter im Inventar, das Angebot verschwindet; Rejoin: bleibt gekauft. Ein zweiter `DebugPurchase` "starter_pack" gibt nur 300 Ersatz-Gems, keine Items, Banner "Starterpaket nicht verfügbar: +300 Gems".
 - [ ] [Studio] Handy: Shop-Reiter und Hinweis sind mit dem Daumen bedienbar und verdecken weder Graben-Knopf noch Menüspalte.
 
 ## 4.6 Policy-Funktionen
@@ -647,6 +647,7 @@ Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: 
 Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, Plan". Fertig, wenn: Boni und Rangliste laufen, der Besuch zeigt eine fremde Sammlung.
 
 - [x] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Social`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
+- [x] [Lune] Wochenfortschritt (`Social.rollWeek`): neue Woche setzt die Basis, gleiche Woche Fortschritt = Wert minus Basis, nie negativ, kaputte Profildaten ergeben eine saubere Basis; Kontoalter der Freunde (`accountOldEnough`); Koloss: Schwellen mit `fairShare` folgen der Zahl der Gräber.
 - [x] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
 - [x] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
 - [x] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.
@@ -657,6 +658,17 @@ Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, P
 - [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (mittlere Befunde behoben, Alt-Accounts und Wochenwertung als Designfragen offen, siehe architektur.md).
 - [ ] [Studio] (nur mit echten Konten, negative Studio-UserIds gehen nicht) Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
 - [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.
+
+## 6.1 Exploit-Review
+
+Plan: Claude-Dokument "Paket 6.1: Exploit-Review, Plan". Fertig, wenn: Die Review-Liste ist abgearbeitet.
+
+- [x] [Shell] `security-reviewer` prüft alle Client-zu-Server-Remotes, Käufe, Speichern, Offline-Ertrag, Zeit, Sammeln und Verkaufen, Soziales; Bericht liegt in `docs/exploit-review.md`.
+- [ ] [Lune] Für jeden bestätigten kritischen oder hohen Befund gibt es einen Test, der den Fehler vorher gezeigt hat und jetzt besteht.
+- [x] [Shell] Kein offener kritischer oder hoher Befund; mittlere Befunde sind behoben oder mit Begründung als Entscheidung für Waltuh vermerkt.
+- [ ] [Studio] Stichprobe: schnelles Mehrfachklicken auf Kaufen, Abholen und Öffnen bucht nie doppelt.
+- [x] [Lune] Starterpaket (Befund 6.1, mittel): Erstkauf im Fenster gibt das volle Paket; ein zweiter Beleg, ein Beleg vor dem Auslöser und einer nach Fensterende plus Nachfrist (`receiptGraceMinutes`) geben nur `duplicateGems` Ersatz-Gems, keine Items, ohne den Merker "gekauft" zu ändern; Nachfrist-Grenzen; Kappung bei maxGems (auch 0 Gems); derselbe Beleg zweimal (nacheinander, gleichzeitig) und Speicherfehler buchen nie doppelt; zehn gleichzeitige Belege geben genau ein Paket; kaputte Uhr oder Daten: NotProcessedYet (tests/offers.spec.luau, "Einmalkauf auf dem Server").
+- [x] [Lune] DataCheck: `duplicateGems` ganze Zahl von 0 bis maxGems und höchstens der Gem-Gegenwert des Produktpreises zum besten Paketkurs; `receiptGraceMinutes` ganze Zahl von 0 bis 60 (tests/data.spec.luau, "Angebote (4.5)").
 
 ## Ego-Perspektive (Umstellung von dritter Person)
 

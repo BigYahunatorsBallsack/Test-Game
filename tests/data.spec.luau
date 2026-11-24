@@ -842,6 +842,37 @@ T.describe("Angebote (4.5)", function()
         T.expect(broken(function(d) d.Offers.byId.starter.gems = 0 end)).toEqual({})
         T.expect(broken(function(d) d.Offers.byId.starter.windowHours = 0.5 end)).toEqual({})
     end)
+
+    T.it("Ersatz-Gems (6.1): ganze Zahl von 0 bis maxGems, höchstens der Gem-Gegenwert des Preises zum besten Paketkurs", function()
+        -- echte Werte: 300 Ersatz-Gems für 149 Robux, Obergrenze 149 x 100 / 49 = 304
+        T.expect(OffersData.byId.starter.duplicateGems).toBe(300)
+        T.expect(DataCheck.run()).toEqual({})
+        for _, bad in { -1, 1.5, 0 / 0, math.huge, "300", false } do
+            expectError(broken(function(d) d.Offers.byId.starter.duplicateGems = bad end), "duplicateGems muss eine ganze Zahl von 0 bis Economy.purchases.maxGems sein")
+        end
+        expectError(broken(function(d) d.Offers.byId.starter.duplicateGems = nil end), "duplicateGems muss eine ganze Zahl")
+        expectError(broken(function(d) d.Offers.byId.starter.duplicateGems = Economy.purchases.maxGems + 1 end), "duplicateGems muss eine ganze Zahl")
+        -- mehr wert als der Preis: ein Zweitkauf wäre ein verstecktes, günstigeres Gem-Paket
+        expectError(broken(function(d) d.Offers.byId.starter.duplicateGems = 305 end), 'duplicateGems 305 sind mehr wert als der Preis von "starter_pack" (304 Gems zum besten Paketkurs)')
+        expectError(broken(function(d) d.Offers.byId.starter.duplicateGems = 5000 end), "sind mehr wert als der Preis")
+        -- der Preis zählt: billigeres Produkt senkt die Obergrenze (49 Robux: 100 Gems)
+        expectError(broken(function(d) d.Products.byId.starter_pack.priceRobux = 49 end), "(100 Gems zum besten Paketkurs)")
+        -- kein Paket bis zu diesem Preis: Obergrenze 0
+        expectError(broken(function(d) d.Products.byId.starter_pack.priceRobux = 10 end), "(0 Gems zum besten Paketkurs)")
+        -- gültige Ränder
+        T.expect(broken(function(d) d.Offers.byId.starter.duplicateGems = 304 end)).toEqual({})
+        T.expect(broken(function(d) d.Offers.byId.starter.duplicateGems = 0 end)).toEqual({})
+    end)
+
+    T.it("Nachfrist für Belege (6.1): ganze Zahl von 0 bis 5760 Minuten", function()
+        T.expect(OffersData.byId.starter.receiptGraceMinutes).toBe(4320)
+        for _, bad in { -1, 1.5, 5761, 0 / 0, math.huge, "15", false } do
+            expectError(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = bad end), "receiptGraceMinutes muss eine ganze Zahl von 0 bis 5760 sein")
+        end
+        expectError(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = nil end), "receiptGraceMinutes muss eine ganze Zahl")
+        T.expect(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = 0 end)).toEqual({})
+        T.expect(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = 5760 end)).toEqual({})
+    end)
 end)
 
 T.describe("Daily Reward und Glücks-Boost (5.1)", function()

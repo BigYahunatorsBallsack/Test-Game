@@ -81,6 +81,7 @@ Sandstorm.KEEP_FIELDS = {
     "settings", -- Einstellungen, zum Beispiel Auto-Dig (Paket 4.4)
     "offers", -- Angebote: Fenster und Merker "gekauft" (Paket 4.5)
     "daily",
+    "weekly", -- Wochen-Rangliste (Paket 5.7): ein Sturm löscht den Sammlungswert nicht
     "codes", -- eingelöste Codes (Paket 5.2): ein Sturm macht keinen Code wieder einlösbar
     "seasons", -- Saison-Punkte und Abholungen (Paket 5.5): ein Sturm setzt den Pass nie zurück
     "tutorial",

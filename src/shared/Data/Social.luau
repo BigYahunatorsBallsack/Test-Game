@@ -5,6 +5,7 @@
 export type Friends = {
     perFriendBp: number, -- Hundertstel-Prozent Münzen je Freund im Server (1000 = 10 %)
     maxBp: number, -- Obergrenze des Bonus (5000 = 50 %)
+    minAccountAgeDays: number, -- nur Freunde mit mindestens so altem Konto zählen für den Bonus (gegen Alt-Accounts)
 }
 
 export type Leaderboard = {
@@ -21,6 +22,7 @@ export type Leaderboard = {
 local friends: Friends = {
     perFriendBp = 1000,
     maxBp = 5000,
+    minAccountAgeDays = 14,
 }
 
 local leaderboard: Leaderboard = {
