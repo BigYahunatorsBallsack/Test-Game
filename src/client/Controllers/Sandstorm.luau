@@ -54,6 +54,7 @@ local WALL_COLOR = Color3.fromRGB(214, 178, 112)
 local REASONS: { [string]: string } = {
     requires = "Der Sandsturm ist noch nicht möglich.",
     tooFew = "Der Sturm lohnt sich noch nicht: im Lauf fehlt noch Verdienst.",
+    maxReached = "Maximum an Windkristallen erreicht: ein weiterer Sturm brächte nichts.",
     unknown = "Das geht gerade nicht.",
 }
 
@@ -267,6 +268,10 @@ function Sandstorm.Start()
         openButton.Text = if storm.ready then `Sandsturm +{numberText(storm.gain)}` else "Sandsturm"
         if storm.ready then
             gainLabel.Text = `Du bekommst {numberText(storm.gain)} Windkristalle`
+            if storm.worth == true then
+                -- L2: Der nächste Knoten ist weit weg, ein neuer Lauf lohnt mehr als Weitersammeln.
+                gainLabel.Text ..= "\nJetzt lohnt sich ein Sturm."
+            end
         elseif storm.reason == "tooFew" then
             -- Der Knopf ist schon da, der Sturm lohnt sich aber erst ab `minCrystals` Kristallen.
             gainLabel.Text = `Noch zu früh: ab {BigNum.format(BigNum.deserialize(storm.needed))} verdienten Münzen gibt es {storm.minCrystals} Kristalle.`

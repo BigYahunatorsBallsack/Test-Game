@@ -469,13 +469,13 @@ Tests: tests/offers.spec.luau (Auslöser, Zustände, alte Spielstände, Kauf, Ve
 - [x] [Lune] Zustand des Angebots: verborgen vor dem Auslöser, aktiv bis Start + 24 h, danach abgelaufen, nach dem Kauf gekauft; kaputte Zeiten zählen als nicht gestartet.
 - [x] [Lune] Alte Spielstände mit schon vorhandenem Selten-Fund bekommen das Fenster ab dem ersten Laden nach dem Update.
 - [x] [Lune] Kauf "starter_pack" über ProcessReceipt: genau 300 Gems (gekappt bei maxGems), je ein Exemplar der festen Items aus den Daten, Merker "gekauft"; derselbe Beleg zweimal bucht nur einmal; kein Zufall.
-- [x] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gutgeschrieben (nie NotProcessedYet für immer).
+- [x] [Lune] Ein bezahlter Beleg außerhalb des Fensters oder nach einem früheren Kauf wird trotzdem gebucht und bestätigt (nie NotProcessedYet für immer), seit 6.1 aber nur mit Ersatz-Gems (siehe 6.1).
 - [x] [Lune] Migration 6 → 7 legt `offers` an; `sanitize` repariert kaputte Werte; Sandsturm behält `offers`.
 - [x] [Lune] Reihenfolge der Hinweise: ein Angebots-Hinweis wartet, solange ein Reveal läuft oder wartet und solange das Tutorial läuft; je Angebot höchstens ein Hinweis pro Sitzung.
 - [x] [Lune] DataCheck: Angebote verweisen auf bekannte Produkte und Items, die Items sind fest (keine Kiste, kein Zufall), Fenster und Gems sind gültig.
 - [ ] [Studio] `DebugFindZone` oder ein echter Selten-Fund: Nach dem Reveal erscheint der kleine Angebots-Hinweis, nie davor; Sammeln und Laufen gehen weiter.
 - [ ] [Studio] Der Hinweis lässt sich schließen; "Ansehen" öffnet den Shop im Bereich "Angebote" mit Countdown.
-- [ ] [Studio] `DebugPurchase` "starter_pack": 300 Gems, Glasschaufel und Begleiter im Inventar, das Angebot verschwindet; Rejoin: bleibt gekauft.
+- [ ] [Studio] `DebugOffer` "starter", dann `DebugPurchase` "starter_pack": 300 Gems, Glasschaufel und Begleiter im Inventar, das Angebot verschwindet; Rejoin: bleibt gekauft. Ein zweiter `DebugPurchase` "starter_pack" gibt nur 300 Ersatz-Gems, keine Items, Banner "Starterpaket nicht verfügbar: +300 Gems".
 - [ ] [Studio] Handy: Shop-Reiter und Hinweis sind mit dem Daumen bedienbar und verdecken weder Graben-Knopf noch Menüspalte.
 
 ## 4.6 Policy-Funktionen
@@ -602,16 +602,20 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 5.5b Saison-Pass
 
-- [ ] [Lune] Punkte zu Stufe: Stufe n ist ab ihrem Punktestand erreicht, nie früher; ein Sprung über mehrere Stufen erreicht alle.
-- [ ] [Lune] Abholen: nur erreichte Stufen, jede Stufe je Spur genau einmal, die Premium-Spur nur mit Pass; Belohnung und "abgeholt" werden in einem Zug gebucht (Fehler bucht nichts).
-- [ ] [Lune] Belohnungen sind fest (Gems, Boosts, feste Items), nie Kisten oder Zufall; sie gelten auch bei `ArePaidRandomItemsRestricted`. DataCheck verbietet Kisten und Zufall in den Stufen.
-- [ ] [Lune] Kauf: Dieselbe PurchaseId zweimal ergibt genau eine Gutschrift (idempotent), `PurchaseGranted` erst nach dem Speichern; unbekanntes Produkt oder kaputte Daten gewähren nichts.
-- [ ] [Lune] Doppelkauf derselben Saison: der Server sperrt den Kauf-Aufruf; trifft ein Kauf trotzdem ein, gibt es die Ersatz-Gems aus `Economy.seasonPass` statt eines zweiten Passes.
-- [ ] [Lune] Kauf außerhalb der Saison: der Server startet den Kauf-Aufruf nicht; trifft eine Zahlung innerhalb der Abholfrist nach dem Ende ein, gilt sie für die zuletzt beendete Saison.
-- [ ] [Lune] Abholfrist: Belohnungen sind bis zum Ende der Frist (Tage in den Daten) nach dem Saisonende abholbar, danach nicht mehr; Punkte zählen nach dem Ende nicht mehr.
-- [ ] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
-- [ ] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
-- [ ] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
+- [x] [Lune] Punkte zu Stufe: Stufe n ist ab ihrem Punktestand erreicht, nie früher; ein Sprung über mehrere Stufen erreicht alle.
+- [x] [Lune] Abholen: nur erreichte Stufen, jede Stufe je Spur genau einmal, die Premium-Spur nur mit Pass; Belohnung und "abgeholt" werden in einem Zug gebucht (Fehler bucht nichts).
+- [x] [Lune] Belohnungen sind fest (Gems, Boosts, feste Items), nie Kisten oder Zufall; sie gelten auch bei `ArePaidRandomItemsRestricted`. DataCheck verbietet Kisten und Zufall in den Stufen.
+- [x] [Lune] Kauf: Dieselbe PurchaseId zweimal ergibt genau eine Gutschrift (idempotent), `PurchaseGranted` erst nach dem Speichern; unbekanntes Produkt oder kaputte Daten gewähren nichts.
+- [x] [Lune] Doppelkauf derselben Saison: `BuySeasonPass` öffnet den Kaufdialog nicht (ein manipulierter Client kann ihn trotzdem selbst aufrufen); trifft ein Kauf ein, gibt es die Ersatz-Gems aus `Economy.seasonPass` statt eines zweiten Passes.
+- [x] [Lune] Kauf außerhalb der Saison: `BuySeasonPass` startet den Kaufdialog nicht; trifft eine Zahlung innerhalb der Abholfrist nach dem Ende ein, gilt sie für die zuletzt beendete Saison.
+- [x] [Lune] Abholfrist: Belohnungen sind bis zum Ende der Frist (Tage in den Daten) nach dem Saisonende abholbar, danach nicht mehr; Punkte zählen nach dem Ende nicht mehr.
+- [x] [Lune] DataCheck: Stufen aufsteigend und lückenlos, Items existieren, Pass-Items stehen in keiner Kiste, Gems höchstens `maxGems`, die Premium-Gems liegen unter dem Anteil des Pass-Preises aus den Daten.
+- [x] [Lune] Neue Saison: Eine zweite Saison-Zeile mit eigener Zone, Kiste und Stufen läuft ohne Code-Änderung (Testtabelle).
+- [x] [Lune] Die neuen Remotes (`BuySeasonPass`, `ClaimSeasonReward`) haben Schema, Bereichsprüfung und Rate-Limit in `RemoteSpec`.
+- [x] [Lune] Eine Zahlung nach dem Saisonende gilt für die zuletzt beendete Saison (innerhalb der Abholfrist), danach gibt es die Ersatz-Gems aus `Economy.seasonPass`; der Pass einer Saison wird nie zweimal vergeben.
+- [x] [Lune] Zwei gleichzeitige `ClaimSeasonReward`-Aufrufe buchen eine Stufe nur einmal (Sperre je Spieler); ein Fehler beim Abholen lässt Gems, Boosts und "abgeholt" unverändert.
+- [x] [Lune] `premium = true` und die Abholmerker überleben Laden, Speichern und Sandsturm; `Seasons.lastEnded` liefert die zuletzt beendete Saison und die Sekunden seit dem Ende.
+- [ ] [Studio] `DebugSeason "ended"` (ein Tag nach dem Saisonende): Abholen geht noch, neue Punkte zählen nicht; `DebugSeasonPass "points:500"` erreicht Stufe 4.
 - [ ] [Shell] `balance-analyst`: Simulation der Punkte-Kurve (Gelegenheitsspieler schafft rund zwei Drittel der Spur, Vielspieler die ganze Spur vor Woche 4) und Wert der Premium-Spur in `docs/balance/season_5_5.md`.
 - [ ] [Shell] `security-reviewer` (Käufe, Abholen, Remotes) ohne offenen kritischen oder hohen Befund.
 - [ ] [Studio] `DebugSeason` "week:1": Event-Zone erscheint im Zonen-Menü, Hinfahren und Graben zählt Punkte im Pass-Fenster, ein Gratis-Preis lässt sich abholen.
@@ -621,8 +625,72 @@ Plan: Claude-Dokument "Paket 5.5: Saison-Pass, Event-Kiste, Event-Zone, Plan". F
 
 ## 5.6 Server-Event "Der Koloss"
 
-- [ ] [Lune] Der Fortschritt zählt nur serverseitig gemeldeten Sand aus der Event-Zone.
-- [ ] [Lune] Die Belohnung wird pro Spieler einmal vergeben und nach Beitrag gestaffelt.
+Plan: Claude-Dokument "Paket 5.6: Server-Event Der Koloss, Plan". Fertig, wenn: Alle Spieler eines Servers graben am Wochenende der Koloss-Woche gemeinsam, bei 100 % bekommen alle im Server ihre Belohnung nach Beitrag.
+
+- [x] [Lune] Das Fenster läuft Samstag 0 Uhr bis Montag 0 Uhr UTC der Koloss-Woche (Daten: Phase, Starttag, Tage); davor "upcoming", danach "over", außerhalb einer Saison "none"; kaputte Zeit ergibt nie ein offenes Fenster.
+- [x] [Lune] Der Fortschritt zählt nur Grabsekunden, die der Server meldet, nur bei offenem Fenster; NaN, unendlich, 0 und negative Werte ändern nichts; bei 100 % gedeckelt, das Event ist danach fertig und zählt nichts mehr.
+- [x] [Lune] Der Beitrag je Spieler wächst nur um den wirklich gezählten Anteil (nichts über den Deckel); ein neues Event beginnt mit einer neuen Saison bei 0.
+- [x] [Lune] Die Stufe zum Beitrag stimmt an den Grenzen (0 s, knapp unter und genau auf der Schwelle).
+- [x] [Lune] Die Belohnung wird je Spieler und Saison einmal vergeben (Merker im Saison-Eintrag), in einem Zug mit dem Merker; Gems sind bei `maxGems` gekappt; ein Fehler bucht nichts; ein zweiter Aufruf gibt `claimed`.
+- [x] [Lune] Die Belohnungen sind fest (Gems, Münz- und Glücks-Boost), nie Kisten oder Zufall.
+- [x] [Lune] Die Anzeigeform (`koloss`) nennt Zustand, Fortschritt, Ziel, den eigenen Beitrag, Restzeit und erreichte Stufe und keine fremden Spieler.
+- [x] [Lune] Es gibt keine Remote für das Event; Fortschritt entsteht nur über `Events.addZoneSeconds`.
+- [x] [Lune] Das Feld `koloss` im Saison-Eintrag überlebt Laden, Speichern und Sandsturm und wird repariert (nur `true` zählt).
+- [x] [Lune] DataCheck: Fenster liegt in der Koloss-Woche, Ziel größer 0, Stufen aufsteigend ab 0, nur feste Belohnungen, Gems höchstens `maxGems`, Boosts höchstens 4 Stunden.
+- [x] [Lune] Studio-Hilfe: `DebugSeason "koloss"` und `DebugKoloss` ("progress:N", "complete", "reset") werden richtig gelesen und wirken nur in Studio.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (Befunde M2, N1, N3, N4, N5 behoben, Balance-Frage M1 offen, siehe architektur.md).
+- [ ] [Studio] `DebugSeason "koloss"`, `DebugKoloss "progress:5900"`, in der Event-Zone graben: Der Balken steigt, bei 100 % kommt die Meldung mit der Stufe, `KolossProgress` steht auf 1.
+- [ ] [Studio] Test mit 2 Spielern (beide setzen `DebugSeason "koloss"`, die Saison-Uhr gilt je Spieler): beide füllen denselben Balken, beide bekommen ihre Stufe.
+
+## 5.7 Freunde-Bonus, Rangliste, Sammlung besuchen
+
+Plan: Claude-Dokument "Paket 5.7: Freunde-Bonus, Rangliste, Sammlung besuchen, Plan". Fertig, wenn: Boni und Rangliste laufen, der Besuch zeigt eine fremde Sammlung.
+
+- [x] [Lune] Freunde-Faktor: 0 Freunde = 1, 1 = 1,1, 5 = 1,5, mehr bleibt bei 1,5; kaputte Zahl, negativ oder NaN = 1; Werte kommen aus `Data/Social`; DataCheck meldet kaputte Werte (`perFriendBp` und `maxBp` ganze Zahlen ab 1, `maxBp` mindestens `perFriendBp`).
+- [x] [Lune] Wochenfortschritt (`Social.rollWeek`): neue Woche setzt die Basis, gleiche Woche Fortschritt = Wert minus Basis, nie negativ, kaputte Profildaten ergeben eine saubere Basis; Kontoalter der Freunde (`accountOldEnough`); Koloss: Schwellen mit `fairShare` folgen der Zahl der Gräber.
+- [x] [Lune] Sammlungswert: Summe der Wertfaktoren aller verschiedenen bekannten Fundstücke; doppelte zählen einmal, unbekannte IDs und kaputte Werte zählen 0; leere Sammlung = 0.
+- [x] [Lune] Wochenindex: Montag 0 Uhr UTC beginnt eine neue Woche, Ende ausschließend; kaputte Zeit ergibt nil; der Speichername enthält den Index.
+- [x] [Lune] Ranglisten-Einträge werden bereinigt: nur ganze UserIds über 0, endliche Werte über 0, absteigend sortiert, höchstens 10, doppelte UserIds nur einmal.
+- [x] [Lune] Auszug (Showcase): enthält nur bekannte Fundstück-IDs, nie mehr Einträge als der Katalog; ein kaputter oder fremder Auszug wird beim Lesen bereinigt; die Ansicht rechnet Wert und Set-Fortschritt mit `Logic/Collection`.
+- [x] [Lune] Besuch: Der Client nennt nie einen Spieler, nur einen Platz (1 bis maxFriends) in der Freundesliste, die der Server selbst gebaut hat; ungültiger Platz, Text, NaN oder zu groß ergibt nil (notFriend); die Freundesliste wird bereinigt (ganze UserIds, einmal, Namen gekürzt, höchstens maxFriends); nichts Schreibendes in der Ansicht.
+- [x] [Lune] RemoteSpec: `GetLeaderboard` und `GetFriends` (keine Argumente) und `ViewCollection` (Platz 1 bis maxFriends, keine UserId) mit Rate-Limit; der Wächtertest (policyguards) lässt die Zahl nur mit Begründung zu.
+- [x] [Lune] Anbindung: `Friends` und `Leaderboard` stehen in `SERVICE_NAMES`, `Sand.optionsFor` multipliziert den Freunde-Faktor in den Münz-Faktor, Offline-Ertrag nutzt ihn nicht, DataStore-Aufrufe laufen in pcall, Studio nutzt einen eigenen Speichernamen.
+- [x] [Shell] `security-reviewer` ohne offenen kritischen oder hohen Befund (mittlere Befunde behoben, Alt-Accounts und Wochenwertung als Designfragen offen, siehe architektur.md).
+- [ ] [Studio] (nur mit echten Konten, negative Studio-UserIds gehen nicht) Zwei befreundete Spieler im Server: beide sehen +10 % Münzfaktor, beim Verlassen fällt er zurück.
+- [ ] [Studio] Menü "Freunde": die Rangliste zeigt den eigenen Wert nach dem Fund eines neuen Stücks (nach höchstens 2 Minuten), der Reiter "Besuchen" zeigt die Sammlung eines Freundes, nicht befreundete Spieler lassen sich nicht ansehen.
+
+## 6.1 Exploit-Review
+
+Plan: Claude-Dokument "Paket 6.1: Exploit-Review, Plan". Fertig, wenn: Die Review-Liste ist abgearbeitet.
+
+- [x] [Shell] `security-reviewer` prüft alle Client-zu-Server-Remotes, Käufe, Speichern, Offline-Ertrag, Zeit, Sammeln und Verkaufen, Soziales; Bericht liegt in `docs/exploit-review.md`.
+- [ ] [Lune] Für jeden bestätigten kritischen oder hohen Befund gibt es einen Test, der den Fehler vorher gezeigt hat und jetzt besteht.
+- [x] [Shell] Kein offener kritischer oder hoher Befund; mittlere Befunde sind behoben oder mit Begründung als Entscheidung für Waltuh vermerkt.
+- [ ] [Studio] Stichprobe: schnelles Mehrfachklicken auf Kaufen, Abholen und Öffnen bucht nie doppelt.
+- [x] [Lune] Starterpaket (Befund 6.1, mittel): Erstkauf im Fenster gibt das volle Paket; ein zweiter Beleg, ein Beleg vor dem Auslöser und einer nach Fensterende plus Nachfrist (`receiptGraceMinutes`) geben nur `duplicateGems` Ersatz-Gems, keine Items, ohne den Merker "gekauft" zu ändern; Nachfrist-Grenzen; Kappung bei maxGems (auch 0 Gems); derselbe Beleg zweimal (nacheinander, gleichzeitig) und Speicherfehler buchen nie doppelt; zehn gleichzeitige Belege geben genau ein Paket; kaputte Uhr oder Daten: NotProcessedYet (tests/offers.spec.luau, "Einmalkauf auf dem Server").
+- [x] [Lune] DataCheck: `duplicateGems` ganze Zahl von 0 bis maxGems und höchstens der Gem-Gegenwert des Produktpreises zum besten Paketkurs; `receiptGraceMinutes` ganze Zahl von 0 bis 60 (tests/data.spec.luau, "Angebote (4.5)").
+
+## 6.3 Analytics
+
+Plan: kurz in docs/analytics.md. Fertig, wenn: Die wichtigsten Zahlen sind einsehbar (Tutorial-Abbruch, Käufe, Sitzungslänge, Rückkehr im Creator Dashboard).
+
+- [x] [Lune] Tutorial-Trichter: Schritt n wird mit Nummer und Name aus `Data/Tutorial` gemeldet, "fertig" als letzter Schritt; ein Schritt wird je Sitzung nur einmal gemeldet; kaputte Schritte ergeben nichts.
+- [x] [Lune] Käufe: Neue Einträge im Kaufprotokoll werden genau einmal gemeldet (nach `purchaseId`), beim Laden bereits vorhandene nicht; kaputte Einträge werden übersprungen.
+- [x] [Lune] Sitzungslänge in Eimern (unter 1 Min., 1 bis 5, 5 bis 15, 15 bis 30, 30 bis 60, über 60), kaputte Zahl ergibt nil; Rückkehr: neuer Spieler, Tage seit dem letzten Besuch (0 bis 30, gedeckelt).
+- [x] [Lune] Zusatzfelder werden bereinigt: nur Text bis 100 Zeichen und endliche Zahlen, nie Spielernamen; Event-Namen kommen aus `Data/Analytics`, DataCheck prüft sie.
+- [x] [Lune] Anbindung: Service `Analytics` steht in `SERVICE_NAMES`, jeder Aufruf von `AnalyticsService` läuft in pcall, in Studio wird nur geloggt, es gibt keine Remote.
+- [ ] [Studio] Im Ausgabefenster erscheinen `[Analytics]`-Zeilen für Tutorial-Schritte, Testkauf (`DebugPurchase`), Sitzungsende.
+- [ ] [Studio/Live] Im Creator Dashboard unter Analytics: Onboarding-Trichter, Wirtschaft (Gems) und Custom Events `session_start` und `session_end` sind sichtbar (erscheint mit Verzögerung).
+
+## 6.4 Balancing
+
+Plan: Simulation durch den `balance-analyst`, Bericht in docs/balance-6.4.md. Fertig, wenn: Kein Engpass, an dem Spieler hängen bleiben.
+
+- [x] [Shell] Simulationsskript `tools/balance_sim.luau` läuft und nutzt die echten Module und Tabellen.
+- [x] [Shell] Bericht mit Meilensteinen, Engpässen und Zahlenvorschlägen liegt vor; Waltuh entscheidet über die Zahlen.
+- [x] [Lune] Angenommene Änderungen der Zahlen bestehen DataCheck und alle Tests. Angenommen (nach Waltuhs "was du am besten hältst"): D1 `maxCrystals` 5 Mio., D2 Saugroboter 700.000 und Großmaschine 30 Mio. (in `Tools` und `UpgradeTree`), Zielzeiten in `tests/skilltree.spec.luau` auf 16:33 und 21:19.
+- [ ] [Offen, Entscheidung] D3 (Ruinen-Ast mit 18 Knoten) und die Logik-Vorschläge L1 bis L4 sind nicht umgesetzt, siehe docs/balance-6.4.md.
+- [ ] [Studio] Laufweg zum Händler messen und im Skript `WALK` setzen; Lauf 1 soll mit den neuen Preisen etwa 28 bis 36 min dauern.
 
 ## Ego-Perspektive (Umstellung von dritter Person)
 
@@ -646,3 +714,26 @@ Fertig, wenn: Das Spiel läuft in der Ego-Perspektive, rechts unten ist die Hand
 - [ ] [Studio] Zweiter Spieler (Test mit 2 Spielern): Der andere sieht den ganzen Avatar mit Skin und Werkzeug, keine schwebenden Hände.
 - [x] [Lune] Zielen beim Graben (`Logic/DigAim`): Für jedes Werkzeug gilt min < Arbeitsspitze < max, und das Loch erreicht den Charakter-Quader in keiner Richtung. Treffer in Reichweite: genau dort. Zu nah: auf min hinausgeschoben. Zu weit: auf max zurückgeholt. Seitlich oder hinter dem Charakter geht. Kein Treffer (Himmel): Arbeitsspitze in Blickrichtung. Ungültige Eingaben ergeben nil. `flowSpeed`: schnell genug für die Strecke, nie unter der Grundgeschwindigkeit.
 - [ ] [Studio] Graben folgt dem Fadenkreuz: Nach links, rechts, nah und weit zielen, das Loch und der Staub entstehen dort. Vor die Füße zielen: Das Loch bleibt so weit weg, dass man nicht hineinfällt. In den Himmel zielen: Es wird vor einem gegraben. Mit Alt (freie Maus) folgt das Loch dem Mauszeiger. Ab der Eimerkette beginnt der Sandfluss der Maschine am Grabpunkt und fliegt zur Maschine.
+
+
+## 6.4 L1: Münz-Faktor zählt nicht für Kristalle
+
+Entscheidung (Waltuh: "was du am besten hältst", Empfehlung Koordinator): `runEarned` zählt den Münz-Faktor aus 2x-Pass und Münz-Boost nicht, damit sich Windkristalle nicht kaufen lassen (docs/balance-6.4.md, L1). Geändert: `Wind.credit` (optionaler `runAmount`), `Collecting.sell`, `Offline.apply`, `Sandstorm.runTotal`.
+
+- [x] [Lune] Verkauf mit Münz-Faktor 3: Münzen mal 3, `runEarned` ohne Faktor (`tests/sandstorm.spec.luau`, `tests/perks.spec.luau`).
+- [x] [Lune] Sandsturm-Vorschau mit und ohne Faktor zeigt dieselben Einnahmen und dieselben Kristalle.
+- [x] [Lune] Offline mit 2x-Pass: Münzen höher, `runEarned` gleich wie ohne Pass (`tests/offline.spec.luau`).
+- [x] [Lune] `Wind.credit` mit `runAmount`: höchstens der Betrag, 0 oder negativ zählt nichts, Münzen bleiben voll.
+- [ ] [Studio] Mit 2x-Pass einen Sturm vorbereiten: Die Kristallvorschau ist gleich hoch wie ohne Pass, nur die Münzanzeige wächst schneller.
+
+## 6.4 L2 und L4: Hinweis "Sturm lohnt sich" und Obergrenze
+
+Entscheidung (Waltuh: "was du am besten hältst", Koordinator-Empfehlung): L2 und L4 aus docs/balance-6.4.md umsetzen. D3 (Ruinen-Ast) wartet auf den Studio-Test der Werkzeugpreise.
+
+- L2: `Sandstorm.worthIt(profile, data, options)` ist wahr, wenn der billigste sichtbare Knoten mehr als `Economy.sandstorm.worthSeconds` (180) Verdienst bei jetziger Rate kostet, oder kein Knoten mehr sichtbar ist. `preview.worth` ist nur bei möglichem Sturm wahr. Das Sturm-Fenster zeigt dann "Jetzt lohnt sich ein Sturm."
+- L4: Neuer Grund `maxReached`, wenn die Obergrenze den Sturm verhindert (gehaltene Kristalle am Maximum, oder der Gewinn läge nur wegen der Kappung unter `minCrystals`). Der Sturm bleibt gesperrt, das Fenster sagt "Maximum an Windkristallen erreicht".
+
+- [x] [Lune] Obergrenze: knapp darunter und am Maximum ergibt `maxReached`, `requires` hat Vorrang, `apply` ändert nichts (`tests/sandstorm.spec.luau`).
+- [x] [Lune] `worth`: kleine Schwelle wahr, große falsch, nur bei möglichem Sturm, ohne sichtbaren Knoten wahr, kaputte Schwelle nutzt 180 s, Lauf-Anfang ohne Hinweis.
+- [x] [Lune] DataCheck meldet fehlendes oder falsches `worthSeconds` (0, negativ, über 3600, NaN, unendlich).
+- [ ] [Studio] Sturm-Fenster: Hinweis "Jetzt lohnt sich ein Sturm." erscheint, wenn der nächste Knoten weit weg ist, und nicht zu Beginn eines Laufs.

@@ -335,7 +335,8 @@ end
 -- Verkauft den ganzen Tank. Jede Sandsorte im Tank wird mit ihrem eigenen Faktor bezahlt, egal an
 -- welchem Stand. Gibt die verdienten Münzen und die verkaufte Menge zurück, oder nil bei leerem
 -- Tank. Ändert profile.coins, profile.runEarned, profile.tank und profile.tankMix. Der Münz-Faktor aus
--- `options` (Paket 4.4) steckt im gebuchten Betrag, `runEarned` (Sandsturm) zählt ihn also mit.
+-- `options` (Paket 4.4) steckt im gebuchten Betrag, `runEarned` (Sandsturm) zählt ihn nicht mit
+-- (Paket 6.4, L1): Dafür wird der Tank noch einmal ohne Münz-Faktor bewertet.
 function Collecting.sell(state: State, profile: any, now: number, options: Options?): (BigNum.BigNum?, BigNum.BigNum?)
     Collecting.update(state, profile, now, options)
     local tank = tankOf(profile)
@@ -344,7 +345,7 @@ function Collecting.sell(state: State, profile: any, now: number, options: Optio
         return nil, nil
     end
     local earned = Collecting.tankValue(profile, options)
-    Wind.credit(profile, earned)
+    Wind.credit(profile, earned, Collecting.tankValue(profile, nil))
     Collecting.clearTank(profile)
     return earned, tank
 end

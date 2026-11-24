@@ -215,17 +215,19 @@ T.describe("2x Münzen (4.4)", function()
         T.expect(value).toBe(math.floor(expected))
         T.expect(value > BigNum.toNumber(Collecting.tankValue(plain))).toBe(true)
 
-        -- Sandsturm-Vorschau: Einnahmen = runEarned + derselbe Tankwert.
+        -- Sandsturm-Vorschau (Paket 6.4, L1): Einnahmen = runEarned + Tankwert OHNE Münz-Faktor.
+        local plainValue = BigNum.toNumber(Collecting.tankValue(passed))
         local view = Sandstorm.preview(passed, nil, options)
-        T.expect(num(view.runEarned)).toBe(3e8 + value)
-        T.expect(view.gain).toBe(Sandstorm.crystalsFor(BigNum.add(BigNum.new(3, 8), BigNum.new(value))))
+        T.expect(num(view.runEarned)).toBe(3e8 + plainValue)
+        T.expect(view.gain).toBe(Sandstorm.crystalsFor(BigNum.add(BigNum.new(3, 8), BigNum.new(plainValue))))
 
-        -- Verkauf bucht genau den Tankwert (Münzen und runEarned), der Tank ist danach leer.
+        -- Verkauf bucht den Tankwert mit Faktor auf die Münzen, aber nur den Wert ohne Faktor auf
+        -- runEarned. Der Tank ist danach leer.
         local coinsBefore = num(passed.coins)
         local earned = Collecting.sell(Collecting.newState(NOW), passed, NOW, options)
         T.expect(earned ~= nil and BigNum.toNumber(earned)).toBe(value)
         T.expect(num(passed.coins)).toBe(coinsBefore + value)
-        T.expect(num(passed.runEarned)).toBe(3e8 + value)
+        T.expect(num(passed.runEarned)).toBe(3e8 + plainValue)
         T.expect(tankOf(passed)).toBe(0)
     end)
 
@@ -246,7 +248,9 @@ T.describe("2x Münzen (4.4)", function()
         T.expect(options.coinMultiplier).toBe(DOUBLE * Economy.coinBoost.multiplier)
         local view = Sandstorm.preview(profile, data, options)
         local plainView = Sandstorm.preview(profile, data)
-        T.expect(num(view.runEarned) > num(plainView.runEarned)).toBe(true)
+        -- L1: Pass und Boost ändern die Vorschau der Kristalle nicht.
+        T.expect(view.runEarned).toEqual(plainView.runEarned)
+        T.expect(view.gain).toBe(plainView.gain)
         local result = Sandstorm.apply(profile, data, options)
         T.expect(result ~= nil).toBe(true)
         if result then

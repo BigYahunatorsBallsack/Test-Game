@@ -28,8 +28,8 @@ local SIM = {
     toolSeconds = {
         collect_tool_3 = 6 * 60 + 54, -- Eimerkette, Oase
         collect_tool_4 = 9 * 60 + 52, -- Mini-Bagger, Canyon
-        collect_tool_5 = 10 * 60 + 47, -- Saugroboter, Salzsee
-        collect_tool_6 = 11 * 60 + 49, -- Großmaschine
+        collect_tool_5 = 16 * 60 + 33, -- Saugroboter, Salzsee
+        collect_tool_6 = 21 * 60 + 19, -- Großmaschine
     } :: { [string]: number },
     maxGapSeconds = 120,
 }

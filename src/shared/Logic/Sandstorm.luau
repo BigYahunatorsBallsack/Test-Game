@@ -26,13 +26,14 @@
 local BigNum = require("./BigNum")
 local Collecting = require("./Collecting")
 local TreeEffects = require("./TreeEffects")
+local TreePurchase = require("./TreePurchase")
 local Wind = require("./Wind")
 local ZoneLogic = require("./Zones")
 local EconomyData = require("../Data/Economy")
 local UpgradeTree = require("../Data/UpgradeTree")
 local ZonesData = require("../Data/Zones")
 
-export type Reason = "requires" | "tooFew"
+export type Reason = "requires" | "tooFew" | "maxReached"
 
 export type Preview = {
     unlocked: boolean, -- der Knoten für den Sturm ist da (der Knopf wird sichtbar)
@@ -42,6 +43,8 @@ export type Preview = {
     gain: number, -- Kristalle, die der Sturm jetzt gäbe
     needed: BigNum.Serialized, -- Einnahmen, ab denen der Sturm `minCrystals` bringt (für "noch X bis ...")
     minCrystals: number,
+    maxCrystals: number, -- Obergrenze der gehaltenen Kristalle (Paket 6.4, L4)
+    worth: boolean, -- der Sturm ginge und der nächste Knoten ist weit weg (Paket 6.4, L2)
     crystalsNow: number,
     crystalsAfter: number,
     bonusBpNow: number,
@@ -81,6 +84,7 @@ Sandstorm.KEEP_FIELDS = {
     "settings", -- Einstellungen, zum Beispiel Auto-Dig (Paket 4.4)
     "offers", -- Angebote: Fenster und Merker "gekauft" (Paket 4.5)
     "daily",
+    "weekly", -- Wochen-Rangliste (Paket 5.7): ein Sturm löscht den Sammlungswert nicht
     "codes", -- eingelöste Codes (Paket 5.2): ein Sturm macht keinen Code wieder einlösbar
     "seasons", -- Saison-Punkte und Abholungen (Paket 5.5): ein Sturm setzt den Pass nie zurück
     "tutorial",
@@ -128,10 +132,33 @@ function Sandstorm.earningsFor(crystals: number, data: any?): BigNum.BigNum
     return BigNum.new(10 ^ (logValue - exponent), exponent)
 end
 
--- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks (mit dem
--- Münz-Faktor aus `options`, wie beim Verkauf).
-function Sandstorm.runTotal(profile: any, options: Collecting.Options?): BigNum.BigNum
-    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile, options))
+-- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks. Der Münz-
+-- Faktor aus `options` (2x-Pass, Münz-Boost) zählt nicht (Paket 6.4, L1), wie beim Verkauf; `options`
+-- bleibt für die Aufrufer gleich.
+function Sandstorm.runTotal(profile: any, _options: Collecting.Options?): BigNum.BigNum
+    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile, nil))
+end
+
+-- Standardwert für `worthSeconds`, wenn die Tabelle keinen hat (Testdaten).
+local DEFAULT_WORTH_SECONDS = 180
+
+-- "Sturm lohnt sich jetzt" (Paket 6.4, L2): Der billigste sichtbare Knoten kostet mehr als
+-- `worthSeconds` Verdienst bei der jetzigen Sammelrate. Dann bringt Weitersammeln kaum noch etwas,
+-- ein neuer Lauf mit mehr Kristallen schon. Gibt es keinen sichtbaren Knoten mehr, lohnt er auch.
+-- Ohne Verdienst (Rate oder Preis 0, kaputt) gibt es keinen Hinweis.
+function Sandstorm.worthIt(profile: any, data: any?, options: Collecting.Options?): boolean
+    local cfg = configOf(data)
+    local seconds = if isGood(cfg.worthSeconds) and cfg.worthSeconds > 0 then cfg.worthSeconds else DEFAULT_WORTH_SECONDS
+    local income = Collecting.rateOf(profile) * Collecting.pricePerSand(profile, options)
+    if not isGood(income) or income <= 0 then
+        return false
+    end
+    local visible = TreePurchase.visible(profile)
+    if #visible == 0 then
+        return true
+    end
+    local cheapest = UpgradeTree.byId[visible[1]].cost
+    return cheapest / income > seconds
 end
 
 -- Vorschau für die Anzeige, ändert nichts.
@@ -140,11 +167,16 @@ function Sandstorm.preview(profile: any, data: any?, options: Collecting.Options
     local total = Sandstorm.runTotal(profile, options)
     local held = Wind.crystalsOf(profile)
     -- Gehaltene Kristalle sind nie über der Obergrenze, auch wenn die Tabelle sie später senkt.
-    local gain = math.max(math.min(Sandstorm.crystalsFor(total, data), cfg.maxCrystals - held), 0)
+    local rawGain = Sandstorm.crystalsFor(total, data)
+    local gain = math.max(math.min(rawGain, cfg.maxCrystals - held), 0)
     local unlocked = TreeEffects.owns(profile, cfg.requiresNode)
     local reason: Reason? = nil
     if not unlocked then
         reason = "requires"
+    elseif held >= cfg.maxCrystals or (gain < cfg.minCrystals and rawGain >= cfg.minCrystals) then
+        -- L4: Die Obergrenze verhindert den Sturm, nicht zu wenig Verdienst. Der Sturm bleibt gesperrt
+        -- (er setzte den Lauf ohne Kristalle zurück), die Anzeige sagt "Maximum erreicht".
+        reason = "maxReached"
     elseif gain < cfg.minCrystals then
         reason = "tooFew"
     end
@@ -157,6 +189,8 @@ function Sandstorm.preview(profile: any, data: any?, options: Collecting.Options
         gain = gain,
         needed = BigNum.serialize(Sandstorm.earningsFor(cfg.minCrystals, data)),
         minCrystals = cfg.minCrystals,
+        maxCrystals = cfg.maxCrystals,
+        worth = reason == nil and Sandstorm.worthIt(profile, data, options),
         crystalsNow = held,
         crystalsAfter = held + gain,
         bonusBpNow = held * EconomyData.windCrystalBonusBp,

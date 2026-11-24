@@ -68,6 +68,9 @@ export type Profile = {
     -- Daily Reward (Paket 5.1, Logic/Daily): abgeholte Tage der laufenden Serie und UTC-Tag
     -- (floor(Unix-Zeit / 86400)) der letzten Abholung, 0 = nie.
     daily: { streak: number, lastDay: number },
+    -- Wochen-Rangliste (Paket 5.7, Logic/Social.rollWeek): Wochenindex und Sammlungswert zu Beginn der Woche.
+    -- Nur der Server schreibt. Alte Spielstände bekommen { week = 0, base = 0 } über die Standardwerte.
+    weekly: { week: number, base: number },
     -- Eingelöste Codes (Paket 5.2, Logic/Codes): Code-ID aus der Server-Tabelle -> true. Nur der Server
     -- schreibt. Profile.migrate füllt das Feld bei alten Spielständen mit {} auf (keine neue Version).
     codes: { [string]: boolean },
@@ -156,6 +159,7 @@ function Profile.default(now: number?): Profile
         -- Angebote (Paket 4.5): Fenster und Merker "gekauft" je Angebot, nur der Server schreibt.
         offers = defaultOffers(),
         daily = { streak = 0, lastDay = 0 },
+        weekly = { week = 0, base = 0 },
         -- Codes (Paket 5.2): eingelöste Code-IDs, nur der Server schreibt (Logic/Codes).
         codes = {},
         -- Saison-Pass (Paket 5.5): Punkte und Abholungen je Saison, nur der Server schreibt.

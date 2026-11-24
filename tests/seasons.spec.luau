@@ -383,11 +383,18 @@ T.describe("DataCheck", function()
 end)
 
 T.describe("Studio-Hilfe", function()
-    T.it("parseDebug: off, clear und week:1 bis week:4, alles andere nichts", function()
+    T.it("parseDebug: off, clear, ended und week:1 bis week:4, alles andere nichts", function()
         local action, week = Seasons.parseDebug("off")
         T.expect(action).toBe("off")
         T.expect(week).toBeNil()
         T.expect((Seasons.parseDebug("clear"))).toBe("clear")
+        local ended, endedWeek = Seasons.parseDebug("ended")
+        T.expect(ended).toBe("ended")
+        T.expect(endedWeek).toBeNil()
+        T.expect((Seasons.parseDebug("koloss"))).toBe("koloss") -- Paket 5.6, die Zeit rechnet Logic/Koloss
+        for _, bad in { "Ended", "ended:1", "end", " ended", "Koloss", "koloss:1" } do
+            T.expect((Seasons.parseDebug(bad))).toBeNil()
+        end
         for number = 1, 4 do
             local a, w = Seasons.parseDebug(`week:{number}`)
             T.expect(a).toBe("week")
@@ -414,14 +421,88 @@ T.describe("Studio-Hilfe", function()
         T.expect(Seasons.debugTime("clear", nil, A_START + 5, DATA)).toBeNil()
         T.expect(Seasons.debugTime("week", 1, 0, tableOf({}))).toBeNil()
     end)
+
+    T.it("debugTime: ended liegt einen Tag nach dem Ende der Saison, auf die week:N zielt", function()
+        -- vor allen Saisons: die nächste (A)
+        local beforeAll = Seasons.debugTime("ended", nil, 0, DATA) :: number
+        T.expect(beforeAll).toBe(A_END + DAY)
+        T.expect(Seasons.at(beforeAll, DATA).active).toBeNil()
+        local last, since = Seasons.lastEnded(beforeAll, DATA)
+        T.expect(last.id).toBe("a")
+        T.expect(since).toBe(DAY)
+        -- während A: A; während B: B; nach allen: die erste (A)
+        T.expect(Seasons.debugTime("ended", nil, A_START + 5, DATA)).toBe(A_END + DAY)
+        T.expect(Seasons.debugTime("ended", nil, B_START + 5, DATA)).toBe(B_START + 4 * WEEK + DAY)
+        T.expect(Seasons.debugTime("ended", nil, B_START + 10 * WEEK, DATA)).toBe(A_END + DAY)
+        -- ohne Saison mit gültigem Datum: nil (echte Zeit)
+        T.expect(Seasons.debugTime("ended", nil, 0, tableOf({}))).toBeNil()
+        -- unbekannte Befehle und week ohne Zahl: nil
+        T.expect(Seasons.debugTime("week", nil, 0, DATA)).toBeNil()
+        T.expect(Seasons.debugTime("irgendwas", nil, 0, DATA)).toBeNil()
+    end)
 end)
 
-T.describe("Keine neue Remote", function()
-    T.it("RemoteSpec kennt keine Remote für Saisons oder Zeit", function()
+T.describe("Keine Remote für Zeit", function()
+    -- Seit 5.5b gibt es genau zwei Remotes mit "Season" im Namen (Saison-Pass). Keine nimmt eine Zeit,
+    -- eine Saison-ID oder eine Woche: die Saison bestimmt allein der Server mit seiner Uhr.
+    local PASS_REMOTES = { BuySeasonPass = true, ClaimSeasonReward = true }
+
+    T.it("RemoteSpec kennt keine Remote für Saisons oder Zeit außer den zwei Pass-Remotes (5.5b)", function()
         for name in RemoteSpec.byName do
             local lower = string.lower(tostring(name))
-            T.expect(string.find(lower, "season") == nil and string.find(lower, "saison") == nil and string.find(lower, "event") == nil).toBe(true)
+            local mentions = string.find(lower, "season") ~= nil or string.find(lower, "saison") ~= nil or string.find(lower, "event") ~= nil
+            T.expect(mentions == (PASS_REMOTES[name] == true)).toBe(true)
+            T.expect(string.find(lower, "time") == nil and string.find(lower, "week") == nil and string.find(lower, "clock") == nil).toBe(true)
         end
+    end)
+
+    T.it("die Pass-Remotes nehmen keine Zeit und keine Saison: kein Text, nur Stufe 1 bis 50 und Spur", function()
+        T.expect(RemoteSpec.byName.BuySeasonPass.schema).toEqual({})
+        local schema = RemoteSpec.byName.ClaimSeasonReward.schema :: { any }
+        T.expect(#schema).toBe(2)
+        T.expect(schema[1]).toEqual({ kind = "int", min = 1, max = 50 })
+        T.expect(schema[2]).toEqual({ kind = "oneOf", values = { "free", "premium" } })
+    end)
+end)
+
+T.describe("Zuletzt beendete Saison (lastEnded, Paket 5.5b)", function()
+    T.it("vor dem ersten Ende nichts, ab der Sekunde des Endes die Saison und die Sekunden seit dem Ende", function()
+        local none, noSeconds = Seasons.lastEnded(A_END - 1, DATA)
+        T.expect(none).toBeNil()
+        T.expect(noSeconds).toBeNil()
+        local season, since = Seasons.lastEnded(A_END, DATA)
+        T.expect(season.id).toBe("a")
+        T.expect(since).toBe(0)
+        local later, laterSince = Seasons.lastEnded(A_END + 3 * DAY + 7, DATA)
+        T.expect(later.id).toBe("a")
+        T.expect(laterSince).toBe(3 * DAY + 7)
+    end)
+
+    T.it("während Saison B gilt A als zuletzt beendet, nach B dann B; Reihenfolge der Zeilen egal", function()
+        local during = Seasons.lastEnded(B_START + 5, DATA)
+        T.expect(during.id).toBe("a")
+        local after, since = Seasons.lastEnded(B_START + 4 * WEEK + 10, DATA)
+        T.expect(after.id).toBe("b")
+        T.expect(since).toBe(10)
+        local swapped = tableOf({ DATA.list[2], DATA.list[1] })
+        T.expect((Seasons.lastEnded(B_START + 4 * WEEK + 10, swapped)).id).toBe("b")
+        T.expect((Seasons.lastEnded(A_END + 10, swapped)).id).toBe("a")
+    end)
+
+    T.it("kaputte Zeit, leere Tabelle und kaputtes Datum: nichts bzw. übersprungen", function()
+        for _, bad in { 0 / 0, math.huge, -1, "x" :: any, nil :: any } do
+            T.expect((Seasons.lastEnded(bad, DATA))).toBeNil()
+        end
+        T.expect((Seasons.lastEnded(A_END + 10, tableOf({})))).toBeNil()
+        local rows = { { id = "kaputt", name = "K", startDate = "2027-02-30", crateId = "x" }, DATA.list[1] }
+        T.expect((Seasons.lastEnded(A_END + 10, tableOf(rows))).id).toBe("a")
+    end)
+
+    T.it("die echte Tabelle: Saison 1 ist einen Tag nach ihrem Ende die zuletzt beendete", function()
+        local start = Seasons.startOf(SeasonData.list[1]) :: number
+        local season, since = Seasons.lastEnded(start + 4 * WEEK + DAY)
+        T.expect(season.id).toBe("season_1")
+        T.expect(since).toBe(DAY)
     end)
 end)
 

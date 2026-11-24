@@ -189,10 +189,10 @@ T.describe("Bedingungen", function()
         T.expect((result :: any).bonusBpAfter).toBe(view.bonusBpAfter)
     end)
 
-    T.it("gehalten an der Obergrenze: kein Gewinn, also tooFew, nie mehr als maxCrystals", function()
+    T.it("gehalten an der Obergrenze: kein Gewinn, Grund maxReached (L4), nie mehr als maxCrystals", function()
         local profile = runner(BigNum.new(1, 30))
         profile.windCrystals = cfg.maxCrystals
-        T.expect(Sandstorm.check(profile, DATA)).toBe("tooFew")
+        T.expect(Sandstorm.check(profile, DATA)).toBe("maxReached")
         profile.windCrystals = cfg.maxCrystals - 3
         local result = Sandstorm.apply(profile, DATA)
         T.expect((result :: any).crystals).toBe(3)
@@ -386,6 +386,119 @@ T.describe("Einnahmen des Laufs (runEarned)", function()
         Wind.credit(profile, { m = -5, e = 2 })
         T.expect(profile.coins).toEqual({ m = 0, e = 0 })
         T.expect(profile.runEarned).toEqual({ m = 0, e = 0 })
+    end)
+end)
+
+T.describe("L1 (6.4): Münz-Faktor zählt nicht für runEarned", function()
+    T.it("Verkauf mit Faktor 3: Münzen mal 3, runEarned ohne Faktor", function()
+        local profile = fresh()
+        Collecting.addSand(profile, 10, "yellow")
+        local earned = Collecting.sell(Collecting.newState(0), profile, 0, { coinMultiplier = 3 })
+        T.expect(BigNum.toNumber(earned :: any)).toBe(30)
+        T.expect(BigNum.toNumber(BigNum.deserialize(profile.coins))).toBe(30)
+        T.expect(BigNum.toNumber(Wind.runEarned(profile))).toBe(10)
+    end)
+
+    T.it("Sandsturm-Vorschau mit und ohne Faktor zeigt dieselben Einnahmen", function()
+        local profile = fresh()
+        Collecting.addSand(profile, 10, "yellow")
+        local with = Sandstorm.runTotal(profile, { coinMultiplier = 3 })
+        local without = Sandstorm.runTotal(profile)
+        T.expect(with).toEqual(without)
+    end)
+
+    T.it("Wind.credit mit runAmount: nie mehr als der Betrag, 0 oder negativ zählt nichts", function()
+        local profile = fresh()
+        Wind.credit(profile, BigNum.new(30), BigNum.new(10))
+        T.expect(BigNum.toNumber(Wind.runEarned(profile))).toBe(10)
+        Wind.credit(profile, BigNum.new(5), BigNum.new(99))
+        T.expect(BigNum.toNumber(Wind.runEarned(profile))).toBe(15)
+        Wind.credit(profile, BigNum.new(5), { m = -1, e = 0 })
+        Wind.credit(profile, BigNum.new(5), BigNum.zero())
+        T.expect(BigNum.toNumber(Wind.runEarned(profile))).toBe(15)
+        T.expect(BigNum.toNumber(BigNum.deserialize(profile.coins))).toBe(45)
+    end)
+end)
+
+T.describe("L4 (6.4): Obergrenze der Kristalle", function()
+    T.it("knapp unter der Obergrenze: Gewinn würde gekappt unter minCrystals, Grund maxReached, nicht tooFew", function()
+        local data = { Economy = { sandstorm = { requiresNode = "collect_tool_4", crystalUnit = 1_000_000, crystalExponent = 0.5, crystalScale = 1, minCrystals = 5, maxCrystals = 100_000 } } }
+        local profile = runner(BigNum.new(1, 30))
+        profile.windCrystals = data.Economy.sandstorm.maxCrystals - 2
+        local view = Sandstorm.preview(profile, data)
+        T.expect(view.reason).toBe("maxReached")
+        T.expect(view.ready).toBe(false)
+        T.expect(view.gain).toBe(2)
+        T.expect(view.maxCrystals).toBe(100_000)
+        local before = table.clone(profile)
+        local result, reason = Sandstorm.apply(profile, data)
+        T.expect(result).toBe(nil)
+        T.expect(reason).toBe("maxReached")
+        T.expect(profile.windCrystals).toBe(before.windCrystals)
+    end)
+
+    T.it("an der Obergrenze mit wenig Verdienst bleibt tooFew nicht möglich: maxReached hat Vorrang", function()
+        local profile = runner(BigNum.new(1, 3))
+        profile.windCrystals = cfg.maxCrystals
+        T.expect(Sandstorm.check(profile, DATA)).toBe("maxReached")
+    end)
+
+    T.it("ohne Knoten bleibt requires vor maxReached", function()
+        local profile = fresh()
+        profile.windCrystals = cfg.maxCrystals
+        T.expect(Sandstorm.check(profile, DATA)).toBe("requires")
+    end)
+end)
+
+T.describe("L2 (6.4): Hinweis Sturm lohnt sich", function()
+    local function withWorth(seconds: any): any
+        local sandstorm = table.clone(cfg)
+        sandstorm.worthSeconds = seconds
+        return { Economy = { sandstorm = sandstorm } }
+    end
+
+    T.it("sehr kleine Schwelle: der nächste Knoten ist immer weiter weg, worth ist wahr", function()
+        local profile = runner(BigNum.new(1, 10))
+        local view = Sandstorm.preview(profile, withWorth(1e-9))
+        T.expect(view.ready).toBe(true)
+        T.expect(view.worth).toBe(true)
+    end)
+
+    T.it("riesige Schwelle: der nächste Knoten ist nah genug, worth ist falsch", function()
+        local profile = runner(BigNum.new(1, 10))
+        local view = Sandstorm.preview(profile, withWorth(1e15))
+        T.expect(view.ready).toBe(true)
+        T.expect(view.worth).toBe(false)
+    end)
+
+    T.it("worth ist nur wahr, wenn der Sturm geht", function()
+        local profile = runner(BigNum.new(1, 1))
+        local view = Sandstorm.preview(profile, withWorth(1e-9))
+        T.expect(view.ready).toBe(false)
+        T.expect(view.worth).toBe(false)
+    end)
+
+    T.it("kein sichtbarer Knoten mehr: worth ist wahr", function()
+        local profile = runner(BigNum.new(1, 10))
+        local nodes: { [string]: boolean } = {}
+        for _, node in UpgradeTree.list do
+            nodes[node.id] = true
+        end
+        profile.nodes = nodes
+        T.expect(Sandstorm.worthIt(profile, withWorth(1e15))).toBe(true)
+    end)
+
+    T.it("fehlt worthSeconds oder ist kaputt: Standard 180 s, kein Fehler", function()
+        local profile = runner(BigNum.new(1, 10))
+        for _, bad in { "x", -5, 0, 0 / 0, math.huge } do
+            T.expect(type(Sandstorm.worthIt(profile, withWorth(bad)))).toBe("boolean")
+        end
+        T.expect(Sandstorm.worthIt(profile, withWorth(nil))).toBe(Sandstorm.worthIt(profile, withWorth(180)))
+    end)
+
+    T.it("echte Werte: Anfang des Laufs (nächster Knoten billig) gibt keinen Hinweis", function()
+        local profile = fresh()
+        T.expect(Sandstorm.worthIt(profile)).toBe(false)
     end)
 end)
 
@@ -594,6 +707,10 @@ T.describe("Datenprüfung und Remote", function()
         hasError(broken(function(d) d.Economy.sandstorm.requiresNode = "gibt_es_nicht" end), "requiresNode")
         hasError(broken(function(d) d.Economy.sandstorm.requiresNode = "sandstorm_1" end), "vergeben")
         hasError(broken(function(d) d.Economy.sandstorm.crystalUnit = 0 end), "crystalUnit")
+        for _, bad in { 0, -1, 3601, 0 / 0, math.huge } do
+            hasError(broken(function(d) d.Economy.sandstorm.worthSeconds = bad end), "worthSeconds")
+        end
+        hasError(broken(function(d) d.Economy.sandstorm.worthSeconds = nil end), "worthSeconds")
         hasError(broken(function(d) d.Economy.sandstorm.crystalExponent = 1.5 end), "crystalExponent")
         hasError(broken(function(d) d.Economy.sandstorm.crystalExponent = 0 end), "crystalExponent")
         hasError(broken(function(d) d.Economy.sandstorm.crystalScale = 5000 end), "crystalScale")

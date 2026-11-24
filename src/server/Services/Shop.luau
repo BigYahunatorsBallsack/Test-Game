@@ -20,7 +20,9 @@
 --
 -- Für andere Services (4.4): Shop.registerProduct(produktId, handler) hängt ein weiteres Developer
 -- Product aus Data/Products ein (Handler siehe Logic/Purchases), in Start (Shop.Init legt Purchases
--- an). Der Passes-Service registriert so den Münz-Boost, der Offers-Service das Starterpaket. Nach allen Start() prüft Shop.AfterStart,
+-- an). Der Passes-Service registriert so den Münz-Boost, der Offers-Service das Starterpaket, der
+-- SeasonPasses-Service (Paket 5.5b, schon in seinem Init) je Saison das Pass-Produkt ("season_pass";
+-- sein Handler bekommt als 4. Argument `{ userId, purchaseId }`). Nach allen Start() prüft Shop.AfterStart,
 -- dass jedes Produkt mit echter ProductId (kein Gamepass) einen Handler hat, und meldet sonst laut.
 --
 -- Studio-Hilfe (nur in Studio): In der Befehlszeile (Ansicht "Server")
@@ -29,6 +31,7 @@
 --   game.Players.Name:SetAttribute("DebugPurchase", "coin_boost")        -- Münz-Boost (Paket 4.4)
 --   game.Players.Name:SetAttribute("DebugPurchase", "coin_boost:fest1")  -- Münz-Boost, feste PurchaseId
 --   game.Players.Name:SetAttribute("DebugPurchase", "starter_pack")      -- Starterpaket (Paket 4.5)
+--   game.Players.Name:SetAttribute("DebugPurchase", "season_pass")       -- Saison-Pass (Paket 5.5b, Zeit wie DebugSeason)
 -- Der künstliche Beleg läuft über Purchases.processDebug (Gem-Paket oder registriertes Produkt aus
 -- Data/Products über die ID aus den Daten, PurchaseId mit Präfix "studio:") durch denselben Ablauf
 -- wie ein echter Kauf. Gamepasses gehen nie über diesen Weg (ihr Studio-Weg ist "DebugPass" im

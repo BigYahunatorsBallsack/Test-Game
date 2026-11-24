@@ -4,22 +4,29 @@
 -- offen?" für Crates. Das Server-Event "Der Koloss" und die Event-Zone folgen in 5.5 und 5.6.
 --
 -- Die Regeln stehen im reinen Modul Logic/Seasons (Lune-Tests in tests/seasons.spec.luau). Hier
--- hängen nur Server-Uhr (os.time, nie eine Zeit vom Client), StateSync und Takt dran. Es gibt keine
--- Remote und kein Profilfeld.
+-- hängen nur Server-Uhr (os.time, nie eine Zeit vom Client), StateSync und Takt dran. Es gibt hier
+-- keine Remote: Abholen und Kauf des Saison-Passes (Paket 5.5b) liegen in Services/SeasonPasses, die
+-- Saison-Punkte schreibt `addZoneSeconds` (Paket 5.5).
 --
 -- StateSync (über Sand.addSnapshotProvider):
 --   season = { active, id?, name?, week?, phaseId?, phaseName?, hint?, secondsLeft?, crateId?, crateOpen?,
 --              next? = { id, name, crateId, secondsToNext } }   (Logic/Seasons.state)
--- Ein Takt alle SEASON_CHECK_SECONDS erkennt Saison- und Wochenwechsel und sendet allen geladenen
--- Spielern den Zustand neu. Den Countdown zählt der Client selbst herunter.
+--   seasonPass = { seasonId, points, maxPoints, tier, tiers, premium, claimed = { free, premium },
+--                  canBuy, ended, claimSecondsLeft }   (Logic/SeasonPass.view, Paket 5.5b)
+--     während der laufenden Saison mit Stufen und in der Abholfrist danach (ended = true, canBuy = false);
+--     sonst fehlt das Feld.
+-- Ein Takt alle SEASON_CHECK_SECONDS erkennt Saison- und Wochenwechsel sowie den Wechsel in die und
+-- aus der Abholfrist und sendet allen geladenen Spielern den Zustand neu. Den Countdown zählt der
+-- Client selbst herunter.
 --
 -- Studio-Hilfe (nur in Studio, Befehlszeile Ansicht "Server"; wirkt nur auf diesen Spieler):
 --   game.Players.Name:SetAttribute("DebugSeason", "week:1")  -- mitten in Woche 1 (bis "week:4")
+--   game.Players.Name:SetAttribute("DebugSeason", "ended")   -- ein Tag nach dem Saisonende (Abholfrist, 5.5b)
 --   game.Players.Name:SetAttribute("DebugSeason", "off")     -- vor allen Saisons: "Nächste Saison in ..."
 --   game.Players.Name:SetAttribute("DebugSeason", "clear")   -- zurück zur echten Zeit
--- "week:N" gilt für die laufende, sonst die nächste, sonst die erste Saison der Tabelle. Das Attribut
--- wird nach dem Lesen gelöscht, die Einstellung bleibt, bis "clear" kommt. Außerhalb von Studio gibt es
--- keinen Listener, das Attribut wird nie gelesen.
+-- "week:N" und "ended" gelten für die laufende, sonst die nächste, sonst die erste Saison der Tabelle.
+-- Das Attribut wird nach dem Lesen gelöscht, die Einstellung bleibt, bis "clear" kommt. Außerhalb von
+-- Studio gibt es keinen Listener, das Attribut wird nie gelesen.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,6 +49,7 @@ local Events = {}
 
 local PlayerData: any = nil
 local Sand: any = nil
+local Koloss: any = nil
 
 -- Letzter gesendeter Stand je Spieler (Saison-ID und Woche), damit der Takt nur bei Wechseln sendet.
 local lastKey: { [Player]: string } = {}
@@ -57,12 +65,23 @@ local function timeFor(player: Player): number
     return SeasonClock.timeFor(player)
 end
 
-local function keyOf(state: { [string]: any }): string
+-- Teil des Schlüssels für den Saison-Pass: Saison und "läuft" oder "Abholfrist", sonst "none". Ändert
+-- er sich (Saisonende, Ende der Abholfrist), sendet der Takt neu (Paket 5.5b).
+local function passKeyOf(time: number): string
+    local ok, current = pcall(SeasonPassLogic.current, time)
+    if not ok or type(current) ~= "table" then
+        return "none"
+    end
+    return `{tostring(current.season.id)}:{if current.ended then "grace" else "run"}`
+end
+
+local function keyOf(state: { [string]: any }, time: number): string
+    local passKey = passKeyOf(time)
     if state.active == true then
-        return `{state.id}:{state.week}`
+        return `{state.id}:{state.week}|{passKey}`
     end
     local nextSeason = state.next
-    return if type(nextSeason) == "table" then `pause:{nextSeason.id}` else "pause"
+    return (if type(nextSeason) == "table" then `pause:{nextSeason.id}` else "pause") .. `|{passKey}`
 end
 
 -- Ist die Event-Kiste dieses Spielers jetzt offen? Nur true für die Kiste der laufenden Saison in
@@ -79,23 +98,27 @@ function Events.inSeason(player: Player, crateId: string): boolean
 end
 
 local function snapshotFor(player: Player): { [string]: any }
+    local time = 0
     local ok, state = pcall(function(): any
-        return SeasonsLogic.state(timeFor(player))
+        time = timeFor(player)
+        return SeasonsLogic.state(time)
     end)
     if not ok then
         log(`Anzeige für {player.Name} fehlgeschlagen: {tostring(state)}`)
         return {}
     end
     if player.Parent == Players then
-        lastKey[player] = keyOf(state)
+        lastKey[player] = keyOf(state, time)
     end
     local result: { [string]: any } = { season = state }
-    -- Saison-Punkte (Paket 5.5): nur während einer laufenden Saison, wenn sie Stufen hat.
+    -- Saison-Pass (Paket 5.5, 5.5b): während der laufenden Saison mit Stufen und in der Abholfrist danach.
     local profile = PlayerData.get(player)
-    if profile ~= nil and state.active == true and SeasonPassLogic.tiersOf(state.id) ~= nil then
-        local okPass, passState = pcall(SeasonPassLogic.state, profile, state.id)
-        if okPass then
-            result.seasonPass = passState
+    if profile ~= nil then
+        local okPass, view = pcall(SeasonPassLogic.view, profile, time)
+        if not okPass then
+            log(`Saison-Pass-Anzeige für {player.Name} fehlgeschlagen: {tostring(view)}`)
+        elseif view ~= nil then
+            result.seasonPass = view
         end
     end
     return result
@@ -120,6 +143,11 @@ function Events.addZoneSeconds(player: Player, zoneId: string, seconds: number):
     if season == nil then
         return 0
     end
+    -- Server-Event "Der Koloss" (Paket 5.6): dieselben Sekunden füllen den Balken dieses Servers.
+    local counted, err = pcall(Koloss.addZoneSeconds, player, zoneId, seconds)
+    if not counted then
+        log(`Koloss fehlgeschlagen: {tostring(err)}`)
+    end
     local gained = SeasonPassLogic.addSeconds(profile, season.id, seconds)
     if gained > 0 then
         refresh(player)
@@ -131,10 +159,12 @@ end
 local function tick()
     for _, player in Players:GetPlayers() do
         if PlayerData.get(player) ~= nil then
+            local time = 0
             local ok, state = pcall(function(): any
-                return SeasonsLogic.state(timeFor(player))
+                time = timeFor(player)
+                return SeasonsLogic.state(time)
             end)
-            if ok and lastKey[player] ~= nil and keyOf(state) ~= lastKey[player] then
+            if ok and lastKey[player] ~= nil and keyOf(state, time) ~= lastKey[player] then
                 refresh(player)
             end
         end
@@ -150,7 +180,7 @@ local function connectStudioHelper(player: Player)
         player:SetAttribute(DEBUG_ATTRIBUTE, nil)
         local action, week = SeasonsLogic.parseDebug(value)
         if action == nil then
-            log(`Studio: {DEBUG_ATTRIBUTE} erwartet "week:1" bis "week:4", "off" oder "clear"`)
+            log(`Studio: {DEBUG_ATTRIBUTE} erwartet "week:1" bis "week:4", "ended", "off" oder "clear"`)
             return
         end
         if action == "clear" then
@@ -173,6 +203,7 @@ end
 function Events.Init()
     PlayerData = require(servicesFolder:WaitForChild("PlayerData") :: ModuleScript)
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
+    Koloss = require(servicesFolder:WaitForChild("Koloss") :: ModuleScript)
 end
 
 function Events.Start()

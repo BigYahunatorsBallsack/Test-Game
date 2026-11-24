@@ -609,8 +609,9 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         FakeStore.flushSaves(world)
         T.expect(finish(first)).toBe("granted")
         T.expect(finish(second)).toBe("granted")
-        T.expect(profile.gems).toBe(600) -- ein zweiter, anderer Beleg bucht (bezahlt ist bezahlt), aber nur einmal
-        T.expect(copiesOf(profile, "toolVariant_rare_1")).toBe(2)
+        -- ein zweiter, anderer Beleg bucht (bezahlt ist bezahlt), aber nur einmal und nur Ersatz-Gems (6.1)
+        T.expect(profile.gems).toBe(300 + STARTER.duplicateGems)
+        T.expect(copiesOf(profile, "toolVariant_rare_1")).toBe(1)
         T.expect(profile.receipts).toEqual({ "starter-dup", "starter-dup2" })
     end)
 
@@ -631,6 +632,7 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         local b = newServer(FakeStore.newWorld(), "B")
         local full = load(b)
         full.gems = MAX_GEMS
+        full.offers.starter.since = NOW
         T.expect(buy(b, "starter-full")).toBe("granted")
         T.expect(full.gems).toBe(MAX_GEMS)
         T.expect(full.purchaseLog[1].gems).toBe(0)
@@ -644,6 +646,7 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         end)
         local profile: any = Profile.default(NOW)
         profile.gems = 7
+        profile.offers.starter.since = NOW -- Fenster läuft: das Paket
         local before = deepCopy(profile)
         local first = handler(profile, { id = "starter_pack" }) :: any
         T.expect(profile).toEqual(before)
@@ -654,6 +657,7 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         end
         T.expect(first.changes.gems).toBe(307)
         T.expect(first.gems).toBe(300)
+        T.expect(first.changes.inventory.toolVariants).toEqual({ toolVariant_rare_1 = 1 })
         -- Die Quelle von Logic/Offers enthält keinen Zufall.
         T.expect(string.find(OFFERS_SOURCE, "random", 1, true)).toBeNil()
         T.expect(string.find(OFFERS_SOURCE, "Random", 1, true)).toBeNil()
@@ -671,11 +675,43 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         T.expect(handler(profile, { id = "coin_boost" })).toBeNil()
         T.expect(handler(nil, { id = "starter_pack" })).toBeNil()
         T.expect(Offers.offerHandler("gibt_es_nicht", clock)(profile, { id = "starter_pack" })).toBeNil()
-        local badItems = { Offers = offersTable({ { id = "starter", productId = "starter_pack", trigger = "firstFindFromRarity", minRarityId = "rare", windowHours = 24, gems = 300, items = { "gibt_es_nicht" }, priority = 1 } }) }
-        T.expect(handler(profile, { id = "starter_pack" }, badItems)).toBeNil()
-        local badGems = { Offers = offersTable({ { id = "starter", productId = "starter_pack", trigger = "firstFindFromRarity", minRarityId = "rare", windowHours = 24, gems = 1.5, items = {}, priority = 1 } }) }
-        T.expect(handler(profile, { id = "starter_pack" }, badGems)).toBeNil()
+        local function row(change: { [string]: any }): any
+            local offer: any = { id = "starter", productId = "starter_pack", trigger = "firstFindFromRarity", minRarityId = "rare", windowHours = 24, gems = 300, items = {}, priority = 1, duplicateGems = 300, receiptGraceMinutes = 15 }
+            for key, value in change do
+                offer[key] = value
+            end
+            return { Offers = offersTable({ offer }) }
+        end
+        -- Unbekanntes Item lehnt in jedem Zustand ab, auch wenn der Beleg nur Ersatz-Gems bekäme (verborgen).
+        T.expect(handler(profile, { id = "starter_pack" }, row({ items = { "gibt_es_nicht" } }))).toBeNil()
+        T.expect(handler(profile, { id = "starter_pack" }, row({ gems = 1.5 }))).toBeNil()
         T.expect(#logs).toBe(3) -- falsches Produkt, unbekanntes Item, ungültige Gems
+        -- Ersatzwert, Fenster und Nachfrist kaputt: keine Gutschrift (NotProcessedYet), nie ein Paket.
+        for _, bad in { 1.5, -1, 0 / 0, math.huge, "300", false } do
+            T.expect(handler(profile, { id = "starter_pack" }, row({ duplicateGems = bad }))).toBeNil()
+        end
+        local missing = row({})
+        missing.Offers.byId.starter.duplicateGems = nil
+        T.expect(handler(profile, { id = "starter_pack" }, missing)).toBeNil()
+        T.expect(handler(profile, { id = "starter_pack" }, row({ windowHours = 0 }))).toBeNil()
+        for _, bad in { -1, 1.5, 0 / 0, math.huge, "15" } do
+            T.expect(handler(profile, { id = "starter_pack" }, row({ receiptGraceMinutes = bad }))).toBeNil()
+        end
+        T.expect(countLogs({ logs = logs } :: any, "duplicateGems ungültig")).toBe(7)
+        T.expect(countLogs({ logs = logs } :: any, "receiptGraceMinutes ungültig")).toBe(6)
+        -- Kaputte Uhr: keine Gutschrift, Roblox wiederholt den Beleg.
+        local active: any = Profile.default(NOW)
+        active.offers.starter.since = NOW
+        for _, badNow in { 0 / 0, math.huge, -math.huge, 0, -5 } do
+            local broken = Offers.offerHandler("starter", function(): number
+                return badNow
+            end, function(m: string)
+                table.insert(logs, m)
+            end)
+            T.expect(broken(active, { id = "starter_pack" })).toBeNil()
+            T.expect(broken(profile, { id = "starter_pack" })).toBeNil()
+        end
+        T.expect(countLogs({ logs = logs } :: any, "ungültige Uhr")).toBe(10)
         -- Ein Logger, der wirft, stört die Gutschrift nicht.
         local throwing = Offers.offerHandler("starter", clock, function(_m: string)
             error("Logger kaputt")
@@ -721,6 +757,7 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         local profile = load(b)
         T.expect(profile.gems).toBe(0)
         T.expect(starterEntry(profile).bought).toBe(false)
+        profile.offers.starter.since = NOW -- das Fenster läuft noch (Start war schon gespeichert)
         T.expect(buy(b, "starter-crash")).toBe("granted")
         T.expect(buy(b, "starter-crash")).toBe("granted")
         T.expect(profile.gems).toBe(300)
@@ -776,6 +813,7 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
         local world = FakeStore.newWorld()
         local a = newServer(world, "A", { data = REAL_DATA, allowDebug = true })
         local profile = load(a)
+        profile.offers.starter.since = NOW -- wie DebugOffer "starter" (ohne Fenster gäbe es nur Ersatz-Gems)
         for _ = 1, 3 do
             T.expect(finish(start(function(): string
                 return a.purchases.processDebug(USER, "starter_pack", "fest1")
@@ -797,44 +835,302 @@ T.describe("Kauf starter_pack über ProcessReceipt (4.5)", function()
     end)
 end)
 
-T.describe("Bezahlt ist bezahlt: Beleg außerhalb des Fensters oder nach einem früheren Kauf (4.5)", function()
-    T.it("vor dem Auslöser (verborgen) und nach Ablauf: trotzdem gutgeschrieben, nie NotProcessedYet", function()
+-- Exploit-Review 6.1 (mittel): Ein manipulierter Client kann PromptProductPurchase für das Starterpaket
+-- selbst aufrufen, beliebig oft und außerhalb des Fensters. Das Paket gibt es nur im Fenster (plus
+-- Nachfrist) und nur einmal; jeder andere bezahlte Beleg bekommt nur Ersatz-Gems aus Data/Offers.
+local DUPLICATE_GEMS = STARTER.duplicateGems
+local GRACE = STARTER.receiptGraceMinutes * Offers.SECONDS_PER_MINUTE
+
+-- Inhalt der Items des Starterpakets im Profil (für "keine Items").
+local function starterCopies(profile: any): { number }
+    return { copiesOf(profile, "toolVariant_rare_1"), copiesOf(profile, "companion_uncommon_1") }
+end
+
+T.describe("Einmalkauf auf dem Server: Ersatz-Gems statt eines zweiten Pakets (6.1)", function()
+    T.it("Data/Offers: Ersatz-Gems 300 und Nachfrist 15 min, höchstens der Gem-Gegenwert von 149 Robux", function()
+        T.expect(DUPLICATE_GEMS).toBe(300)
+        T.expect(STARTER.receiptGraceMinutes).toBe(4320)
+        local price = Products.byId.starter_pack.priceRobux
+        local bestRate = 0
+        for _, pack in GemPacks.list do
+            if pack.robux <= price then
+                bestRate = math.max(bestRate, pack.gems / pack.robux)
+            end
+        end
+        T.expect(DUPLICATE_GEMS <= price * bestRate).toBe(true) -- 300 <= 304
+    end)
+
+    T.it("Erstkauf im Fenster (auch in der letzten Sekunde): volles Paket, Meldung ohne duplicate", function()
         local world = FakeStore.newWorld()
         local a = newServer(world, "A")
         local profile = load(a)
-        T.expect(stateAt(profile, NOW)).toBe("hidden")
-        T.expect(buy(a, "starter-hidden")).toBe("granted")
-        T.expect(profile.gems).toBe(300)
-        T.expect(starterEntry(profile)).toEqual({ since = 0, bought = true })
-        T.expect(stateAt(profile, NOW)).toBe("bought")
-        T.expect(countLogs(a, "trotzdem gutgeschrieben")).toBe(1)
-
-        local b = newServer(FakeStore.newWorld(), "B")
-        local expired = load(b)
-        expired.offers.starter.since = NOW - WINDOW - 1
-        T.expect(stateAt(expired, NOW)).toBe("expired")
-        T.expect(buy(b, "starter-expired")).toBe("granted")
-        T.expect(expired.gems).toBe(300)
-        T.expect(copiesOf(expired, "toolVariant_rare_1")).toBe(1)
-        T.expect(starterEntry(expired)).toEqual({ since = NOW - WINDOW - 1, bought = true })
+        profile.offers.starter.since = NOW - WINDOW + 1 -- noch genau 1 s
+        T.expect({ stateAt(profile, NOW) }).toEqual({ "active", 1 })
+        T.expect(buy(a, "first-in-window")).toBe("granted")
+        T.expect(profile.gems).toBe(STARTER.gems)
+        T.expect(starterCopies(profile)).toEqual({ 1, 1 })
+        T.expect(starterEntry(profile)).toEqual({ since = NOW - WINDOW + 1, bought = true })
+        T.expect(a.notes[1].data).toEqual({ offerId = "starter", gems = 300, items = { "toolVariant_rare_1", "companion_uncommon_1" } })
+        T.expect(countLogs(a, "Ersatz-Gems")).toBe(0)
+        T.expect(countLogs(a, "Nachfrist")).toBe(0)
     end)
 
-    T.it("ein zweiter, anderer Beleg nach einem früheren Kauf: wieder gutgeschrieben, Merker bleibt", function()
+    T.it("zweiter Kauf (anderer Beleg): nur Ersatz-Gems, keine Items, Merker bleibt, gespeichert und bestätigt", function()
         local world = FakeStore.newWorld()
         local a = newServer(world, "A")
         local profile = load(a)
         profile.offers.starter.since = NOW
         T.expect(buy(a, "starter-first")).toBe("granted")
+        local inventoryAfterFirst = deepCopy(profile.inventory)
         T.expect(buy(a, "starter-second")).toBe("granted")
-        T.expect(profile.gems).toBe(600)
-        T.expect(copiesOf(profile, "toolVariant_rare_1")).toBe(2)
-        T.expect(copiesOf(profile, "companion_uncommon_1")).toBe(2)
+        T.expect(profile.gems).toBe(STARTER.gems + DUPLICATE_GEMS)
+        T.expect(profile.inventory).toEqual(inventoryAfterFirst)
+        T.expect(starterCopies(profile)).toEqual({ 1, 1 })
         T.expect(starterEntry(profile)).toEqual({ since = NOW, bought = true })
+        -- Meldung nach dem Speichern: Ersatz, keine Items
         T.expect(#a.notes).toBe(2)
+        T.expect(a.notes[2].kind).toBe(Offers.OFFER_BOUGHT_KIND)
+        T.expect(a.notes[2].data).toEqual({ offerId = "starter", gems = DUPLICATE_GEMS, items = {}, duplicate = true })
+        -- Kaufprotokoll, Ausgaben und Speicher wie bei jedem Kauf
+        T.expect(profile.purchaseLog[2].productId).toBe("starter_pack")
+        T.expect(profile.purchaseLog[2].gems).toBe(DUPLICATE_GEMS)
         T.expect(profile.spent.count).toBe(2)
+        T.expect(Purchases.hasReceipt(world.saved[KEY], "starter-second")).toBe(true)
+        T.expect(world.saved[KEY].gems).toBe(STARTER.gems + DUPLICATE_GEMS)
+        T.expect(world.saved[KEY].inventory.toolVariants.toolVariant_rare_1).toBe(1)
+        T.expect(countLogs(a, "Ersatz-Gems statt des Pakets")).toBe(1)
+        T.expect(countLogs(a, "Profil-Schema")).toBe(0)
+        T.expect(Profile.sanitize(profile, NOW)).toEqual({})
     end)
 
-    T.it("kaputter Eintrag im Profil: der Kauf repariert ihn und gilt (Schema-Prüfung von Purchases besteht)", function()
+    T.it("Kauf vor dem Auslöser (verborgen): nur Ersatz-Gems, das Angebot bleibt danach im Fenster kaufbar", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        T.expect(stateAt(profile, NOW)).toBe("hidden")
+        T.expect(buy(a, "starter-hidden")).toBe("granted")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        T.expect(starterEntry(profile)).toEqual({ since = 0, bought = false }) -- nicht als gekauft markiert
+        T.expect(stateAt(profile, NOW)).toBe("hidden")
+        T.expect(a.notes[1].data.duplicate).toBe(true)
+        -- Später der echte Auslöser: Fenster startet, der Kauf im Fenster gibt das Paket.
+        T.expect(bookFind(profile, findOf("rare"), a.clock.time)).toEqual({ "starter" })
+        T.expect(buy(a, "starter-later")).toBe("granted")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS + STARTER.gems)
+        T.expect(starterCopies(profile)).toEqual({ 1, 1 })
+        T.expect(starterEntry(profile).bought).toBe(true)
+    end)
+
+    T.it("Kauf nach Fensterende plus Nachfrist: nur Ersatz-Gems, keine Items, Angebot bleibt abgelaufen", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        profile.offers.starter.since = NOW - WINDOW - GRACE -- Nachfrist endet genau jetzt
+        T.expect(stateAt(profile, NOW)).toBe("expired")
+        T.expect(buy(a, "starter-expired")).toBe("granted")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        T.expect(starterEntry(profile)).toEqual({ since = NOW - WINDOW - GRACE, bought = false })
+        T.expect(stateAt(profile, NOW)).toBe("expired")
+        T.expect(countLogs(a, 'Zustand "expired"')).toBe(1)
+        T.expect(Purchases.hasReceipt(world.saved[KEY], "starter-expired")).toBe(true)
+    end)
+
+    T.it("Nachfrist: kurz nach Fensterende gibt es noch das Paket (Kaufdialog offen, andere Server-Uhr), danach nicht", function()
+        local profile: any = Profile.default(NOW)
+        profile.offers.starter.since = NOW
+        local function decide(t: number): { any }
+            return { Offers.receiptGetsPackage(profile, "starter", t) }
+        end
+        T.expect(decide(NOW)).toEqual({ true, "active" })
+        T.expect(decide(NOW + WINDOW - 1)).toEqual({ true, "active" })
+        T.expect(decide(NOW + WINDOW)).toEqual({ true, "expired" })
+        T.expect(decide(NOW + WINDOW + GRACE - 1)).toEqual({ true, "expired" })
+        T.expect(decide(NOW + WINDOW + GRACE)).toEqual({ false, "expired" })
+        T.expect(decide(NOW + 10 * WINDOW)).toEqual({ false, "expired" })
+        -- gekauft: nie wieder, auch mitten im Fenster; verborgen und kaputte Uhr: nie
+        local bought = deepCopy(profile)
+        bought.offers.starter.bought = true
+        T.expect({ Offers.receiptGetsPackage(bought, "starter", NOW + 10) }).toEqual({ false, "bought" })
+        T.expect({ Offers.receiptGetsPackage(Profile.default(NOW), "starter", NOW) }).toEqual({ false, "hidden" })
+        T.expect({ Offers.receiptGetsPackage(profile, "starter", 0 / 0) }).toEqual({ false, "hidden" })
+        T.expect({ Offers.receiptGetsPackage(profile, "gibt_es_nicht", NOW) }).toEqual({ false, "hidden" })
+        -- Nachfrist 0 aus den Daten: Fensterende ist auch das Ende für Belege
+        local noGrace = table.clone(STARTER)
+        noGrace.receiptGraceMinutes = 0
+        local data = { Offers = offersTable({ noGrace }) }
+        T.expect({ Offers.receiptGetsPackage(profile, "starter", NOW + WINDOW - 1, data) }).toEqual({ true, "active" })
+        T.expect({ Offers.receiptGetsPackage(profile, "starter", NOW + WINDOW, data) }).toEqual({ false, "expired" })
+        -- über ProcessReceipt: eine Minute nach Fensterende, noch nicht gekauft: Paket, Protokoll nennt die Nachfrist
+        local a = newServer(FakeStore.newWorld(), "A")
+        local late = load(a)
+        late.offers.starter.since = NOW - WINDOW - 60
+        T.expect(buy(a, "starter-grace")).toBe("granted")
+        T.expect(starterCopies(late)).toEqual({ 1, 1 })
+        T.expect(late.gems).toBe(STARTER.gems)
+        T.expect(starterEntry(late).bought).toBe(true)
+        T.expect(countLogs(a, "Nachfrist")).toBe(1)
+        T.expect(a.notes[1].data.duplicate).toBeNil()
+    end)
+
+    T.it("Kappung bei maxGems: Ersatz-Gems gekappt, bei vollem Stand 0 Gems, der Beleg gilt trotzdem", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        profile.offers.starter = { since = NOW, bought = true }
+        profile.gems = MAX_GEMS - 100
+        T.expect(buy(a, "dup-cap")).toBe("granted")
+        T.expect(profile.gems).toBe(MAX_GEMS)
+        T.expect(profile.purchaseLog[1].gems).toBe(100)
+        T.expect(a.notes[1].data).toEqual({ offerId = "starter", gems = 100, items = {}, duplicate = true })
+        T.expect(countLogs(a, "gekappt")).toBe(1)
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        -- schon voll: 0 Gems, keine Änderung außer Beleg und Protokoll, gespeichert und bestätigt
+        T.expect(buy(a, "dup-full")).toBe("granted")
+        T.expect(profile.gems).toBe(MAX_GEMS)
+        T.expect(profile.purchaseLog[2].gems).toBe(0)
+        T.expect(a.notes[2].data).toEqual({ offerId = "starter", gems = 0, items = {}, duplicate = true })
+        T.expect(Purchases.hasReceipt(world.saved[KEY], "dup-full")).toBe(true)
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        T.expect(starterEntry(profile)).toEqual({ since = NOW, bought = true })
+        -- direkt am Handler: kein changes.gems, wenn nichts gutgeschrieben wird
+        local handler = Offers.offerHandler("starter", function(): number
+            return NOW
+        end)
+        local prepared = handler(deepCopy(profile), { id = "starter_pack" }) :: any
+        T.expect(prepared.changes).toEqual({})
+        T.expect(prepared.gems).toBe(0)
+    end)
+
+    T.it("derselbe Ersatz-Beleg zweimal (nacheinander und gleichzeitig) bucht nie doppelt", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        local profile = load(a)
+        profile.offers.starter = { since = NOW, bought = true }
+        T.expect(buy(a, "dup-same")).toBe("granted")
+        T.expect(buy(a, "dup-same")).toBe("granted")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        T.expect(#a.notes).toBe(1)
+        world.delaySaves = true
+        local first = startBuy(a, "dup-same2")
+        local second = startBuy(a, "dup-same2")
+        resume(second)
+        FakeStore.flushSaves(world)
+        T.expect(finish(first)).toBe("granted")
+        T.expect(finish(second)).toBe("granted")
+        T.expect(profile.gems).toBe(2 * DUPLICATE_GEMS)
+        T.expect(profile.receipts).toEqual({ "dup-same", "dup-same2" })
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        T.expect(#a.notes).toBe(2)
+    end)
+
+    T.it("Speichern schlägt beim Ersatz-Beleg fehl: NotProcessedYet, Gems und PurchaseId bleiben zusammen, keine zweite Buchung", function()
+        local world = FakeStore.newWorld()
+        world.failSaves = true
+        local a = newServer(world, "A")
+        local profile = load(a)
+        profile.offers.starter = { since = NOW, bought = true }
+        T.expect(buy(a, "dup-fail")).toBe("notProcessed")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        T.expect(Purchases.hasReceipt(profile, "dup-fail")).toBe(true)
+        T.expect(#a.notes).toBe(0)
+        T.expect(buy(a, "dup-fail")).toBe("notProcessed")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        world.failSaves = false
+        T.expect(buy(a, "dup-fail")).toBe("granted")
+        T.expect(profile.gems).toBe(DUPLICATE_GEMS)
+        T.expect(world.saved[KEY].gems).toBe(DUPLICATE_GEMS)
+        T.expect(starterCopies(profile)).toEqual({ 0, 0 })
+        T.expect(#a.notes).toBe(1)
+    end)
+
+    T.it("Profil nicht geladen: NotProcessedYet, kein Ersatz und kein Paket", function()
+        local world = FakeStore.newWorld()
+        local a = newServer(world, "A")
+        T.expect(buy(a, "dup-noprofile")).toBe("notProcessed")
+        T.expect(world.saved[KEY]).toBeNil()
+    end)
+
+    T.it("Ausnutzen simuliert: zehn bezahlte Belege im Fenster, gleichzeitig: ein Paket, neunmal Ersatz-Gems", function()
+        local world = FakeStore.newWorld()
+        world.delaySaves = true
+        local a = newServer(world, "A")
+        local profile = load(a)
+        profile.offers.starter.since = NOW
+        local jobs: { Job } = {}
+        for index = 1, 10 do
+            table.insert(jobs, startBuy(a, `exploit-{index}`))
+        end
+        FakeStore.flushSaves(world)
+        for _, job in jobs do
+            T.expect(finish(job)).toBe("granted")
+        end
+        T.expect(starterCopies(profile)).toEqual({ 1, 1 })
+        T.expect(profile.gems).toBe(STARTER.gems + 9 * DUPLICATE_GEMS)
+        T.expect(#profile.receipts).toBe(10)
+        local duplicates = 0
+        for _, note in a.notes do
+            if note.data.duplicate == true then
+                duplicates += 1
+            end
+        end
+        T.expect(duplicates).toBe(9)
+        T.expect(world.saved[KEY].inventory.toolVariants.toolVariant_rare_1).toBe(1)
+        -- Der Kurs ist nie besser als bei den Gem-Paketen: 9 x 149 Robux für 9 x 300 Gems.
+        T.expect(DUPLICATE_GEMS / Products.byId.starter_pack.priceRobux <= GemPacks.byId.gems_100.gems / GemPacks.byId.gems_100.robux).toBe(true)
+    end)
+
+    T.it("Absturz vor dem Speichern: der Beleg kommt auf dem neuen Server in der Nachfrist (Paket) oder danach (Ersatz-Gems)", function()
+        for _, case in { { delay = GRACE - 60, items = 1, gems = STARTER.gems }, { delay = GRACE + 60, items = 0, gems = DUPLICATE_GEMS } } do
+            local world = FakeStore.newWorld()
+            world.delaySaves = true
+            local a = newServer(world, "A")
+            local first = load(a)
+            first.offers.starter.since = NOW - WINDOW + 10 -- letzte Sekunden des Fensters
+            local job = startBuy(a, "starter-crash-late")
+            T.expect(starterCopies(first)).toEqual({ 1, 1 }) -- auf A gebucht, aber nie gespeichert
+            FakeStore.crash(world, KEY)
+            world.delaySaves = false
+            finish(job)
+            -- B lädt den alten Stand (Fensterstart war gespeichert) nach dem Fensterende
+            local b = newServer(world, "B")
+            b.clock.time = NOW + 10 + case.delay
+            local profile = load(b)
+            profile.offers.starter.since = NOW - WINDOW + 10
+            T.expect(buy(b, "starter-crash-late")).toBe("granted")
+            T.expect(buy(b, "starter-crash-late")).toBe("granted")
+            T.expect(starterCopies(profile)).toEqual({ case.items, case.items })
+            T.expect(profile.gems).toBe(case.gems)
+        end
+    end)
+
+    T.it("Ersatzwert kommt aus den Daten (nicht aus dem Code): Testwert 123, Profil-Kopie unverändert", function()
+        local custom = table.clone(STARTER)
+        custom.duplicateGems = 123
+        local data = { Offers = offersTable({ custom }) }
+        local handler = Offers.offerHandler("starter", function(): number
+            return NOW
+        end)
+        local profile: any = Profile.default(NOW)
+        profile.gems = 5
+        profile.offers.starter = { since = NOW, bought = true }
+        local before = deepCopy(profile)
+        local prepared = handler(profile, { id = "starter_pack" }, data) :: any
+        T.expect(profile).toEqual(before)
+        T.expect(prepared.changes).toEqual({ gems = 128 })
+        T.expect(prepared.gems).toBe(123)
+        local kind, payload = prepared.announce(profile)
+        T.expect(kind).toBe(Offers.OFFER_BOUGHT_KIND)
+        T.expect(payload).toEqual({ offerId = "starter", gems = 123, items = {}, duplicate = true })
+        -- 0 Ersatz-Gems in den Daten: der Beleg gilt, bucht aber nichts
+        custom.duplicateGems = 0
+        local zero = handler(profile, { id = "starter_pack" }, data) :: any
+        T.expect(zero.changes).toEqual({})
+        T.expect(zero.gems).toBe(0)
+    end)
+
+    T.it("kaputter Eintrag im Profil: der Kauf im Fenster repariert ihn und gilt (Schema-Prüfung von Purchases besteht)", function()
         local world = FakeStore.newWorld()
         local a = newServer(world, "A")
         local profile = load(a)

@@ -11,7 +11,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Daily (Paket 5.1) nutzt zur Laufzeit Crates (Policy, gemeinsame Sperre) und hängt sich in Start an
 -- den StateSync von Sand. Codes (Paket 5.2) prüft in Init die Code-Tabelle des Servers (Data/Codes,
 -- bei Fehlern Abbruch wie bei DataCheck) und nutzt zur Laufzeit die gemeinsame Sperre von Crates.
-local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "Daily", "Codes" }
+-- SeasonPasses (Paket 5.5b) steht nach Shop und Events: Es registriert seine Kauf-Handler schon in
+-- Init (Shop.Init hat Purchases vorher angelegt), also vor Shop.Start (ProcessReceipt) und vor
+-- Shop.AfterStart; die Remotes kommen in Start, zur Laufzeit nutzt es die Sperre von Crates.
+-- Friends (Paket 5.7, Freunde-Bonus) und Leaderboard (Rangliste, Besuch) stehen am Ende: Friends setzt den
+-- Münz-Faktor über Sand, Leaderboard liest Profile über PlayerData und registriert seine Remotes in Start.
+-- Analytics (Paket 6.3) steht ganz am Ende: Es liest nur Profile (Tutorial, Kaufprotokoll) und ändert nichts.
+local SERVICE_NAMES = { "PlayerData", "Economy", "Sand", "Offline", "ZoneService", "Finds", "Upgrades", "Crates", "Equipment", "Passes", "Offers", "Shop", "Events", "SeasonPasses", "Koloss", "Daily", "Codes", "Friends", "Leaderboard", "Analytics" }
 
 type Service = {
     Init: () -> (),

@@ -40,8 +40,8 @@ Sechs Werkzeugstufen machen den Fortschritt sichtbar: Jede Stufe ist deutlich gr
 | 2 | Schaufel | 5 | 50 | Gräbt eine Mulde |
 | 3 | Eimerkette | 25 | 600 | Band trägt Sand zum Tank |
 | 4 | Mini-Bagger | 150 | 7.500 | Fahrzeug mit Staubwolke |
-| 5 | Saugroboter | 900 | 90.000 | Rüssel saugt die Fläche leer |
-| 6 | Großmaschine | 6.000 | 1.100.000 | Frisst ganze Dünen |
+| 5 | Saugroboter | 900 | 700.000 | Rüssel saugt die Fläche leer |
+| 6 | Großmaschine | 6.000 | 30.000.000 | Frisst ganze Dünen |
 
 Alle Werte sind Startwerte für den ersten Test.
 
@@ -104,7 +104,7 @@ Kisten enthalten Skins, Begleiter und Werkzeug-Varianten mit kleinem Bonus (etwa
 | Mythisch | 0 % | 0 % | 0,5 % |
 
 - **Pity:** Die Goldkiste garantiert Episch oder besser spätestens bei der 15. Öffnung und Legendär oder besser spätestens bei der 60. Der Zähler ist sichtbar und liegt auf dem Server. Jede Öffnung zählt, auch die Gratis-Kiste aus dem 10er-Paket.
-- **Erwartungswert:** Ein Legendär-oder-besser-Treffer kommt im Schnitt nach etwa 20 Goldkisten, also rund 8.000 Gems.
+- **Erwartungswert:** Ein Legendär-oder-besser-Treffer kommt im Schnitt nach etwa 18,6 Goldkisten, also rund 7.400 Gems (Simulation Paket 6.4).
 - **10er-Paket:** Zehn kaufen, elf bekommen, mit denselben Quoten.
 
 **Gem-Pakete** (Developer Products):

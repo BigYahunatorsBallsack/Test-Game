@@ -71,8 +71,9 @@ local Economy = {
     -- Sandsturm (Paket 2.7). Kristalle = floor(crystalScale x (runEarned / crystalUnit) ^ crystalExponent),
     -- runEarned = Münzen aus Verkäufen seit dem letzten Sturm. `requiresNode`: Knoten, ab dem der Sturm
     -- möglich ist (Canyon frei). `minCrystals`: so viele muss der Lauf mindestens bringen.
-    -- `maxCrystals`: Obergrenze der gehaltenen Kristalle (Schutz gegen Überlauf), erst bei etwa
-    -- 3,9 x 10^23 Münzen im Lauf erreicht.
+    -- `maxCrystals`: Obergrenze der GEHALTENEN Kristalle (Schutz gegen Überlauf). Bei 100.000 war ab etwa
+    -- 35 h aktiv kein Sturm mehr möglich (Gewinn unter minCrystals), darum 5 Mio. (Paket 6.4,
+    -- docs/balance-6.4.md). Mehr erlaubt DataCheck bei 200 bp nicht (maxCrystals x bp <= 10^9).
     -- Werte vom balance-analyst, Begründung und Simulation: docs/balance/sandstorm_2_7.md.
     -- Exponent 0,25 statt 0,5: Bei 0,5 lohnt es sich, nach dem Baumende ohne Kauf weiterzusammeln.
     -- minCrystals 20: erreicht etwa 3,5 min vor dem Baumende von Lauf 1, ein früher Sturm lohnt nie.
@@ -82,7 +83,10 @@ local Economy = {
         crystalExponent = 0.25,
         crystalScale = 4,
         minCrystals = 20,
-        maxCrystals = 100_000,
+        maxCrystals = 5_000_000,
+        -- Hinweis "Sturm lohnt sich" (Paket 6.4, L2): Der billigste sichtbare Knoten kostet mehr als so
+        -- viele Sekunden Verdienst bei der jetzigen Rate.
+        worthSeconds = 180,
     },
 
     -- Käufe (Paket 4.1). PurchaseGranted gibt es erst, wenn die PurchaseId im gespeicherten Stand

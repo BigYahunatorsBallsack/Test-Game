@@ -35,12 +35,14 @@ export type Snapshot = {
     autoDig: boolean?, -- Einstellung "Auto-Dig an" (wirkt nur mit Pass)
     autoDigOwned: boolean?, -- Auto-Dig-Pass vorhanden
     coinMultiplier: number?, -- Faktor aus 2x-Pass und Münz-Boost (steckt schon in pricePerSand)
+    friendFactor: number?, -- Freunde-Bonus allein, steckt auch schon in coinMultiplier (Paket 5.7)
     coinBoostSeconds: number?, -- Restzeit des Münz-Boosts in Sekunden (Server-Uhr zum Zeitpunkt des Snapshots)
     offline: { id: number, ok: boolean, reason: string?, seconds: number, awaySeconds: number, capSeconds: number, capped: boolean, coins: { m: number, e: number }? }?, -- Offline-Bericht (Paket 5.3)
     luckBoostSeconds: number?, -- Restzeit des Glücks-Boosts in Sekunden (Paket 5.1)
     daily: { started: boolean, day: number, canClaim: boolean, secondsLeft: number, streak: number }?, -- Daily Reward (Paket 5.1)
     season: { active: boolean, id: string?, name: string?, week: number?, phaseId: string?, phaseName: string?, hint: string?, secondsLeft: number?, crateId: string?, crateOpen: boolean?, zoneId: string?, zoneOpen: boolean?, next: { id: string, name: string, crateId: string, zoneId: string?, secondsToNext: number }? }?, -- Event-Kalender (Paket 5.4)
-    seasonPass: { seasonId: string, points: number, maxPoints: number, tier: number, tiers: number, premium: boolean }?, -- Saison-Punkte und Stufen der laufenden Saison (Paket 5.5)
+    seasonPass: { seasonId: string, points: number, maxPoints: number, tier: number, tiers: number, premium: boolean, claimed: { free: { [string]: boolean }, premium: { [string]: boolean } }?, canBuy: boolean?, ended: boolean?, claimSecondsLeft: number?, seasonSecondsLeft: number?, passId: string? }?, -- Saison-Punkte, Stufen, Abholmerker und Kauf-Zustand (Paket 5.5, 5.5b)
+    koloss: { state: string, seasonId: string, progress: number, target: number, completed: boolean, you: number, tierId: string?, claimed: boolean, secondsLeft: number, secondsToStart: number }?, -- Server-Event "Der Koloss" (Paket 5.6)
     tutorialStep: number, -- 1 bis Tutorial.count(), danach fertig
 }
 
@@ -48,11 +50,13 @@ export type Snapshot = {
 export type Storm = {
     unlocked: boolean, -- der Knoten für den Sturm ist da: der Knopf wird sichtbar
     ready: boolean, -- der Sturm ginge jetzt
-    reason: string?, -- "requires" oder "tooFew", wenn er nicht geht
+    reason: string?, -- "requires", "tooFew" oder "maxReached", wenn er nicht geht
     runEarned: { m: number, e: number }, -- Einnahmen des Laufs inklusive Tankwert
     gain: number, -- Kristalle, die der Sturm jetzt gäbe
     needed: { m: number, e: number }, -- Einnahmen, ab denen der Sturm sich lohnt (minCrystals)
     minCrystals: number,
+    maxCrystals: number?, -- Obergrenze der gehaltenen Kristalle (Paket 6.4, L4)
+    worth: boolean?, -- "Sturm lohnt sich jetzt" (Paket 6.4, L2)
     crystalsNow: number,
     crystalsAfter: number,
     bonusBpNow: number,

@@ -4,8 +4,9 @@
 -- 1. Kistenquoten und Wurf hängen nur von Kiste, Pity-Zähler und Zufall ab. Glück-Ast, Glück-Boost,
 --    Pässe, Münz-Boost und ausgerüstete Items ändern daran nichts (sonst stimmten die angezeigten
 --    Quoten nicht).
--- 2. Remotes: Nur OpenCrate, EquipItem, MergeItem, BuyDirectItem und ClaimDaily (Tag 7: Eisenkiste
---    gratis oder fester Ersatzgegenstand, Paket 5.1) dürfen das Inventar ändern, und
+-- 2. Remotes: Nur OpenCrate, EquipItem, MergeItem, BuyDirectItem, ClaimDaily (Tag 7: Eisenkiste
+--    gratis oder fester Ersatzgegenstand, Paket 5.1) und ClaimSeasonReward (feste Pass-Items, Paket
+--    5.5b) dürfen das Inventar ändern, und
 --    keine Remote nimmt ein Argument, mit dem man einen anderen Spieler nennen könnte (kein Tausch,
 --    kein Verschenken, kein Verkauf von Kisten-Items).
 --
@@ -21,8 +22,10 @@ local fs = require("@lune/fs")
 local CrateOpen = require("../src/shared/Logic/CrateOpen")
 local CrateRoll = require("../src/shared/Logic/CrateRoll")
 local Profile = require("../src/shared/Logic/Profile")
+local SocialData = require("../src/shared/Data/Social")
 local TreeEffects = require("../src/shared/Logic/TreeEffects")
 local Perks = require("../src/shared/Logic/Perks")
+local SeasonPass = require("../src/shared/Logic/SeasonPass")
 local Equipment = require("../src/shared/Logic/Equipment")
 local Sandstorm = require("../src/shared/Logic/Sandstorm")
 local FindRoll = require("../src/shared/Logic/FindRoll")
@@ -199,6 +202,7 @@ local INVENTORY_REMOTES: { [string]: string } = {
     MergeItem = "verbraucht Kopien desselben Items (Equipment)",
     BuyDirectItem = "Direktkauf gegen Gems (Crates, Logic/DirectShop)",
     ClaimDaily = "Daily Reward Tag 7: Eisenkiste gratis oder fester Ersatzgegenstand (Daily, Logic/Daily)",
+    ClaimSeasonReward = "Saison-Pass: feste Belohnung einer erreichten Stufe, bei Items ein Pass-Item (passOnly), nie Kisten oder Zufall (SeasonPasses, Logic/SeasonPass, Paket 5.5b)",
 }
 -- Alle anderen Remotes vom Client zum Server, mit dem, was sie tun. Kommt eine neue dazu, muss sie
 -- hier oder oben eingeordnet werden (der Test scheitert sonst).
@@ -210,6 +214,10 @@ local OTHER_REMOTES: { [string]: string } = {
     SetAutoDig = "Einstellung",
     Prestige = "Sandsturm (behält das Inventar, siehe Sandstorm.KEEP_FIELDS)",
     RedeemCode = "Code einlösen: nur Gems, Münz- oder Glücks-Boost, nie Kisten oder Items (Codes, Logic/Codes, Paket 5.2)",
+    GetLeaderboard = "liest die Wochen-Rangliste aus dem Zwischenspeicher des Servers (Leaderboard, Paket 5.7)",
+    GetFriends = "Freundesliste des Spielers zum Besuchen, vom Server geholt (Leaderboard, Paket 5.7)",
+    ViewCollection = "nur lesen: Sammlung eines Freundes, gewählt über einen Platz der Server-Liste, nie über eine UserId (Leaderboard, Paket 5.7)",
+    BuySeasonPass = "öffnet nur den Roblox-Kaufdialog des Saison-Passes; gebucht wird in ProcessReceipt (Premium-Spur oder Ersatz-Gems, nie Items) (SeasonPasses, Paket 5.5b)",
 }
 -- Wo die Remotes mit Inventar registriert sein müssen.
 local INVENTORY_SERVICES: { [string]: string } = {
@@ -218,6 +226,7 @@ local INVENTORY_SERVICES: { [string]: string } = {
     EquipItem = "src/server/Services/Equipment.luau",
     MergeItem = "src/server/Services/Equipment.luau",
     ClaimDaily = "src/server/Services/Daily.luau",
+    ClaimSeasonReward = "src/server/Services/SeasonPasses.luau",
 }
 -- Dateien, die `.inventory = ...` zuweisen dürfen (Textsuche). Gutschriften aus Käufen (Starterpaket)
 -- laufen über `changes.inventory` in Logic/Purchases (ProcessReceipt, keine Remote).
@@ -227,6 +236,7 @@ local INVENTORY_WRITERS: { [string]: string } = {
     ["src/shared/Logic/Equipment.luau"] = "MergeItem",
     ["src/server/Services/Equipment.luau"] = "Studio-Hilfe DebugItem (nur in Studio)",
     ["src/shared/Logic/Daily.luau"] = "ClaimDaily (Tag 7)",
+    ["src/shared/Logic/SeasonPass.luau"] = "ClaimSeasonReward (Pass-Items, Paket 5.5b)",
 }
 -- Datentabellen, gegen die eine ID-Regel prüfen darf (keine davon enthält Spieler).
 local ID_TABLES = { Zones.byId, UpgradeTree.byId, Crates.byId, CrateItems.byId }
@@ -235,6 +245,23 @@ local FREE_TEXT_ARGS: { [string]: string } = {
     ["EquipItem#2"] = "Item-ID oder \"\" zum Abnehmen, der Server prüft gegen CrateItems",
     ["RedeemCode#1"] = "eingegebener Code, 1 bis 24 Zeichen; der Server normalisiert ihn und vergleicht nur mit seiner Code-Tabelle (Paket 5.2)",
 }
+-- Zahlenbereiche als Argument sind nur hier erlaubt, mit Grund, und höchstens bis SMALL_INT_MAX (eine
+-- UserId wäre fast immer größer; der Server liest die Zahl ohnehin nie als Spieler).
+-- Der Bereich steht genau fest (min und max): ändert er sich, schlägt der Test an und die Bedeutung
+-- muss neu begründet werden.
+local SMALL_INT_ARGS: { [string]: { min: number, max: number, reason: string } } = {
+    ["ClaimSeasonReward#1"] = {
+        min = 1,
+        max = SeasonPass.MAX_TIERS,
+        reason = "Stufennummer des Saison-Passes; der Server prüft sie gegen Data/SeasonPass (Paket 5.5b)",
+    },
+    ["ViewCollection#1"] = {
+        min = 1,
+        max = SocialData.leaderboard.maxFriends,
+        reason = "Platz in der Freundesliste, die der Server mit GetFriends aufgebaut hat; der Client nennt nie eine UserId (Paket 5.7)",
+    },
+}
+local SMALL_INT_MAX = 1000
 -- Wörter in Remote-Namen, die auf Tausch, Verkauf oder Verschenken hindeuten.
 local FORBIDDEN_NAME_PARTS = { "trade", "gift", "send", "transfer", "give", "sellitem", "market" }
 
@@ -249,7 +276,7 @@ local function clientRemotes(): { [string]: any }
 end
 
 T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes", function()
-    T.it("jede Remote vom Client ist eingeordnet: mit Inventar genau OpenCrate, EquipItem, MergeItem, BuyDirectItem, ClaimDaily", function()
+    T.it("jede Remote vom Client ist eingeordnet: mit Inventar genau OpenCrate, EquipItem, MergeItem, BuyDirectItem, ClaimDaily, ClaimSeasonReward", function()
         local remotes = clientRemotes()
         for name in remotes do
             if INVENTORY_REMOTES[name] == nil and OTHER_REMOTES[name] == nil then
@@ -267,7 +294,7 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
             table.insert(names, name)
         end
         table.sort(names)
-        T.expect(names).toEqual({ "BuyDirectItem", "ClaimDaily", "EquipItem", "MergeItem", "OpenCrate" })
+        T.expect(names).toEqual({ "BuyDirectItem", "ClaimDaily", "ClaimSeasonReward", "EquipItem", "MergeItem", "OpenCrate" })
     end)
 
     T.it("jede Remote vom Client wird genau einmal registriert, die mit Inventar im vorgesehenen Service", function()
@@ -325,6 +352,7 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
     end)
 
     T.it("kein Argument kann einen anderen Spieler nennen: keine Zahlenbereiche, IDs nur aus Datentabellen", function()
+        local usedSmallInts: { [string]: boolean } = {}
         for name, def in clientRemotes() do
             local lower = string.lower(name)
             for _, part in FORBIDDEN_NAME_PARTS do
@@ -335,8 +363,15 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
             for index, rule in def.schema do
                 local label = `{name}#{index}`
                 if rule.kind == "int" then
-                    -- Eine freie Zahl könnte eine UserId sein.
-                    error(`{label}: Zahlenbereich als Argument (könnte eine UserId sein)`)
+                    -- Eine freie Zahl könnte eine UserId sein: nur eingeordnete, kleine Bereiche.
+                    local allowed = SMALL_INT_ARGS[label]
+                    if allowed == nil then
+                        error(`{label}: Zahlenbereich als Argument (könnte eine UserId sein)`)
+                    end
+                    if rule.min ~= allowed.min or rule.max ~= allowed.max or rule.max > SMALL_INT_MAX then
+                        error(`{label}: Zahlenbereich {rule.min} bis {rule.max} weicht von der Liste ab ({allowed.min} bis {allowed.max}) oder ist zu groß (UserId?)`)
+                    end
+                    usedSmallInts[label] = true
                 elseif rule.kind == "oneOf" then
                     for _, value in rule.values do
                         if type(value) == "number" and value > 1000 then
@@ -361,6 +396,10 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
                     error(`{label}: unbekannte Regel {tostring(rule.kind)}`)
                 end
             end
+        end
+        -- Jeder Eintrag der Liste trifft noch eine echte Regel (keine Leichen).
+        for label in SMALL_INT_ARGS do
+            T.expect(usedSmallInts[label]).toBe(true)
         end
         -- Ein Player-Objekt oder eine Tabelle besteht keine Regel (Validate nimmt nur Text, Zahl, Boolean).
     end)

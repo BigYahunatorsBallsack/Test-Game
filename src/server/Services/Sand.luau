@@ -78,8 +78,30 @@ local function unixNow(): number
 end
 
 -- Collecting.Options des Profils (Paket 4.4): Tank- und Münz-Faktor aus Pässen und Boost.
-local function optionsOf(profile: any): any
-    return Perks.options(profile, unixNow())
+-- Freunde-Bonus (Paket 5.7): Faktor je Spieler, gesetzt vom Service Friends (Sand.setFriendFactor).
+-- Er wirkt wie "2x Münzen" im Münz-Faktor (Verkauf, Anzeige, Sandsturm-Münzen über Sand.optionsFor), nicht im
+-- Offline-Ertrag.
+local friendFactors: { [Player]: number } = {}
+
+local function optionsOf(profile: any, player: Player): any
+    local options = Perks.options(profile, unixNow())
+    local friends = friendFactors[player]
+    if friends ~= nil and options.coinMultiplier ~= nil then
+        options.coinMultiplier *= friends
+    end
+    return options
+end
+
+-- Setzt den Freunde-Faktor (ab 1) und sendet den Zustand neu, wenn er sich ändert.
+function Sand.setFriendFactor(player: Player, factor: number)
+    if player.Parent == nil then
+        return
+    end
+    local old = friendFactors[player] or 1
+    friendFactors[player] = if factor > 1 then factor else nil
+    if old ~= factor and PlayerData ~= nil and PlayerData.get(player) ~= nil then
+        Sand.refresh(player)
+    end
 end
 
 -- Faktoren für Sammeln, Tank, Verkauf und Sandsturm des Spielers (Paket 4.4). Ohne Profil: keine
@@ -89,7 +111,7 @@ function Sand.optionsFor(player: Player): any
     if profile == nil then
         return {}
     end
-    return optionsOf(profile)
+    return optionsOf(profile, player)
 end
 
 local function stateOf(player: Player): any
@@ -107,7 +129,7 @@ function Sand.settle(player: Player)
     local profile = PlayerData.get(player)
     if profile ~= nil then
         -- Mit den Faktoren VOR der Änderung (alter Tank), der Aufrufer schreibt erst danach.
-        Collecting.update(stateOf(player), profile, now(), optionsOf(profile))
+        Collecting.update(stateOf(player), profile, now(), optionsOf(profile, player))
     end
 end
 
@@ -155,7 +177,7 @@ function Sand.snapshot(player: Player): any?
     local zone = Collecting.zoneOf(profile)
     local effects = TreeEffects.of(profile)
     local unix = unixNow()
-    local options = Perks.options(profile, unix)
+    local options = optionsOf(profile, player)
     local snapshot: any = {
         coins = BigNum.serialize(BigNum.deserialize(profile.coins)),
         gems = profile.gems, -- Gems (Paket 4.1)
@@ -180,7 +202,8 @@ function Sand.snapshot(player: Player): any?
         passes = Passes.owned(profile), -- Kopie { [passId] = true }, nur bekannte Pässe
         autoDig = Perks.autoDigSetting(profile), -- Einstellung (auch ohne Pass)
         autoDigOwned = Perks.owns(profile, "autoDig"), -- Pass "Auto-Dig" vorhanden
-        coinMultiplier = options.coinMultiplier, -- Münz-Faktor jetzt (Pass mal Boost)
+        coinMultiplier = options.coinMultiplier, -- Münz-Faktor jetzt (Pass mal Boost mal Freunde-Bonus)
+        friendFactor = friendFactors[player] or 1, -- Freunde-Bonus allein (Paket 5.7), nur für den Hinweis im Freunde-Menü
         coinBoostSeconds = Perks.coinBoostSeconds(profile, unix), -- Restsekunden, Server-Uhr
     }
     sentCoinMultiplier[player] = options.coinMultiplier
@@ -270,7 +293,7 @@ function Sand.setZone(player: Player, zoneId: string): boolean
     if profile == nil or not Zones.isUnlocked(profile, zoneId, SeasonClock.timeFor(player)) then
         return false
     end
-    Collecting.setZone(stateOf(player), profile, zoneId, now(), optionsOf(profile))
+    Collecting.setZone(stateOf(player), profile, zoneId, now(), optionsOf(profile, player))
     sync(player)
     return true
 end
@@ -319,7 +342,7 @@ local function onSetCollecting(player: Player, holding: boolean)
     end
     local state = stateOf(player)
     local wasHolding = state.holding
-    local options = optionsOf(profile)
+    local options = optionsOf(profile, player)
     -- Auto-Dig (Paket 4.4): Solange es aktiv ist, stoppt ein Loslassen der Taste das Sammeln nicht.
     local wanted = Perks.wantsCollecting(holding, Perks.autoDigActive(profile))
     local result = Collecting.setHolding(state, profile, wanted and canCollect(player), now(), options)
@@ -342,7 +365,7 @@ local function onSell(player: Player)
         notify(player, { kind = "sellTooFar" })
         return
     end
-    local earned, sold = Collecting.sell(stateOf(player), profile, now(), optionsOf(profile))
+    local earned, sold = Collecting.sell(stateOf(player), profile, now(), optionsOf(profile, player))
     if earned == nil then
         notify(player, { kind = "tankEmpty" })
     else
@@ -417,7 +440,7 @@ local function tickPlayer(player: Player, state: any, t: number)
         state.holding = false
         return
     end
-    local options = optionsOf(profile)
+    local options = optionsOf(profile, player)
     -- Abrechnen und Auto-Dig in einem reinen Schritt (Logic/Perks.collectTick, Lune-Tests).
     -- Wie canCollect, mit der Standprobe von eben (lebender Charakter, nicht am Stand).
     local collect = aliveRoot(player) ~= nil and not near
@@ -473,6 +496,7 @@ function Sand.Start()
         wasNearStand[player] = nil
         autoDig[player] = nil
         sentCoinMultiplier[player] = nil
+        friendFactors[player] = nil
     end)
 
     task.spawn(function()

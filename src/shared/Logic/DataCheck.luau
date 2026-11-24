@@ -9,6 +9,7 @@ local Offers = require("./Offers")
 local Equipment = require("./Equipment")
 local DirectShop = require("./DirectShop")
 local Seasons = require("./Seasons")
+local SeasonPass = require("./SeasonPass")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -45,6 +46,14 @@ local DAILY_FIELDS: { [string]: { [string]: boolean } } = {
     gems = { day = true, kind = true, amount = true },
 }
 local DAILY_DAY7_FIELDS = { day = true, kind = true, crateId = true }
+-- Saison-Pass (Paket 5.5b): erlaubte Felder je Belohnungsart (Logic/SeasonPass.claim kennt genau
+-- diese). Ein Feld wie `crateId` fällt so auf: nie Kisten, nie Zufall.
+local PASS_REWARD_FIELDS: { [string]: { [string]: boolean } } = {
+    gems = { kind = true, amount = true },
+    coinBoost = { kind = true, seconds = true },
+    luck = { kind = true, seconds = true },
+    item = { kind = true, itemId = true },
+}
 local EFFECT_KINDS = {
     setTool = true,
     rateBonus = true,
@@ -99,6 +108,9 @@ export type DataSet = {
     Offers: any,
     Seasons: any,
     SeasonPass: any,
+    Koloss: any,
+    Social: any,
+    Analytics: any,
 }
 
 local DataCheck = {}
@@ -132,6 +144,9 @@ function DataCheck.defaults(): DataSet
         Offers = require("../Data/Offers"),
         Seasons = require("../Data/Seasons"),
         SeasonPass = require("../Data/SeasonPass"),
+        Koloss = require("../Data/Koloss"),
+        Social = require("../Data/Social"),
+        Analytics = require("../Data/Analytics"),
     }
 end
 
@@ -964,13 +979,37 @@ local OFFER_FIELDS = {
     gems = true,
     items = true,
     priority = true,
+    duplicateGems = true, -- Ersatz-Gems ohne Paket (Exploit-Review 6.1)
+    receiptGraceMinutes = true, -- Nachfrist für Belege nach dem Fensterende (Exploit-Review 6.1)
 }
+
+-- Längste Nachfrist für Angebots-Belege nach dem Fensterende (Minuten). Sie deckt einen Kaufdialog
+-- über das Fensterende und verschieden gehende Server-Uhren ab, ist aber kein zweites Fenster.
+local MAX_OFFER_GRACE_MINUTES = 4 * 24 * 60 -- bis 4 Tage
+
+-- Gem-Gegenwert eines Robux-Preises zum besten Paketkurs unter den Gem-Paketen bis zu diesem Preis
+-- (0, wenn es kein solches Paket gibt), oder nil ohne brauchbare Paketliste oder Preis.
+local function gemValueOfRobux(data: DataSet, priceRobux: any): number?
+    if not isFinite(priceRobux) or type(data.GemPacks) ~= "table" or not isList(data.GemPacks.list) then
+        return nil
+    end
+    local bestRate = 0
+    for _, pack in data.GemPacks.list do
+        if type(pack) == "table" and isFinite(pack.gems) and isFinite(pack.robux) and pack.robux > 0 and pack.robux <= priceRobux then
+            bestRate = math.max(bestRate, pack.gems / pack.robux)
+        end
+    end
+    return priceRobux * bestRate
+end
 
 -- Angebote (Paket 4.5): eindeutige IDs; jedes Angebot verweist auf ein eigenes bekanntes Produkt
 -- (Developer Product, Einmalkauf); bekannter Auslöser und bekannte Seltenheit; Fenster endlich und
 -- größer als 0 Stunden; Gems ganze Zahl von 0 bis maxGems; Items sind feste IDs aus CrateItems (keine
 -- Kisten-ID, kein Zufall), lückenlose Liste, je Art höchstens eines; das Angebot ist nicht leer;
--- priority ist eine endliche Zahl; keine weiteren Felder.
+-- priority ist eine endliche Zahl; keine weiteren Felder. Seit 6.1: `duplicateGems` ganze Zahl von 0
+-- bis maxGems und höchstens der Gem-Gegenwert des Produktpreises zum besten Paketkurs bis zu diesem
+-- Preis (wie Economy.seasonPass.duplicateGems), `receiptGraceMinutes` ganze Zahl von 0 bis
+-- MAX_OFFER_GRACE_MINUTES.
 local function checkOffers(errors: { string }, data: DataSet)
     local offers = data.Offers
     checkIds(errors, "Offers", offers)
@@ -1023,6 +1062,19 @@ local function checkOffers(errors: { string }, data: DataSet)
         end
         if not isFinite(offer.priority) then
             table.insert(errors, `{label}: priority muss eine endliche Zahl sein`)
+        end
+        if not isInt(offer.duplicateGems) or offer.duplicateGems < 0 or (isInt(maxGems) and offer.duplicateGems > maxGems) then
+            table.insert(errors, `{label}: duplicateGems muss eine ganze Zahl von 0 bis Economy.purchases.maxGems sein`)
+        elseif type(product) == "table" then
+            -- Ersatz-Gems nie mehr wert als der Preis zum besten Paketkurs (sonst wäre ein Zweitkauf ein
+            -- verstecktes, günstigeres Gem-Paket).
+            local value = gemValueOfRobux(data, product.priceRobux)
+            if value ~= nil and offer.duplicateGems > value then
+                table.insert(errors, `{label}: duplicateGems {offer.duplicateGems} sind mehr wert als der Preis von "{offer.productId}" ({math.floor(value)} Gems zum besten Paketkurs)`)
+            end
+        end
+        if not isInt(offer.receiptGraceMinutes) or offer.receiptGraceMinutes < 0 or offer.receiptGraceMinutes > MAX_OFFER_GRACE_MINUTES then
+            table.insert(errors, `{label}: receiptGraceMinutes muss eine ganze Zahl von 0 bis {MAX_OFFER_GRACE_MINUTES} sein`)
         end
         local itemList = offer.items
         if type(itemList) ~= "table" then
@@ -1199,6 +1251,9 @@ local function checkSandstorm(errors: { string }, data: DataSet)
         table.insert(errors, `Economy.sandstorm.maxCrystals muss eine ganze Zahl von 1 bis {MAX_CRYSTAL_CAP} sein`)
     elseif isInt(economy.windCrystalBonusBp) and cfg.maxCrystals * economy.windCrystalBonusBp > MAX_CRYSTAL_BONUS_BP then
         table.insert(errors, "Economy.sandstorm: maxCrystals mal windCrystalBonusBp ergibt einen unsinnig hohen Bonus")
+    end
+    if not isFinite(cfg.worthSeconds) or cfg.worthSeconds <= 0 or cfg.worthSeconds > 3600 then
+        table.insert(errors, "Economy.sandstorm.worthSeconds muss eine Zahl über 0 bis 3600 sein")
     end
     if not isInt(cfg.minCrystals) or cfg.minCrystals < 1 or (isInt(cfg.maxCrystals) and cfg.minCrystals > cfg.maxCrystals) then
         table.insert(errors, "Economy.sandstorm.minCrystals muss eine ganze Zahl ab 1 und höchstens maxCrystals sein")
@@ -1382,6 +1437,22 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
         if not isInt(config.duplicateGems) or config.duplicateGems < 0 or config.duplicateGems > maxGems then
             table.insert(errors, "Economy.seasonPass: duplicateGems muss eine ganze Zahl von 0 bis maxGems sein")
         end
+        -- Ersatz-Gems dürfen nie mehr wert sein als der Pass-Preis zum besten Paketkurs bis zu diesem Preis
+        -- (sonst wäre ein altes Pass-Produkt ein verstecktes, günstigeres Gem-Paket).
+        if isInt(config.duplicateGems) and type(data.Products) == "table" and type(data.GemPacks) == "table" and isList(data.GemPacks.list) then
+            local passProduct = data.Products.byId and data.Products.byId.season_pass
+            if type(passProduct) == "table" and isFinite(passProduct.priceRobux) then
+                local bestRate = 0
+                for _, pack in data.GemPacks.list do
+                    if type(pack) == "table" and isFinite(pack.gems) and isFinite(pack.robux) and pack.robux > 0 and pack.robux <= passProduct.priceRobux then
+                        bestRate = math.max(bestRate, pack.gems / pack.robux)
+                    end
+                end
+                if config.duplicateGems > passProduct.priceRobux * bestRate then
+                    table.insert(errors, `Economy.seasonPass: duplicateGems {config.duplicateGems} sind mehr wert als der Pass-Preis ({math.floor(passProduct.priceRobux * bestRate)} Gems zum besten Paketkurs)`)
+                end
+            end
+        end
         if not isFinite(config.premiumGemsMaxPercent) or config.premiumGemsMaxPercent <= 0 or config.premiumGemsMaxPercent > 100 then
             table.insert(errors, "Economy.seasonPass: premiumGemsMaxPercent muss größer als 0 und höchstens 100 sein")
         end
@@ -1423,6 +1494,8 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
             end
         end
     end
+    -- Jedes Pass-Item kommt in allen Saisons und Spuren höchstens einmal vor (5.5b).
+    local passItemUsedAt: { [string]: string } = {}
     for seasonId, row in passData.bySeason do
         local label = `SeasonPass "{tostring(seasonId)}"`
         if type(seasonId) ~= "string" or seasonRows[seasonId] == nil then
@@ -1432,6 +1505,24 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
         if type(row) ~= "table" or not isList(row.tiers) or #row.tiers < 1 then
             table.insert(errors, `{label}: tiers braucht mindestens eine Stufe`)
             continue
+        end
+        -- Lückenlos 1 bis n (5.5b): Bei einer Lücke wären `#tiers`, die letzte Stufe und damit die
+        -- Punkte-Obergrenze mehrdeutig, und ClaimSeasonReward fände Stufen hinter der Lücke unzuverlässig.
+        local keyCount = 0
+        local dense = true
+        for key in row.tiers do
+            keyCount += 1
+            if type(key) ~= "number" or key ~= math.floor(key) or key < 1 then
+                dense = false
+            end
+        end
+        if not dense or keyCount ~= #row.tiers or row.tiers[keyCount] == nil then
+            table.insert(errors, `{label}: tiers muss eine lückenlose Liste sein (Stufe 1 bis n, ohne andere Schlüssel)`)
+            continue
+        end
+        if #row.tiers > SeasonPass.MAX_TIERS then
+            -- Die Remote ClaimSeasonReward nimmt nur Stufen 1 bis MAX_TIERS an (RemoteSpec).
+            table.insert(errors, `{label}: höchstens {SeasonPass.MAX_TIERS} Stufen (ClaimSeasonReward)`)
         end
         local last = 0
         local premiumGems = 0
@@ -1449,6 +1540,14 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
             for _, track in { "free", "premium" } do
                 local reward = tier[track]
                 local rewardLabel = `{tierLabel} {track}`
+                local allowedFields = if type(reward) == "table" and type(reward.kind) == "string" then PASS_REWARD_FIELDS[reward.kind] else nil
+                if allowedFields ~= nil then
+                    for field in reward do
+                        if not allowedFields[field] then
+                            table.insert(errors, `{rewardLabel}: unbekanntes Feld "{tostring(field)}" (nur feste Belohnungen, nie Kisten oder Zufall)`)
+                        end
+                    end
+                end
                 if type(reward) ~= "table" then
                     table.insert(errors, `{rewardLabel}: Belohnung fehlt`)
                 elseif reward.kind == "gems" then
@@ -1467,6 +1566,10 @@ local function checkSeasonPass(errors: { string }, data: DataSet)
                         table.insert(errors, `{rewardLabel}: unbekanntes Item "{tostring(reward.itemId)}"`)
                     elseif item.passOnly ~= true then
                         table.insert(errors, `{rewardLabel}: Item "{reward.itemId}" ist kein Pass-Item (passOnly)`)
+                    elseif passItemUsedAt[reward.itemId] ~= nil then
+                        table.insert(errors, `{rewardLabel}: Pass-Item "{reward.itemId}" steht schon bei {passItemUsedAt[reward.itemId]} (jedes Pass-Item nur einmal)`)
+                    else
+                        passItemUsedAt[reward.itemId] = rewardLabel
                     end
                 else
                     table.insert(errors, `{rewardLabel}: unbekannte Art "{tostring(reward.kind)}" (erlaubt: gems, coinBoost, luck, item)`)
@@ -1539,7 +1642,8 @@ local function checkSeasons(errors: { string }, data: DataSet)
     local ids: { [string]: boolean } = {}
     local crateUsers: { [string]: string } = {}
     local zoneUsers: { [string]: string } = {}
-    local ranges: { { id: string, startAt: number } } = {}
+    local passUsers: { [string]: string } = {}
+    local ranges: { { id: string, startAt: number, hasPass: boolean } } = {}
     for index, season in seasons.list do
         local label = `Seasons.list[{index}]`
         if type(season) ~= "table" then
@@ -1564,7 +1668,7 @@ local function checkSeasons(errors: { string }, data: DataSet)
         elseif not Seasons.isMondayStart(start) then
             table.insert(errors, `{label}: startDate {season.startDate} ist kein Montag`)
         else
-            table.insert(ranges, { id = id, startAt = start })
+            table.insert(ranges, { id = id, startAt = start, hasPass = season.passId ~= nil })
         end
         local crate = if type(season.crateId) == "string" and crates ~= nil then crates[season.crateId] else nil
         if crate == nil then
@@ -1588,16 +1692,39 @@ local function checkSeasons(errors: { string }, data: DataSet)
                 zoneUsers[season.zoneId] = id
             end
         end
-        if season.passId ~= nil and (type(season.passId) ~= "string" or products == nil or products[season.passId] == nil) then
-            table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
+        if season.passId ~= nil then
+            local product = if type(season.passId) == "string" and products ~= nil then products[season.passId] else nil
+            if type(product) ~= "table" then
+                table.insert(errors, `{label}: passId "{tostring(season.passId)}" steht nicht in Products`)
+            else
+                -- Paket 5.5b: Der Pass läuft über ProcessReceipt (Developer Product) und ist je Saison
+                -- kaufbar, darum oneTime = false (ein zweiter Kauf derselben Saison gibt Ersatz-Gems).
+                if product.kind ~= "developerProduct" or product.oneTime ~= false then
+                    table.insert(errors, `{label}: Pass-Produkt "{season.passId}" muss ein Developer Product mit oneTime = false sein`)
+                end
+                -- Ein Produkt gehört zu höchstens einer Saison, sonst wüsste der Kauf-Handler nicht,
+                -- welche Saison bezahlt ist.
+                if passUsers[season.passId] ~= nil then
+                    table.insert(errors, `{label}: Pass-Produkt "{season.passId}" gehört schon zu Saison "{passUsers[season.passId]}"`)
+                else
+                    passUsers[season.passId] = id
+                end
+            end
         end
     end
     table.sort(ranges, function(a, b)
         return a.startAt < b.startAt
     end)
+    local passConfig = if type(data.Economy) == "table" then data.Economy.seasonPass else nil
+    local graceDays = if type(passConfig) == "table" and isFinite(passConfig.claimGraceDays) then passConfig.claimGraceDays else 0
+    local graceSeconds = graceDays * 86400
     for index = 2, #ranges do
         if ranges[index].startAt < ranges[index - 1].startAt + length then
             table.insert(errors, `Seasons "{ranges[index].id}" überlappt "{ranges[index - 1].id}"`)
+        elseif ranges[index - 1].hasPass and ranges[index].startAt < ranges[index - 1].startAt + length + graceSeconds then
+            -- Paket 5.5b: Die Abholfrist einer Saison mit Pass (und eine späte Zahlung) braucht Platz,
+            -- sonst verfielen Belohnungen und Zahlungen mit dem Start der nächsten Saison.
+            table.insert(errors, `Seasons "{ranges[index].id}" beginnt vor dem Ende der Abholfrist von "{ranges[index - 1].id}" (claimGraceDays)`)
         end
     end
     -- Jede Event-Kiste braucht eine Saison, sonst ist sie nie öffnbar.
@@ -2865,6 +2992,237 @@ local function checkScreen(errors: { string }, data: DataSet)
     end
 end
 
+-- Server-Event "Der Koloss" (Paket 5.6): Das Fenster liegt in einer bekannten Phase und passt in die
+-- Woche, das Ziel ist endlich und größer 0, die Stufen steigen ab 0 Sekunden, die Belohnungen sind fest
+-- (Gems, Münz- und Glücks-Boost), nie Kisten oder Zufall.
+local function checkKoloss(errors: { string }, data: DataSet)
+    local koloss = data.Koloss
+    if type(koloss) ~= "table" then
+        table.insert(errors, "Koloss: Tabelle fehlt")
+        return
+    end
+    local window = koloss.window
+    if type(window) ~= "table" then
+        table.insert(errors, "Koloss.window fehlt")
+    else
+        local seasons = data.Seasons
+        local known = false
+        if type(seasons) == "table" and isList(seasons.phases) then
+            for _, phase in seasons.phases do
+                if type(phase) == "table" and phase.id == window.phaseId then
+                    known = true
+                end
+            end
+        end
+        if not known then
+            table.insert(errors, `Koloss.window.phaseId "{tostring(window.phaseId)}" steht nicht in Seasons.phases`)
+        end
+        local seasons2 = data.Seasons
+        if type(seasons2) == "table" and isList(seasons2.phases) then
+            for _, phase in seasons2.phases do
+                if type(phase) == "table" and phase.id == window.phaseId and phase.zoneOpen ~= true then
+                    table.insert(errors, `Koloss.window: die Phase "{tostring(phase.id)}" braucht zoneOpen = true, sonst zählt nichts`)
+                end
+            end
+        end
+        if type(seasons2) == "table" and isList(seasons2.list) then
+            for _, season in seasons2.list do
+                if type(season) == "table" and (type(season.zoneId) ~= "string" or season.zoneId == "") then
+                    table.insert(errors, `Koloss: Saison "{tostring(season.id)}" braucht eine zoneId (dort wird gegraben)`)
+                end
+            end
+        end
+        if not isInt(window.startDay) or window.startDay < 0 or window.startDay > 6 then
+            table.insert(errors, "Koloss.window.startDay muss eine ganze Zahl von 0 (Montag) bis 6 sein")
+        end
+        if not isInt(window.days) or window.days < 1 then
+            table.insert(errors, "Koloss.window.days muss eine ganze Zahl ab 1 sein")
+        elseif isInt(window.startDay) and window.startDay + window.days > 7 then
+            table.insert(errors, "Koloss.window: startDay + days muss in die Woche der Phase passen (höchstens 7)")
+        end
+    end
+    if not isFinite(koloss.targetSeconds) or koloss.targetSeconds <= 0 then
+        table.insert(errors, "Koloss.targetSeconds muss endlich und größer 0 sein")
+    end
+    local maxGems = math.huge
+    if type(data.Economy) == "table" and type(data.Economy.purchases) == "table" and isFinite(data.Economy.purchases.maxGems) then
+        maxGems = data.Economy.purchases.maxGems
+    end
+    if not isList(koloss.tiers) or #koloss.tiers < 1 then
+        table.insert(errors, "Koloss.tiers braucht mindestens eine Stufe")
+        return
+    end
+    local seen: { [string]: boolean } = {}
+    local last = -1
+    for index, tier in koloss.tiers do
+        local label = `Koloss Stufe {index}`
+        if type(tier) ~= "table" then
+            table.insert(errors, `{label}: muss eine Tabelle sein`)
+            continue
+        end
+        if type(tier.id) ~= "string" or tier.id == "" or type(tier.name) ~= "string" or tier.name == "" then
+            table.insert(errors, `{label}: id und name müssen Text sein`)
+        elseif seen[tier.id] then
+            table.insert(errors, `{label}: id "{tier.id}" ist doppelt`)
+        else
+            seen[tier.id] = true
+        end
+        if not isFinite(tier.minSeconds) or tier.minSeconds < 0 then
+            table.insert(errors, `{label}: minSeconds muss endlich und ab 0 sein`)
+        elseif index == 1 and tier.minSeconds ~= 0 then
+            table.insert(errors, `{label}: die erste Stufe braucht minSeconds 0 (alle im Server bei 100 % bekommen etwas)`)
+        elseif tier.minSeconds <= last then
+            table.insert(errors, `{label}: minSeconds muss aufsteigend über der vorigen Stufe liegen`)
+        else
+            last = tier.minSeconds
+        end
+        if tier.fairShare ~= nil then
+            if not isFinite(tier.fairShare) or tier.fairShare <= 0 or tier.fairShare > 1 then
+                table.insert(errors, `{label}: fairShare muss eine Zahl über 0 bis 1 sein`)
+            elseif index == 1 then
+                table.insert(errors, `{label}: die erste Stufe gilt ab 0 Sekunden und darf kein fairShare haben`)
+            end
+        end
+        if isFinite(tier.minSeconds) and isFinite(koloss.targetSeconds) and tier.minSeconds > koloss.targetSeconds then
+            table.insert(errors, `{label}: minSeconds liegt über targetSeconds, die Stufe wäre unerreichbar`)
+        end
+        if not isList(tier.rewards) or #tier.rewards < 1 then
+            table.insert(errors, `{label}: rewards braucht mindestens eine Belohnung`)
+            continue
+        end
+        for rewardIndex, reward in tier.rewards do
+            local rewardLabel = `{label} Belohnung {rewardIndex}`
+            if type(reward) ~= "table" then
+                table.insert(errors, `{rewardLabel}: muss eine Tabelle sein`)
+            elseif reward.kind == "gems" then
+                if not isInt(reward.amount) or reward.amount < 1 or reward.amount > maxGems then
+                    table.insert(errors, `{rewardLabel}: amount muss eine ganze Zahl von 1 bis maxGems sein`)
+                end
+            elseif reward.kind == "coinBoost" or reward.kind == "luck" then
+                if not isInt(reward.seconds) or reward.seconds < 1 or reward.seconds > MAX_BOOST_REWARD_SECONDS then
+                    table.insert(errors, `{rewardLabel}: seconds muss eine ganze Zahl von 1 bis {MAX_BOOST_REWARD_SECONDS} sein`)
+                end
+            else
+                table.insert(errors, `{rewardLabel}: unbekannte Art "{tostring(if type(reward) == "table" then reward.kind else reward)}" (erlaubt: gems, coinBoost, luck)`)
+            end
+        end
+    end
+end
+
+-- Soziales (Paket 5.7): Freunde-Bonus und Rangliste. Ganze Zahlen ab 1, Bonus-Grenze mindestens der Bonus
+-- je Freund, Speichernamen nicht leer.
+local function checkSocial(errors: { string }, data: DataSet)
+    local social = data.Social
+    if type(social) ~= "table" then
+        table.insert(errors, "Social: Tabelle fehlt")
+        return
+    end
+    local friends = social.friends
+    if type(friends) ~= "table" then
+        table.insert(errors, "Social.friends fehlt")
+    else
+        if not isInt(friends.perFriendBp) or friends.perFriendBp < 1 then
+            table.insert(errors, "Social.friends.perFriendBp muss eine ganze Zahl ab 1 sein")
+        end
+        if not isInt(friends.minAccountAgeDays) or friends.minAccountAgeDays < 0 or friends.minAccountAgeDays > 365 then
+            table.insert(errors, "Social.friends.minAccountAgeDays muss eine ganze Zahl von 0 bis 365 sein")
+        end
+        if not isInt(friends.maxBp) or friends.maxBp < 1 or friends.maxBp > 10000 then
+            table.insert(errors, "Social.friends.maxBp muss eine ganze Zahl von 1 bis 10000 sein (höchstens +100 %)")
+        elseif isInt(friends.perFriendBp) and friends.maxBp < friends.perFriendBp then
+            table.insert(errors, "Social.friends.maxBp muss mindestens perFriendBp sein")
+        end
+    end
+    local board = social.leaderboard
+    if type(board) ~= "table" then
+        table.insert(errors, "Social.leaderboard fehlt")
+        return
+    end
+    if not isInt(board.topCount) or board.topCount < 1 or board.topCount > 100 then
+        table.insert(errors, "Social.leaderboard.topCount muss eine ganze Zahl von 1 bis 100 sein")
+    end
+    if not isInt(board.maxFriends) or board.maxFriends < 1 or board.maxFriends > 200 then
+        table.insert(errors, "Social.leaderboard.maxFriends muss eine ganze Zahl von 1 bis 200 sein")
+    end
+    -- Untergrenzen schützen das DataStore-Budget des Servers (ProfileStore braucht es zum Laden und Speichern).
+    for field, minimum in { writeSeconds = 60, readSeconds = 30, friendCacheSeconds = 60 } do
+        if not isFinite(board[field]) or board[field] < minimum then
+            table.insert(errors, `Social.leaderboard.{field} muss eine Zahl ab {minimum} sein`)
+        end
+    end
+    if type(data.Rarities) == "table" and type(data.Rarities.list) == "table" then
+        for _, rarity in data.Rarities.list do
+            if type(rarity) == "table" and not isInt(rarity.valueFactor) then
+                table.insert(errors, `Social: valueFactor der Stufe "{tostring(rarity.id)}" muss ganzzahlig sein (Rangliste, OrderedDataStore)`)
+            end
+        end
+    end
+    for _, field in { "store", "showcaseStore", "studioSuffix" } do
+        if type(board[field]) ~= "string" or board[field] == "" then
+            table.insert(errors, `Social.leaderboard.{field} muss ein Text sein`)
+        end
+    end
+    if board.store == board.showcaseStore then
+        table.insert(errors, "Social.leaderboard: store und showcaseStore müssen verschieden heißen")
+    end
+end
+
+-- Analytics (Paket 6.3): Ereignisnamen nicht leer und verschieden, Eimer aufsteigend und der letzte offen.
+local function checkAnalytics(errors: { string }, data: DataSet)
+    local analytics = data.Analytics
+    if type(analytics) ~= "table" then
+        table.insert(errors, "Analytics: Tabelle fehlt")
+        return
+    end
+    local events = analytics.events
+    if type(events) ~= "table" then
+        table.insert(errors, "Analytics.events fehlt")
+    else
+        local seen: { [string]: boolean } = {}
+        for key, name in events do
+            if type(name) ~= "string" or name == "" or #name > 100 then
+                table.insert(errors, `Analytics.events.{tostring(key)} muss ein Text von 1 bis 100 Zeichen sein`)
+            elseif seen[name] then
+                table.insert(errors, `Analytics.events: Name "{name}" ist doppelt`)
+            else
+                seen[name] = true
+            end
+        end
+    end
+    for _, field in { "onboardingDoneName", "currencyName" } do
+        if type(analytics[field]) ~= "string" or analytics[field] == "" then
+            table.insert(errors, `Analytics.{field} muss ein Text sein`)
+        end
+    end
+    for _, field in { "newPlayerSeconds", "maxReturnDays", "maxFieldLength", "tickSeconds" } do
+        if not isFinite(analytics[field]) or analytics[field] < 1 then
+            table.insert(errors, `Analytics.{field} muss eine Zahl ab 1 sein`)
+        end
+    end
+    if type(analytics.logInStudio) ~= "boolean" then
+        table.insert(errors, "Analytics.logInStudio muss true oder false sein")
+    end
+    local buckets = analytics.sessionBuckets
+    if not isList(buckets) or #buckets < 1 then
+        table.insert(errors, "Analytics.sessionBuckets braucht mindestens einen Eimer")
+        return
+    end
+    local last = 0
+    for index, bucket in buckets do
+        if type(bucket) ~= "table" or type(bucket.name) ~= "string" or bucket.name == "" then
+            table.insert(errors, `Analytics.sessionBuckets[{index}]: name muss Text sein`)
+        elseif type(bucket.maxSeconds) ~= "number" or bucket.maxSeconds ~= bucket.maxSeconds or bucket.maxSeconds <= last then
+            table.insert(errors, `Analytics.sessionBuckets[{index}]: maxSeconds muss aufsteigend sein`)
+        else
+            last = bucket.maxSeconds
+        end
+    end
+    local final = buckets[#buckets]
+    if type(final) == "table" and final.maxSeconds ~= math.huge then
+        table.insert(errors, "Analytics.sessionBuckets: der letzte Eimer muss nach oben offen sein (math.huge)")
+    end
+end
+
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
@@ -2896,6 +3254,9 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkDirectShop(errors, data)
     checkSeasons(errors, data)
     checkSeasonPass(errors, data)
+    checkKoloss(errors, data)
+    checkSocial(errors, data)
+    checkAnalytics(errors, data)
     checkWorld(errors, data)
     checkWorldZones(errors, data)
     checkSandMaterials(errors, data)
