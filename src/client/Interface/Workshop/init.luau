@@ -12,6 +12,7 @@ local SearchPanel = require(script.SearchPanel)
 local VariantPanel = require(script.VariantPanel)
 local UnlockFX = require(script.UnlockFX)
 local StudyPlan = require(script.StudyPlan)
+local MapView = require(script.MapView)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -45,12 +46,6 @@ local colors = {
     grant = C.leaf,
 }
 local alternative = Color3.fromRGB(216, 159, 89)
-local function clampPan(value, content, viewport)
-    return Vector2.new(
-        math.clamp(value.X, 0, math.max(0, content.X - viewport.X)),
-        math.clamp(value.Y, 0, math.max(0, content.Y - viewport.Y))
-    )
-end
 local function scroll(parent, name)
     local v = Instance.new("ScrollingFrame")
     v.Name = name
@@ -124,6 +119,7 @@ function Workshop.mount(gui, config)
     legacy.Visible = config.onLegacy ~= nil
     local map = scroll(mapWrap, "Karte")
     map.ScrollingDirection = Enum.ScrollingDirection.XY
+    map.ElasticBehavior = Enum.ElasticBehavior.Never
     local sheet = Art.box(map, "Diagramm", nil, 103)
     local unlockFX = UnlockFX.mount(mapWrap, sheet)
     local mapScale = Instance.new("UIScale")
@@ -162,7 +158,11 @@ function Workshop.mount(gui, config)
     local trialOwned, variants, trialCoins = nil, {}, 0
     local zoom = 1
     local overview = false
-    local detailPan = Vector2.zero
+    local mapViewport = Vector2.zero
+    local savedViews: { [string]: { zoom: number, center: Vector2 } } = {}
+    local dragStart: Vector2?
+    local dragOrigin = Vector2.zero
+    local pinch: { zoom: number, world: Vector2 }?
     local compact = false
     local expanded = false
     local activePreview = nil
@@ -228,19 +228,46 @@ function Workshop.mount(gui, config)
             activePreview = nil
         end
     end
-    local function focusWorld(n)
-        local vp = map.AbsoluteWindowSize
-        map.CanvasPosition = clampPan(
-            Vector2.new(n.x * mapScale.Scale - vp.X / 2, n.y * mapScale.Scale - vp.Y * 0.42),
-            Vector2.new(Catalog.width, page.height) * mapScale.Scale,
-            vp
+    local function mapContent()
+        return Vector2.new(Catalog.width, page.height) * mapScale.Scale
+    end
+    local function worldAt(point: Vector2)
+        return MapView.worldAt(
+            point,
+            map.CanvasPosition,
+            Vector2.new(sheet.Position.X.Offset, sheet.Position.Y.Offset),
+            mapScale.Scale
         )
+    end
+    local function placeWorld(world: Vector2, anchor: Vector2)
+        map.CanvasPosition = MapView.panAt(world, anchor, mapContent(), mapViewport, mapScale.Scale)
+    end
+    local function focusWorld(n)
+        if not overview then
+            placeWorld(Vector2.new(n.x, n.y), Vector2.new(mapViewport.X / 2, mapViewport.Y * 0.42))
+        end
+    end
+    local function rememberView()
+        if not overview and mapViewport.X > 0 then
+            savedViews[page.id] = { zoom = zoom, center = worldAt(mapViewport / 2) }
+        end
+    end
+    local function updateScrolling()
+        map.ScrollingEnabled = not overview
+            and not dialogOpen
+            and not pinch
+            and Input:GetLastInputType() == Enum.UserInputType.Touch
     end
     local function showDetailMap()
         if overview then
             overview = false
-            setZoom(zoom, false)
-            map.CanvasPosition = detailPan
+            local view = savedViews[page.id]
+            setZoom(if view then view.zoom else 1)
+            if view then
+                placeWorld(view.center, mapViewport / 2)
+            else
+                placeWorld(Vector2.new(Catalog.width / 2, 0), Vector2.new(mapViewport.X / 2, 0))
+            end
         end
     end
     local function jumpTo(target)
@@ -893,9 +920,11 @@ function Workshop.mount(gui, config)
         end
         tabTitle.Text = page.name
     end
-    setZoom = function(value, center)
-        local previous = mapScale.Scale
-        local vp = map.AbsoluteSize
+    setZoom = function(value, anchor: Vector2?, target: Vector2?)
+        local vp = mapViewport
+        if vp.X <= 0 or vp.Y <= 0 then
+            return
+        end
         if overview then
             local fit =
                 math.max(0.01, math.min((vp.X - 12) / Catalog.width, (vp.Y - 12) / page.height))
@@ -906,28 +935,28 @@ function Workshop.mount(gui, config)
             map.CanvasPosition = Vector2.zero
             return
         end
-        local offsetX = sheet.Position.X.Offset
-        local point = (map.CanvasPosition + vp / 2 - Vector2.new(offsetX, 0))
-            / math.max(0.01, previous)
-        zoom = math.clamp(value, 0.86, 1.6)
-        local fit = math.min(1.05, math.max(0.86, map.AbsoluteSize.X / Catalog.width))
-        mapScale.Scale = math.max(0.86, fit * zoom)
-        local canvas = Vector2.new(Catalog.width, page.height) * mapScale.Scale
+        local point = if anchor then target or worldAt(anchor) else nil
+        local fit = math.clamp(vp.X / Catalog.width, 0.86, 1.05)
+        zoom = math.clamp(value, 0.86 / fit, 1.6)
+        mapScale.Scale = fit * zoom
+        local canvas = mapContent()
         map.CanvasSize = UDim2.fromOffset(canvas.X, canvas.Y)
-        sheet.Position = UDim2.fromOffset(math.max(0, (map.AbsoluteWindowSize.X - canvas.X) / 2), 0)
-        if center then
-            map.CanvasPosition = clampPan(
-                point * mapScale.Scale + Vector2.new(sheet.Position.X.Offset, 0) - vp / 2,
-                canvas,
-                vp
-            )
+        local origin = MapView.offset(canvas, vp)
+        sheet.Position = UDim2.fromOffset(origin.X, origin.Y)
+        if anchor and point then
+            placeWorld(point, anchor)
         end
     end
-    position = function()
+    position = function(changingPage: boolean?)
         local w, h = root.AbsoluteSize.X, root.AbsoluteSize.Y
         if w < 1 or h < 1 then
             return
         end
+        local center = if not changingPage
+                and not overview
+                and mapViewport.X > 0
+            then worldAt(mapViewport / 2)
+            else nil
         compact = w < 790 or h < 500
         local headerH = if compact then 52 else 66
         local navY = headerH + 6
@@ -968,10 +997,11 @@ function Workshop.mount(gui, config)
         overviewButton.Text = if overview then "Karte" else "Übersicht"
         zoomOut.Visible = not overview
         zoomIn.Visible = not overview
-        map.ScrollingEnabled = not overview
+        updateScrolling()
         Art.rect(zoomOut, mapW - 94, 1, 44, 44)
         Art.rect(zoomIn, mapW - 46, 1, 44, 44)
-        Art.rect(map, 0, 48, mapW, math.max(1, mapH - 48))
+        mapViewport = Vector2.new(mapW, math.max(1, mapH - 48))
+        Art.rect(map, 0, 48, mapViewport.X, mapViewport.Y)
         Art.rect(
             detail,
             if compact then margin else mapW + margin + 12,
@@ -983,26 +1013,29 @@ function Workshop.mount(gui, config)
         handle.Size = UDim2.new(1, 0, 0, 44)
         detailScroll.Position = UDim2.fromOffset(0, if compact then 44 else 0)
         detailScroll.Size = UDim2.new(1, 0, 1, if compact then -44 else 0)
-        setZoom(zoom, false)
+        setZoom(zoom, if center then mapViewport / 2 else nil, center)
     end
     changeTab = function(id, nodeId, center)
+        rememberView()
+        pinch, dragStart = nil, nil
         planTarget = nil
         page = book.byTab[id]
+        local view = savedViews[id]
+        zoom = if view then view.zoom else 1
         selected = nodeId or lastSelected[id] or page.nodes[1].id
         pendingFeedback = ""
         renderPage()
-        position()
+        position(true)
         updateStates()
         renderDetail(true)
-        if overview then
-            detailPan = Vector2.zero
-        elseif (center or lastSelected[id]) and selected then
-            focusWorld(book.byId[selected])
-        else
-            map.CanvasPosition = Vector2.new(
-                math.max(0, (Catalog.width * mapScale.Scale - map.AbsoluteWindowSize.X) / 2),
-                0
-            )
+        if not overview then
+            if center and selected then
+                focusWorld(book.byId[selected])
+            elseif view then
+                placeWorld(view.center, mapViewport / 2)
+            else
+                placeWorld(Vector2.new(Catalog.width / 2, 0), Vector2.new(mapViewport.X / 2, 0))
+            end
         end
         tabFocus()
     end
@@ -1034,7 +1067,9 @@ function Workshop.mount(gui, config)
         dialogOpen = open
         if open then
             unlockFX.clear()
+            pinch, dragStart = nil, nil
         end
+        updateScrolling()
         for _, panel in { header, nav, mapWrap, detail } do
             panel.Interactable = not open
         end
@@ -1070,23 +1105,22 @@ function Workshop.mount(gui, config)
         planTarget = nil
         if overview then
             showDetailMap()
-            position()
         else
-            detailPan = map.CanvasPosition
+            rememberView()
+            pinch, dragStart = nil, nil
             overview = true
             expanded = false
-            position()
         end
+        position()
         updateStates()
         renderDetail(false)
     end)
     zoomOut.Activated:Connect(function()
-        setZoom(zoom / 1.18, true)
+        setZoom(zoom / 1.18, mapViewport / 2)
     end)
     zoomIn.Activated:Connect(function()
-        setZoom(zoom * 1.18, true)
+        setZoom(zoom * 1.18, mapViewport / 2)
     end)
-    local dragStart, dragOrigin, pinchZoom
     local function insideMap(point)
         local offset = point - map.AbsolutePosition
         local s = map.AbsoluteWindowSize
@@ -1099,6 +1133,7 @@ function Workshop.mount(gui, config)
             and offset.Y <= s.Y
     end
     local connections = {}
+    table.insert(connections, Input.LastInputTypeChanged:Connect(updateScrolling))
     table.insert(
         connections,
         Input.InputBegan:Connect(function(input)
@@ -1112,22 +1147,19 @@ function Workshop.mount(gui, config)
     table.insert(
         connections,
         Input.InputChanged:Connect(function(input)
-            if
-                not root.Visible
-                or dialogOpen
-                or not dragStart
-                or input.UserInputType ~= Enum.UserInputType.MouseMovement
-            then
+            if not root.Visible or dialogOpen or overview then
                 return
             end
-            local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStart
-            if delta.Magnitude >= 6 then
-                dragUntil = os.clock() + 0.16
-                map.CanvasPosition = clampPan(
-                    dragOrigin - delta,
-                    Vector2.new(Catalog.width, page.height) * mapScale.Scale,
-                    map.AbsoluteWindowSize
-                )
+            local point = Vector2.new(input.Position.X, input.Position.Y)
+            if input.UserInputType == Enum.UserInputType.MouseWheel and insideMap(point) then
+                setZoom(zoom * 1.12 ^ input.Position.Z, point - map.AbsolutePosition)
+            elseif input.UserInputType == Enum.UserInputType.MouseMovement and dragStart then
+                local delta = point - dragStart
+                if delta.Magnitude >= 6 then
+                    dragUntil = os.clock() + 0.16
+                    map.CanvasPosition =
+                        MapView.clampPan(dragOrigin - delta, mapContent(), mapViewport)
+                end
             end
         end)
     )
@@ -1143,17 +1175,18 @@ function Workshop.mount(gui, config)
         connections,
         Input.TouchPinch:Connect(function(points, scale, _velocity, state)
             if state == Enum.UserInputState.Begin then
-                pinchZoom = if points[1] and insideMap(points[1]) then zoom else nil
-            elseif
-                state == Enum.UserInputState.Change
-                and pinchZoom
-                and root.Visible
-                and not dialogOpen
-            then
-                setZoom(pinchZoom * scale, true)
+                if #points == 2 and insideMap(points[1]) and insideMap(points[2]) then
+                    local anchor = (points[1] + points[2]) / 2 - map.AbsolutePosition
+                    pinch = { zoom = zoom, world = worldAt(anchor) }
+                    updateScrolling()
+                end
+            elseif state == Enum.UserInputState.Change and pinch and #points == 2 then
+                local anchor = (points[1] + points[2]) / 2 - map.AbsolutePosition
+                setZoom(pinch.zoom * scale, anchor, pinch.world)
                 dragUntil = os.clock() + 0.2
             elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-                pinchZoom = nil
+                pinch = nil
+                updateScrolling()
             end
         end)
     )
@@ -1232,6 +1265,8 @@ function Workshop.mount(gui, config)
         scaleIn(header, 0.987, 0.18)
     end
     function api.close()
+        rememberView()
+        pinch, dragStart = nil, nil
         search.dismiss()
         comparison.dismiss()
         unlockFX.clear()
