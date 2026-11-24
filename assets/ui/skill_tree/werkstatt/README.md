@@ -10,7 +10,9 @@ Der Knopf **Baum** öffnet die Werkstatt, sobald ihn das Tutorial freigibt. Jede
 
 Beim Lernen zeigt eine Freischaltmeldung das Upgrade und die Knoten, deren Voraussetzungen jetzt erfüllt sind. Eine Lichtspur verbindet direkte Nachfolger auf derselben Karte. Große Fähigkeiten und Meisterschaften erhalten einen kräftigeren Effekt. Beim Ausrüsten einer Variante bestätigt die Meldung den Wechsel. Bei reduzierter Bewegung erscheint nur die Meldung.
 
-[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
+Der **Lernplan** zeigt die noch fehlenden Schritte und deren Gesamtkosten. Bei alternativen Voraussetzungen berechnet er den günstigsten verbleibenden Weg. Bereits gelernte Knoten fallen aus der Rechnung. Ein Klick auf einen Schritt öffnet den Knoten im Baum. In der Übersicht führt der Lernplan direkt zum gemerkten Ziel.
+
+[Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten
 

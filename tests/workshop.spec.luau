@@ -17,6 +17,7 @@ local catalog = luau.load(main.Catalog.Source, {
 local sprites = readData(main.TierArt)
 local navigation = readData(main.Navigation)
 local search = readData(main.Search)
+local planner = readData(main.StudyPlan)
 
 T.describe("Werkstatt-Export", function()
     T.it("sechs Geräte mit je 48 Knoten und 75 Knoten für den Lauf", function()
@@ -155,6 +156,43 @@ T.describe("Werkstatt-Export", function()
         assert(total >= 20)
         matches = search.find(index, "unbekannteswerkzeug", 30)
         T.expect(#matches).toBe(0)
+    end)
+    T.it("berechnet einen günstigen Lernweg aus dem tatsächlichen Besitz", function()
+        local owned = { collect_tool_2 = true }
+        local plan = planner.find(catalog.byId, "tiefstich_master", owned)
+        local steps, total = {}, 0
+        for _, id in plan.steps do
+            assert(not steps[id] and not owned[id], id)
+            local n = catalog.byId[id]
+            for _, parent in n.requires do
+                assert(steps[parent] or owned[parent], parent)
+            end
+            steps[id] = true
+            total += n.cost
+        end
+        T.expect(plan.steps[#plan.steps]).toBe("tiefstich_master")
+        T.expect(plan.cost).toBe(total)
+        local ready = planner.find(catalog.byId, "tiefstich_master", { tiefstich_b_m2_2 = true })
+        T.expect(ready.steps).toEqual({ "tiefstich_master" })
+        T.expect(ready.cost).toBe(catalog.byId.tiefstich_master.cost)
+        local complete = planner.find(catalog.byId, "tiefstich_master", { tiefstich_master = true })
+        T.expect(#complete.steps).toBe(0)
+    end)
+    T.it("vergleicht komplette Alternativen und zählt geteilte Voraussetzungen einmal", function()
+        local function node(id, cost, requires, requiresAny)
+            return { id = id, cost = cost, requires = requires, requiresAny = requiresAny or {} }
+        end
+        local nodes = {
+            goal = node("goal", 10, { "alternative", "festerZweig" }),
+            festerZweig = node("festerZweig", 5, { "gemeinsam" }),
+            alternative = node("alternative", 0, {}, { "eins", "zwei" }),
+            eins = node("eins", 1, { "gemeinsam" }),
+            zwei = node("zwei", 3, {}),
+            gemeinsam = node("gemeinsam", 20, {}),
+        }
+        local plan = planner.find(nodes, "goal", {})
+        T.expect(plan.cost).toBe(36)
+        T.expect(plan.steps).toEqual({ "gemeinsam", "eins", "alternative", "festerZweig", "goal" })
     end)
 end)
 T.finish()

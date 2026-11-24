@@ -11,6 +11,7 @@ local Preview = require(script.Preview)
 local SearchPanel = require(script.SearchPanel)
 local VariantPanel = require(script.VariantPanel)
 local UnlockFX = require(script.UnlockFX)
+local StudyPlan = require(script.StudyPlan)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -168,6 +169,7 @@ function Workshop.mount(gui, config)
     local renderedStatus = nil
     local busy = false
     local pin = nil
+    local planTarget: string? = nil
     local lastSelected = {}
     local pendingFeedback = ""
     local dragUntil = 0
@@ -242,6 +244,7 @@ function Workshop.mount(gui, config)
         end
     end
     local function jumpTo(target)
+        planTarget = nil
         showDetailMap()
         if target.page == page.id then
             selectNode(target, true, true)
@@ -283,10 +286,8 @@ function Workshop.mount(gui, config)
                         if
                             node.page == n.page
                             and (
-                                table.find(node.requires, n.id) or table.find(
-                                    node.requiresAny,
-                                    n.id
-                                )
+                                table.find(node.requires, n.id)
+                                or table.find(node.requiresAny, n.id)
                             )
                         then
                             table.insert(linked, node)
@@ -364,6 +365,7 @@ function Workshop.mount(gui, config)
     end
     selectNode = function(n, center, openSheet)
         unlockFX.clear()
+        planTarget = nil
         showDetailMap()
         selected = n.id
         lastSelected[page.id] = n.id
@@ -398,8 +400,12 @@ function Workshop.mount(gui, config)
         end
         local st = status(n)
         renderedStatus = st
-        handle.Text = (if overview then "Ziele und Voraussetzungen" else n.name)
-            .. (if expanded then "   ▾" else "   ▴")
+        handle.Text = (
+            if planTarget
+                then "Lernplan"
+                elseif overview then "Ziele und Voraussetzungen"
+                else n.name
+        ) .. (if expanded then "   ▾" else "   ▴")
         if compact and not expanded then
             return
         end
@@ -421,7 +427,7 @@ function Workshop.mount(gui, config)
                 end)
             end
         end
-        local function mapShortcut(target, key, label)
+        local function mapShortcut(target, key, label, context: string?)
             local line = button(key, "", function()
                 jumpTo(target)
             end)
@@ -432,17 +438,109 @@ function Workshop.mount(gui, config)
             text.Position = UDim2.fromOffset(54, 3)
             text.Size = UDim2.new(1, -62, 0, 24)
             local targetState = status(target)
-            local state =
-                Art.text(line, "Status", stateNames[targetState], 11, colors[targetState], false)
+            local state = Art.text(
+                line,
+                "Status",
+                context or stateNames[targetState],
+                11,
+                if context then C.mute else colors[targetState],
+                false
+            )
             state.Position = UDim2.fromOffset(54, 26)
             state.Size = UDim2.new(1, -62, 0, 20)
             line.Size = UDim2.new(1, -16, 0, 52)
-            shortcutStates[target.id] = state
+            if not context then
+                shortcutStates[target.id] = state
+            end
+        end
+        local function openPlan(id: string)
+            planTarget = id
+            renderDetail(false)
+        end
+        if planTarget then
+            local goal = book.byId[planTarget]
+            local plan = StudyPlan.find(book.byId, goal.id, if training then trialOwned else owned)
+            button("PlanZurueck", "Zurück zu den Details", function()
+                planTarget = nil
+                renderDetail(false)
+            end)
+            caption(
+                "PlanTitel",
+                "LERNPLAN  ·  " .. book.byTab[goal.page].name,
+                24,
+                12,
+                C.leaf,
+                true
+            )
+            local heading = caption("Knoten", goal.name, 40, 24, C.bright, true)
+            heading.Font = Enum.Font.Antique
+            if not plan or #plan.steps == 0 then
+                caption(
+                    "PlanStatus",
+                    if plan
+                        then "Ziel bereits gelernt."
+                        else "Für dieses Ziel ist kein Lernweg verfügbar.",
+                    50,
+                    14,
+                    C.ivory,
+                    false
+                )
+                return
+            end
+            caption(
+                "PlanKosten",
+                readable(plan.cost)
+                    .. (if training then " Testmünzen" else " Münzen")
+                    .. "  ·  "
+                    .. #plan.steps
+                    .. (if #plan.steps == 1 then " Schritt" else " Schritte"),
+                35,
+                14,
+                C.bright,
+                true
+            )
+            if not training then
+                for _, id in plan.steps do
+                    if not book.byId[id].live then
+                        caption(
+                            "PlanModus",
+                            "Neue Upgrades in diesem Lernplan sind im Probelauf verfügbar.",
+                            43,
+                            12,
+                            C.mute,
+                            false
+                        )
+                        break
+                    end
+                end
+            end
+            for _, id in plan.steps do
+                local step = book.byId[id]
+                local fee = if step.granted
+                    then "Sturmbelohnung"
+                    else readable(step.cost) .. (if training
+                        then " Testmünzen"
+                        else " Münzen")
+                mapShortcut(
+                    step,
+                    "Schritt_" .. id,
+                    step.name,
+                    book.byTab[step.page].name .. "  ·  " .. fee
+                )
+            end
+            return
         end
         if overview then
             local heading = caption("Knoten", page.name, 38, 25, C.bright, true)
             heading.Font = Enum.Font.Antique
             addComparison()
+            button(
+                "Lernplan",
+                if pin then "Lernplan zum gemerkten Ziel" else "Lernplan zur Auswahl",
+                function()
+                    openPlan(pin or n.id)
+                end
+            )
             if pin and pin ~= selected then
                 local target = book.byId[pin]
                 caption(
@@ -589,6 +687,9 @@ function Workshop.mount(gui, config)
             pin = if pin == n.id then nil else n.id
             updateStates()
             renderDetail(false)
+        end)
+        button("Lernplan", "Lernplan für dieses Upgrade", function()
+            openPlan(n.id)
         end)
         local function requirements(ids, titleText)
             if #ids == 0 then
@@ -885,6 +986,7 @@ function Workshop.mount(gui, config)
         setZoom(zoom, false)
     end
     changeTab = function(id, nodeId, center)
+        planTarget = nil
         page = book.byTab[id]
         selected = nodeId or lastSelected[id] or page.nodes[1].id
         pendingFeedback = ""
@@ -965,6 +1067,7 @@ function Workshop.mount(gui, config)
     })
     searchButton.Activated:Connect(search.open)
     overviewButton.Activated:Connect(function()
+        planTarget = nil
         if overview then
             showDetailMap()
             position()
@@ -1090,7 +1193,18 @@ function Workshop.mount(gui, config)
             updateStates()
             local n = book.byId[selected]
             if n then
-                if not overview and renderedStatus ~= status(n) then
+                local planChanged = false
+                if planTarget then
+                    for id, candidate in book.byId do
+                        if candidate.live and before[id] ~= owned[id] then
+                            planChanged = true
+                            break
+                        end
+                    end
+                end
+                if
+                    planChanged or (not overview and not planTarget and renderedStatus ~= status(n))
+                then
                     renderDetail(false)
                 end
                 if owned[n.id] and not before[n.id] then
@@ -1135,7 +1249,10 @@ function Workshop.mount(gui, config)
         if search.dismiss() or comparison.dismiss() then
             return
         end
-        if compact and expanded then
+        if planTarget then
+            planTarget = nil
+            renderDetail(false)
+        elseif compact and expanded then
             expanded = false
             position()
             renderDetail(false)
