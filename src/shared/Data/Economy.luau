@@ -84,6 +84,9 @@ local Economy = {
         crystalScale = 4,
         minCrystals = 20,
         maxCrystals = 5_000_000,
+        -- Hinweis "Sturm lohnt sich" (Paket 6.4, L2): Der billigste sichtbare Knoten kostet mehr als so
+        -- viele Sekunden Verdienst bei der jetzigen Rate.
+        worthSeconds = 180,
     },
 
     -- Käufe (Paket 4.1). PurchaseGranted gibt es erst, wenn die PurchaseId im gespeicherten Stand

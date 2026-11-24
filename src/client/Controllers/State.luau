@@ -50,11 +50,13 @@ export type Snapshot = {
 export type Storm = {
     unlocked: boolean, -- der Knoten für den Sturm ist da: der Knopf wird sichtbar
     ready: boolean, -- der Sturm ginge jetzt
-    reason: string?, -- "requires" oder "tooFew", wenn er nicht geht
+    reason: string?, -- "requires", "tooFew" oder "maxReached", wenn er nicht geht
     runEarned: { m: number, e: number }, -- Einnahmen des Laufs inklusive Tankwert
     gain: number, -- Kristalle, die der Sturm jetzt gäbe
     needed: { m: number, e: number }, -- Einnahmen, ab denen der Sturm sich lohnt (minCrystals)
     minCrystals: number,
+    maxCrystals: number?, -- Obergrenze der gehaltenen Kristalle (Paket 6.4, L4)
+    worth: boolean?, -- "Sturm lohnt sich jetzt" (Paket 6.4, L2)
     crystalsNow: number,
     crystalsAfter: number,
     bonusBpNow: number,

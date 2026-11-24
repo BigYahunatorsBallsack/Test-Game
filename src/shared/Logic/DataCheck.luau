@@ -1252,6 +1252,9 @@ local function checkSandstorm(errors: { string }, data: DataSet)
     elseif isInt(economy.windCrystalBonusBp) and cfg.maxCrystals * economy.windCrystalBonusBp > MAX_CRYSTAL_BONUS_BP then
         table.insert(errors, "Economy.sandstorm: maxCrystals mal windCrystalBonusBp ergibt einen unsinnig hohen Bonus")
     end
+    if not isFinite(cfg.worthSeconds) or cfg.worthSeconds <= 0 or cfg.worthSeconds > 3600 then
+        table.insert(errors, "Economy.sandstorm.worthSeconds muss eine Zahl über 0 bis 3600 sein")
+    end
     if not isInt(cfg.minCrystals) or cfg.minCrystals < 1 or (isInt(cfg.maxCrystals) and cfg.minCrystals > cfg.maxCrystals) then
         table.insert(errors, "Economy.sandstorm.minCrystals muss eine ganze Zahl ab 1 und höchstens maxCrystals sein")
     end
