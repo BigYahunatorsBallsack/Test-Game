@@ -17,6 +17,7 @@ local MapView = require(script.MapView)
 local Trial = require(script.Trial)
 local TrialPanel = require(script.TrialPanel)
 local DeviceStatsView = require(script.DeviceStatsView)
+local Audio = require(script.Audio)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -198,15 +199,7 @@ function Workshop.mount(gui, config)
     inset.Parent = detailScroll
     local handle = Art.button(detail, "DetailToggle", "")
     handle.TextXAlignment = Enum.TextXAlignment.Center
-    local tone = Instance.new("Sound")
-    tone.SoundId = "rbxasset://sounds/volume_slider.ogg"
-    tone.Volume = 0.16
-    tone.Parent = root
-    local function sound(pitch)
-        tone:Stop()
-        tone.PlaybackSpeed = pitch
-        tone:Play()
-    end
+    local audio = Audio.mount(root)
     local tabs, entries, edges, shortcutStates = {}, {}, {}, {}
     local selected, page = nil, book.byTab.hand
     local owned, coins, walletText = {}, 0, "0"
@@ -409,7 +402,7 @@ function Workshop.mount(gui, config)
         end
         local major = big[n.kind] == true
         scaleIn(e.button, if major then 0.78 else 0.88, if major then 0.5 else 0.24)
-        sound(if equipped then 1.23 elseif major then 1.36 else 1.15)
+        audio.play(if equipped then "equip" elseif major then "major" else "learn")
         unlockFX.show(n, nextNames, linked, major, equipped)
     end
     local function setTraining(active: boolean)
@@ -472,6 +465,9 @@ function Workshop.mount(gui, config)
         end
     end
     selectNode = function(n, center, openSheet)
+        if selected ~= n.id then
+            audio.play("select")
+        end
         unlockFX.clear()
         planTarget = nil
         statsOpen = false
@@ -944,7 +940,6 @@ function Workshop.mount(gui, config)
             if os.clock() < dragUntil then
                 return
             end
-            sound(1.07)
             selectNode(n, false, true)
             if input and gamepad(input.UserInputType) then
                 focusDetail()
@@ -1526,6 +1521,7 @@ function Workshop.mount(gui, config)
         scaleIn(header, 0.987, 0.18)
     end
     function api.close()
+        audio.stop()
         ContextActionService:UnbindAction(actionName)
         rememberView()
         pinch, dragStart = nil, nil

@@ -12,6 +12,8 @@ Eine petrolfarbene Kartentafel mit Höhenlinien, Holz in der Kopfzeile und Messi
 
 Beim Lernen zeigt eine Freischaltmeldung das Upgrade und die Knoten, deren Voraussetzungen jetzt erfüllt sind. Eine Lichtspur verbindet direkte Nachfolger auf derselben Karte. Große Fähigkeiten und Meisterschaften erhalten einen kräftigeren Effekt. Beim Ausrüsten einer Variante bestätigt die Meldung den Wechsel. Bei reduzierter Bewegung erscheint nur die Meldung.
 
+Die Werkstatt hat getrennte Audioereignisse für Knotenauswahl, Ausbau, große Fähigkeit und Variantenwechsel. [Werkstatt-Sounds und Hörvergleich](../../../audio/workshop/README.md)
+
 Der **Lernplan** zeigt die noch fehlenden Schritte und deren Gesamtkosten. Bei alternativen Voraussetzungen berechnet er den günstigsten verbleibenden Weg. Bereits gelernte Knoten fallen aus der Rechnung. Ein Klick auf einen Schritt öffnet den Knoten im Baum. In der Übersicht führt der Lernplan direkt zum gemerkten Ziel.
 
 **Gerätewerte** zeigt die addierten Boni pro Gerät und Fähigkeit. Bei einem noch ungelernten Upgrade zeigt die Übersicht außerdem den Wert nach Hinzurechnen seines Bonus. Die Abklingzeit ergibt sich aus der Grundzeit und den gelernten Reduktionen. Gelernte Varianten behalten eigene Werte, und der Status zeigt, welche im Probelauf ausgerüstet ist.
