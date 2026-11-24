@@ -9,6 +9,7 @@ local Catalog = require(script.Catalog)
 local Navigation = require(script.Navigation)
 local Preview = require(script.Preview)
 local SearchPanel = require(script.SearchPanel)
+local VariantPanel = require(script.VariantPanel)
 local Workshop = {}
 local C = Art.c
 local big = { ability = true, variant = true, mastery = true, keystone = true, equipment = true }
@@ -169,8 +170,10 @@ function Workshop.mount(gui, config)
     local pendingFeedback = ""
     local dragUntil = 0
     local renderPage, renderDetail, updateStates, position, changeTab, selectNode, setZoom
-    local searchOpen = false
+    local dialogOpen = false
     local search
+    local comparison
+    local compareButton: TextButton? = nil
     local api = {}
 
     local function startTrial()
@@ -368,6 +371,7 @@ function Workshop.mount(gui, config)
     end
     renderDetail = function(animate)
         stopPreview()
+        compareButton = nil
         table.clear(shortcutStates)
         for _, obj in detailScroll:GetChildren() do
             if obj:IsA("GuiObject") then
@@ -397,6 +401,13 @@ function Workshop.mount(gui, config)
             b.Activated:Connect(callback)
             return b
         end
+        local function addComparison()
+            if page.variants then
+                compareButton = button("Varianten", "Varianten vergleichen", function()
+                    comparison.open(page)
+                end)
+            end
+        end
         local function mapShortcut(target, key, label)
             local line = button(key, "", function()
                 jumpTo(target)
@@ -418,6 +429,7 @@ function Workshop.mount(gui, config)
         if overview then
             local heading = caption("Knoten", page.name, 38, 25, C.bright, true)
             heading.Font = Enum.Font.Antique
+            addComparison()
             if pin and pin ~= selected then
                 local target = book.byId[pin]
                 caption(
@@ -474,6 +486,7 @@ function Workshop.mount(gui, config)
         )
         local name = caption("Knoten", n.name, 48, 25, C.bright, true)
         name.Font = Enum.Font.Antique
+        addComparison()
         local siblings = book.families[n.family]
         if siblings and #siblings > 1 then
             local tierNo = table.find(siblings, n.id) or 1
@@ -614,8 +627,9 @@ function Workshop.mount(gui, config)
             end
         end
         progress.Text = completed .. " / " .. #page.nodes .. " gelernt"
-        if searchOpen then
+        if dialogOpen then
             search.refresh()
+            comparison.refresh()
         end
         for id, label in shortcutStates do
             local state = status(book.byId[id])
@@ -900,6 +914,15 @@ function Workshop.mount(gui, config)
         x += 110
     end
     nav.CanvasSize = UDim2.fromOffset(x, 0)
+    local function setDialogOpen(open: boolean, returnTo: GuiObject?)
+        dialogOpen = open
+        for _, panel in { header, nav, mapWrap, detail } do
+            panel.Interactable = not open
+        end
+        if not open and Input:GetLastInputType().Name:find("Gamepad") then
+            GuiService.SelectedObject = returnTo or searchButton
+        end
+    end
     search = SearchPanel.mount(root, {
         book = book,
         kinds = kinds,
@@ -908,13 +931,19 @@ function Workshop.mount(gui, config)
             return stateNames[status(node)]
         end,
         setOpen = function(open)
-            searchOpen = open
-            for _, panel in { header, nav, mapWrap, detail } do
-                panel.Interactable = not open
-            end
-            if not open and Input:GetLastInputType().Name:find("Gamepad") then
-                GuiService.SelectedObject = searchButton
-            end
+            setDialogOpen(open, searchButton)
+        end,
+    })
+    comparison = VariantPanel.mount(root, {
+        book = book,
+        choose = jumpTo,
+        statusText = function(node)
+            local state = status(node)
+            return stateNames[state] .. "  ·  " .. readable(node.cost) .. " Münzen",
+                if state == "locked" then C.mute else colors[state]
+        end,
+        setOpen = function(open)
+            setDialogOpen(open, compareButton)
         end,
     })
     searchButton.Activated:Connect(search.open)
@@ -943,7 +972,7 @@ function Workshop.mount(gui, config)
         local s = map.AbsoluteWindowSize
         return root.Visible
             and not overview
-            and not searchOpen
+            and not dialogOpen
             and offset.X >= 0
             and offset.X <= s.X
             and offset.Y >= 0
@@ -965,7 +994,7 @@ function Workshop.mount(gui, config)
         Input.InputChanged:Connect(function(input)
             if
                 not root.Visible
-                or searchOpen
+                or dialogOpen
                 or not dragStart
                 or input.UserInputType ~= Enum.UserInputType.MouseMovement
             then
@@ -999,7 +1028,7 @@ function Workshop.mount(gui, config)
                 state == Enum.UserInputState.Change
                 and pinchZoom
                 and root.Visible
-                and not searchOpen
+                and not dialogOpen
             then
                 setZoom(pinchZoom * scale, true)
                 dragUntil = os.clock() + 0.2
@@ -1073,6 +1102,7 @@ function Workshop.mount(gui, config)
     end
     function api.close()
         search.dismiss()
+        comparison.dismiss()
         stopPreview()
         root.Visible = false
         gui:SetAttribute("WerkstattOffen", false)
@@ -1084,7 +1114,7 @@ function Workshop.mount(gui, config)
         return root.Visible
     end
     function api.back()
-        if search.dismiss() then
+        if search.dismiss() or comparison.dismiss() then
             return
         end
         if compact and expanded then

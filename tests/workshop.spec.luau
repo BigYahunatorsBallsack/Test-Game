@@ -25,6 +25,15 @@ T.describe("Werkstatt-Export", function()
             total += #page.nodes
             if page.row ~= nil then
                 T.expect(#page.nodes).toBe(48)
+                T.expect(#page.variants).toBe(2)
+                local first = catalog.byId[page.variants[1]]
+                local second = catalog.byId[page.variants[2]]
+                T.expect(first.kind).toBe("variant")
+                T.expect(second.kind).toBe("variant")
+                T.expect(first.page).toBe(page.id)
+                T.expect(second.page).toBe(page.id)
+                T.expect(first.sprite % 4 + 1).toBe(2)
+                T.expect(second.sprite % 4 + 1).toBe(3)
             end
         end
         T.expect(#catalog.tabs).toBe(11)

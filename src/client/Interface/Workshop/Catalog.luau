@@ -163,6 +163,7 @@ function Catalog.build(baseNodes)
             primaryEnds[path] = prev
         end
         local variantEnds = {}
+        page.variants = {}
         for side = 1, 2 do
             local ability = device.abilities[side + 1]
             local id = base .. (if side == 1 then "_a" else "_b")
@@ -178,6 +179,7 @@ function Catalog.build(baseNodes)
                 4.4,
                 { mode = id, slot = device.id }
             )
+            table.insert(page.variants, variant)
             for j = 1, 2 do
                 local prev = variant
                 for rank = 1, 2 do

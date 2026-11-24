@@ -55,14 +55,22 @@ function Preview.new(container)
     local layer = Art.box(container, "Ablauf", nil, container.ZIndex + 2)
     layer.Size = UDim2.fromScale(1, 1)
     local connection
+    local redraw: (() -> ())? = nil
     local function clear()
+        redraw = nil
         if connection then
             connection:Disconnect()
             connection = nil
         end
         layer:ClearAllChildren()
     end
-    local function show(device, variant, reduced)
+    layer:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        if redraw then
+            redraw()
+        end
+    end)
+    layer.Destroying:Connect(clear)
+    local function show(device, variant, reduced, accent: Color3?)
         clear()
         if not tracks[device] then
             return
@@ -76,7 +84,7 @@ function Preview.new(container)
                 local v = Art.box(
                     layer,
                     "Spur",
-                    if i % 2 == 1 then Art.c.bright else Art.c.leaf,
+                    if i % 2 == 1 then accent or Art.c.bright else Art.c.leaf,
                     layer.ZIndex + 1
                 )
                 v.AnchorPoint = Vector2.new(0, 0.5)
@@ -84,7 +92,7 @@ function Preview.new(container)
                 table.insert(parts, { a = a, b = b, obj = v })
             end
         end
-        local tip = Art.box(layer, "Kontakt", Art.c.bright, layer.ZIndex + 2)
+        local tip = Art.box(layer, "Kontakt", accent or Art.c.bright, layer.ZIndex + 2)
         tip.AnchorPoint = Vector2.new(0.5, 0.5)
         tip.Size = UDim2.fromOffset(9, 9)
         Art.round(tip, 6)
@@ -108,14 +116,19 @@ function Preview.new(container)
             end
             tip.Visible = t > 0
         end
+        local progress = if reduced then 1 else 0
+        redraw = function()
+            draw(progress)
+        end
+        draw(progress)
         if reduced then
-            draw(1)
             return
         end
         local t0 = os.clock()
         connection = RunService.Heartbeat:Connect(function()
             local t = math.min(1, (os.clock() - t0) / durations[device])
-            draw(t * t * (3 - 2 * t))
+            progress = t * t * (3 - 2 * t)
+            draw(progress)
             if t >= 1 then
                 connection:Disconnect()
                 connection = nil
