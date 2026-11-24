@@ -725,3 +725,15 @@ Entscheidung (Waltuh: "was du am besten hältst", Empfehlung Koordinator): `runE
 - [x] [Lune] Offline mit 2x-Pass: Münzen höher, `runEarned` gleich wie ohne Pass (`tests/offline.spec.luau`).
 - [x] [Lune] `Wind.credit` mit `runAmount`: höchstens der Betrag, 0 oder negativ zählt nichts, Münzen bleiben voll.
 - [ ] [Studio] Mit 2x-Pass einen Sturm vorbereiten: Die Kristallvorschau ist gleich hoch wie ohne Pass, nur die Münzanzeige wächst schneller.
+
+## 6.4 L2 und L4: Hinweis "Sturm lohnt sich" und Obergrenze
+
+Entscheidung (Waltuh: "was du am besten hältst", Koordinator-Empfehlung): L2 und L4 aus docs/balance-6.4.md umsetzen. D3 (Ruinen-Ast) wartet auf den Studio-Test der Werkzeugpreise.
+
+- L2: `Sandstorm.worthIt(profile, data, options)` ist wahr, wenn der billigste sichtbare Knoten mehr als `Economy.sandstorm.worthSeconds` (180) Verdienst bei jetziger Rate kostet, oder kein Knoten mehr sichtbar ist. `preview.worth` ist nur bei möglichem Sturm wahr. Das Sturm-Fenster zeigt dann "Jetzt lohnt sich ein Sturm."
+- L4: Neuer Grund `maxReached`, wenn die Obergrenze den Sturm verhindert (gehaltene Kristalle am Maximum, oder der Gewinn läge nur wegen der Kappung unter `minCrystals`). Der Sturm bleibt gesperrt, das Fenster sagt "Maximum an Windkristallen erreicht".
+
+- [x] [Lune] Obergrenze: knapp darunter und am Maximum ergibt `maxReached`, `requires` hat Vorrang, `apply` ändert nichts (`tests/sandstorm.spec.luau`).
+- [x] [Lune] `worth`: kleine Schwelle wahr, große falsch, nur bei möglichem Sturm, ohne sichtbaren Knoten wahr, kaputte Schwelle nutzt 180 s, Lauf-Anfang ohne Hinweis.
+- [x] [Lune] DataCheck meldet fehlendes oder falsches `worthSeconds` (0, negativ, über 3600, NaN, unendlich).
+- [ ] [Studio] Sturm-Fenster: Hinweis "Jetzt lohnt sich ein Sturm." erscheint, wenn der nächste Knoten weit weg ist, und nicht zu Beginn eines Laufs.
