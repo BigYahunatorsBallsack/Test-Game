@@ -129,10 +129,11 @@ function Sandstorm.earningsFor(crystals: number, data: any?): BigNum.BigNum
     return BigNum.new(10 ^ (logValue - exponent), exponent)
 end
 
--- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks (mit dem
--- Münz-Faktor aus `options`, wie beim Verkauf).
-function Sandstorm.runTotal(profile: any, options: Collecting.Options?): BigNum.BigNum
-    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile, options))
+-- Einnahmen des Laufs für die Kristallformel: bisherige Einnahmen plus Wert des Tanks. Der Münz-
+-- Faktor aus `options` (2x-Pass, Münz-Boost) zählt nicht (Paket 6.4, L1), wie beim Verkauf; `options`
+-- bleibt für die Aufrufer gleich.
+function Sandstorm.runTotal(profile: any, _options: Collecting.Options?): BigNum.BigNum
+    return BigNum.add(Wind.runEarned(profile), Collecting.tankValue(profile, nil))
 end
 
 -- Vorschau für die Anzeige, ändert nichts.

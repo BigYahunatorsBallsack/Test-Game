@@ -10,7 +10,8 @@
 --  * `profile.runEarned`: Münzen aus Sandverkäufen und verkauften Duplikaten seit dem letzten
 --    Sturm (Zahlentyp). Allein daraus rechnet der Sturm die Kristalle. Münzen aus anderen Quellen
 --    (Knotenkäufe sind Ausgaben, spätere gekaufte Münzen) laufen nicht über `credit` und zählen
---    darum nicht, damit sich Kristalle nicht kaufen lassen.
+--    darum nicht, damit sich Kristalle nicht kaufen lassen. Dasselbe gilt für den Münz-Faktor aus
+--    2x-Pass und Münz-Boost (Paket 6.4, L1): `credit` bekommt dafür den Betrag ohne Faktor.
 
 local BigNum = require("./BigNum")
 local Economy = require("../Data/Economy")
@@ -44,13 +45,20 @@ function Wind.runEarned(profile: any): BigNum.BigNum
 end
 
 -- Bucht verdiente Münzen auf `coins` und auf `runEarned`. Negative oder kaputte Beträge werden
--- ignoriert.
-function Wind.credit(profile: any, amount: BigNum.BigNum)
+-- ignoriert. `runAmount` (Paket 6.4, L1) ist der Betrag für `runEarned`, wenn er vom gebuchten
+-- abweicht: Der Münz-Faktor aus 2x-Pass und Münz-Boost zählt nicht für die Kristalle, sonst ließen
+-- sich Windkristalle kaufen. Ohne `runAmount` zählt der volle Betrag. Kaputte `runAmount` (0 oder
+-- negativ) zählen nichts für `runEarned`, und er ist nie größer als `amount`.
+function Wind.credit(profile: any, amount: BigNum.BigNum, runAmount: BigNum.BigNum?)
     if amount.m <= 0 then
         return
     end
+    local forRun = amount
+    if runAmount ~= nil then
+        forRun = if runAmount.m > 0 then BigNum.min(runAmount, amount) else BigNum.zero()
+    end
     profile.coins = BigNum.serialize(BigNum.add(BigNum.deserialize(profile.coins), amount))
-    profile.runEarned = BigNum.serialize(BigNum.add(Wind.runEarned(profile), amount))
+    profile.runEarned = BigNum.serialize(BigNum.add(Wind.runEarned(profile), forRun))
 end
 
 return Wind
