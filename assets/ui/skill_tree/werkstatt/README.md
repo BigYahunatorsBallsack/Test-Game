@@ -14,6 +14,8 @@ Der **Lernplan** zeigt die noch fehlenden Schritte und deren Gesamtkosten. Bei a
 
 Ziehe die Karte mit der Maus oder mit einem Finger. Das Mausrad zoomt zum Mauszeiger, die Zwei-Finger-Geste zur Mitte der Berührungspunkte. Die Plus- und Minusknöpfe zoomen zur Kartenmitte. Jeder Reiter merkt sich Ausschnitt und Zoom für die laufende Spielsitzung. Die Rückkehr aus der Übersicht stellt den vorherigen Ausschnitt wieder her.
 
+Mit **Pfeiltasten** oder **Steuerkreuz** gehst du zum nächsten Knoten in der gewählten Richtung. Die Karte folgt der Auswahl. **Bild hoch/runter** oder **LB/RB** wechseln den Gerätereiter. **Enter** oder **A** öffnen die Knotendetails. Am Controller führt **B** aus den Details zurück zur Karte.
+
 [Studio-Modell](ELG_Werkstatt.rbxm) · [Baumübersicht](Werkstatt_Uebersicht.jpg) · [Upgradesuche](Werkstatt_Suche.jpg) · [Variantenvergleich](Werkstatt_Varianten.jpg) · [Freischalteffekt](Werkstatt_Freischaltung.jpg) · [Lernplan](Werkstatt_Lernplan.jpg) · [Stufenvergleich](Werkstatt_Spieltest.jpg) · [Gerätestufen](Werkstatt_Geraetestufen.png) · [Stufen für den Lauf](Werkstatt_Ausbaustufen.png)
 
 ## Geräte und Fähigkeiten

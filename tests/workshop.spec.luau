@@ -222,5 +222,19 @@ T.describe("Werkstatt-Export", function()
         local edge = mapView.panAt(v(1050, 1300), viewport / 2, board, viewport, 1)
         T.expect(edge.Y).toBe(750)
     end)
+    T.it("navigiert entlang passender Knoten und überspringt keine näheren Stufen", function()
+        local origin = { id = "mitte", x = 100, y = 100 }
+        local nodes = {
+            origin,
+            { id = "links", x = 50, y = 100 },
+            { id = "beinaheUnten", x = 145, y = 145 },
+            { id = "naechsteStufe", x = 100, y = 180 },
+            { id = "spaeteStufe", x = 100, y = 310 },
+        }
+        local v = roblox.Vector2.new
+        T.expect(mapView.neighbor(nodes, origin, v(-1, 0))).toBe("links")
+        T.expect(mapView.neighbor(nodes, origin, v(0, 1))).toBe("naechsteStufe")
+        T.expect(mapView.neighbor(nodes, origin, v(0, -1))).toBeNil()
+    end)
 end)
 T.finish()

@@ -2,6 +2,7 @@
 -- The host supplies the canonical catalogue, current wallet and its existing purchase action.
 -- Trial ownership, variants and money exist only in this UI instance.
 local GuiService = game:GetService("GuiService")
+local ContextActionService = game:GetService("ContextActionService")
 local TweenService = game:GetService("TweenService")
 local Input = game:GetService("UserInputService")
 local Art = require(script.Art)
@@ -46,6 +47,26 @@ local colors = {
     grant = C.leaf,
 }
 local alternative = Color3.fromRGB(216, 159, 89)
+local directions = {
+    [Enum.KeyCode.Left] = Vector2.new(-1, 0),
+    [Enum.KeyCode.Right] = Vector2.new(1, 0),
+    [Enum.KeyCode.Up] = Vector2.new(0, -1),
+    [Enum.KeyCode.Down] = Vector2.new(0, 1),
+    [Enum.KeyCode.DPadLeft] = Vector2.new(-1, 0),
+    [Enum.KeyCode.DPadRight] = Vector2.new(1, 0),
+    [Enum.KeyCode.DPadUp] = Vector2.new(0, -1),
+    [Enum.KeyCode.DPadDown] = Vector2.new(0, 1),
+}
+local switches = {
+    [Enum.KeyCode.PageUp] = -1,
+    [Enum.KeyCode.PageDown] = 1,
+    [Enum.KeyCode.ButtonL1] = -1,
+    [Enum.KeyCode.ButtonR1] = 1,
+}
+local function gamepad(inputType: Enum.UserInputType): boolean
+    return string.find(inputType.Name, "Gamepad", 1, true) ~= nil
+end
+local nextMount = 0
 local function scroll(parent, name)
     local v = Instance.new("ScrollingFrame")
     v.Name = name
@@ -87,6 +108,8 @@ local function readable(value)
 end
 
 function Workshop.mount(gui, config)
+    nextMount += 1
+    local actionName = "ELGWorkshopNavigation" .. nextMount
     local book = Catalog.build(config.baseNodes)
     local root = Art.box(gui, "Werkstatt", C.ink, 100)
     root.Size = UDim2.fromScale(1, 1)
@@ -96,6 +119,8 @@ function Workshop.mount(gui, config)
     Art.gradient(header, C.wood, C.dark)
     local title = Art.text(header, "Title", "WERKSTATT", 30, C.bright, true)
     title.Font = Enum.Font.Antique
+    local controlsHint = Art.text(header, "Tasten", "", 12, C.mute, false)
+    controlsHint.TextXAlignment = Enum.TextXAlignment.Center
     local wallet = Art.text(header, "Wallet", "", 15, C.ivory, true)
     wallet.TextXAlignment = Enum.TextXAlignment.Right
     local mode = Art.button(header, "Mode", "Probelauf")
@@ -246,6 +271,34 @@ function Workshop.mount(gui, config)
         if not overview then
             placeWorld(Vector2.new(n.x, n.y), Vector2.new(mapViewport.X / 2, mapViewport.Y * 0.42))
         end
+    end
+    local function focusSelected()
+        local entry = entries[selected]
+        GuiService.SelectedObject = if overview
+            then overviewButton
+            elseif entry then entry.button
+            else tabs[page.id]
+    end
+    local function focusDetail()
+        local first: GuiButton? = nil
+        for _, control in detailScroll:GetChildren() do
+            if
+                control:IsA("GuiButton")
+                and control.Selectable
+                and (not first or control.LayoutOrder < first.LayoutOrder)
+            then
+                first = control
+            end
+        end
+        GuiService.SelectedObject = first or handle
+    end
+    local function updateHint()
+        local inputType = Input:GetLastInputType()
+        controlsHint.Visible = root.AbsoluteSize.X >= 1260
+            and (inputType == Enum.UserInputType.Keyboard or gamepad(inputType))
+        controlsHint.Text = if gamepad(inputType)
+            then "Steuerkreuz · Knoten     LB / RB · Reiter     A · Details"
+            else "Pfeile · Knoten     Bild ↑ / ↓ · Reiter     Enter · Details"
     end
     local function rememberView()
         if not overview and mapViewport.X > 0 then
@@ -828,16 +881,23 @@ function Workshop.mount(gui, config)
             end
         end
         entries[n.id] = { button = b, icon = im, outline = b.UIStroke, mark = mark }
-        b.Activated:Connect(function()
+        b.Activated:Connect(function(input)
             if os.clock() < dragUntil then
                 return
             end
             sound(1.07)
             selectNode(n, false, true)
+            if input and gamepad(input.UserInputType) then
+                focusDetail()
+            end
         end)
         b.SelectionGained:Connect(function()
-            if Input:GetLastInputType().Name:find("Gamepad") then
-                focusWorld(n)
+            if root.Visible and not overview and not dialogOpen then
+                if selected ~= n.id then
+                    selectNode(n, true, false)
+                else
+                    focusWorld(n)
+                end
             end
         end)
     end
@@ -914,6 +974,19 @@ function Workshop.mount(gui, config)
         for _, n in page.nodes do
             badge(n)
         end
+        for _, n in page.nodes do
+            local button = entries[n.id].button
+            local left = MapView.neighbor(page.nodes, n, directions[Enum.KeyCode.Left])
+            local right = MapView.neighbor(page.nodes, n, directions[Enum.KeyCode.Right])
+            local up = MapView.neighbor(page.nodes, n, directions[Enum.KeyCode.Up])
+            local down = MapView.neighbor(page.nodes, n, directions[Enum.KeyCode.Down])
+            button.NextSelectionLeft = if left then entries[left].button else button
+            button.NextSelectionRight = if right then entries[right].button else button
+            button.NextSelectionUp = if up then entries[up].button else tabs[page.id]
+            button.NextSelectionDown = if down then entries[down].button else button
+        end
+        local first = entries[selected]
+        tabs[page.id].NextSelectionDown = if first then first.button else nil
         for id, b in tabs do
             b.BackgroundColor3 = if id == page.id then C.brass else C.panel
             b.TextColor3 = if id == page.id then C.dark else C.ivory
@@ -971,8 +1044,20 @@ function Workshop.mount(gui, config)
         Art.rect(exit, w - 50, 4, 44, 44)
         local walletEnd = if config.trialOnly then w - 57 else w - trialW - 66
         local walletStart = if w < 490 then 112 else 218
-        Art.rect(wallet, walletStart, 0, math.max(0, walletEnd - walletStart), headerH)
+        if w >= 1260 then
+            Art.rect(
+                controlsHint,
+                walletStart,
+                0,
+                math.max(0, walletEnd - walletStart - 230),
+                headerH
+            )
+            Art.rect(wallet, walletEnd - 218, 0, 218, headerH)
+        else
+            Art.rect(wallet, walletStart, 0, math.max(0, walletEnd - walletStart), headerH)
+        end
         wallet.TextSize = if w < 490 then 11 else 15
+        updateHint()
         Art.rect(nav, 8, navY, w - 16, 49)
         local margin = if compact then 5 else 14
         local side = if compact then 0 else math.clamp(math.floor(w * 0.26), 243, 350)
@@ -1133,7 +1218,21 @@ function Workshop.mount(gui, config)
             and offset.Y <= s.Y
     end
     local connections = {}
-    table.insert(connections, Input.LastInputTypeChanged:Connect(updateScrolling))
+    table.insert(
+        connections,
+        Input.LastInputTypeChanged:Connect(function(inputType)
+            updateScrolling()
+            updateHint()
+            local focus = GuiService.SelectedObject
+            if
+                inputType == Enum.UserInputType.Keyboard
+                and focus
+                and focus:IsDescendantOf(sheet)
+            then
+                GuiService.SelectedObject = nil
+            end
+        end)
+    )
     table.insert(
         connections,
         Input.InputBegan:Connect(function(input)
@@ -1191,11 +1290,63 @@ function Workshop.mount(gui, config)
         end)
     )
     root.Destroying:Connect(function()
+        ContextActionService:UnbindAction(actionName)
         stopPreview()
         for _, c in connections do
             c:Disconnect()
         end
     end)
+    local function navigate(_name: string, state: Enum.UserInputState, input: InputObject)
+        if not root.Visible or dialogOpen or Input:GetFocusedTextBox() then
+            return Enum.ContextActionResult.Pass
+        end
+        local key = input.KeyCode
+        local step = switches[key]
+        local direction = directions[key]
+        local focused = GuiService.SelectedObject
+        local controller = gamepad(input.UserInputType)
+        if direction and controller and focused then
+            return Enum.ContextActionResult.Pass
+        end
+        if
+            not step
+            and (
+                overview
+                or (
+                    controller
+                    and focused
+                    and not focused:IsDescendantOf(sheet)
+                    and not focused:IsDescendantOf(nav)
+                )
+            )
+        then
+            return Enum.ContextActionResult.Pass
+        end
+        if state == Enum.UserInputState.Begin then
+            if step then
+                local current = table.find(book.tabs, page) or 1
+                local target = math.clamp(current + step, 1, #book.tabs)
+                if target ~= current then
+                    expanded = false
+                    changeTab(book.tabs[target].id)
+                end
+                if controller then
+                    focusSelected()
+                end
+            elseif direction and selected then
+                local nextId = MapView.neighbor(page.nodes, book.byId[selected], direction)
+                if nextId then
+                    selectNode(book.byId[nextId], true, false)
+                    if controller then
+                        focusSelected()
+                    end
+                end
+            elseif key == Enum.KeyCode.Return and selected then
+                selectNode(book.byId[selected], true, true)
+            end
+        end
+        return Enum.ContextActionResult.Sink
+    end
     handle.Activated:Connect(function()
         expanded = not expanded
         position()
@@ -1259,12 +1410,32 @@ function Workshop.mount(gui, config)
             if target then target.id else nil,
             target ~= nil
         )
-        if Input:GetLastInputType().Name:find("Gamepad") then
-            GuiService.SelectedObject = tabs[page.id]
+        ContextActionService:BindActionAtPriority(
+            actionName,
+            navigate,
+            false,
+            Enum.ContextActionPriority.High.Value + 1,
+            Enum.KeyCode.Left,
+            Enum.KeyCode.Right,
+            Enum.KeyCode.Up,
+            Enum.KeyCode.Down,
+            Enum.KeyCode.DPadLeft,
+            Enum.KeyCode.DPadRight,
+            Enum.KeyCode.DPadUp,
+            Enum.KeyCode.DPadDown,
+            Enum.KeyCode.PageUp,
+            Enum.KeyCode.PageDown,
+            Enum.KeyCode.ButtonL1,
+            Enum.KeyCode.ButtonR1,
+            Enum.KeyCode.Return
+        )
+        if gamepad(Input:GetLastInputType()) then
+            focusSelected()
         end
         scaleIn(header, 0.987, 0.18)
     end
     function api.close()
+        ContextActionService:UnbindAction(actionName)
         rememberView()
         pinch, dragStart = nil, nil
         search.dismiss()
@@ -1284,6 +1455,7 @@ function Workshop.mount(gui, config)
         if search.dismiss() or comparison.dismiss() then
             return
         end
+        local focused = GuiService.SelectedObject
         if planTarget then
             planTarget = nil
             renderDetail(false)
@@ -1291,11 +1463,19 @@ function Workshop.mount(gui, config)
             expanded = false
             position()
             renderDetail(false)
+            if gamepad(Input:GetLastInputType()) then
+                focusSelected()
+            end
+        elseif focused and focused:IsDescendantOf(detail) and gamepad(Input:GetLastInputType()) then
+            focusSelected()
         elseif overview then
             showDetailMap()
             position()
             updateStates()
             renderDetail(false)
+            if gamepad(Input:GetLastInputType()) then
+                focusSelected()
+            end
         else
             config.onClose()
         end

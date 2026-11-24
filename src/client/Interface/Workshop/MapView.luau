@@ -30,4 +30,25 @@ function MapView.panAt(
     )
 end
 
+type Point = { id: string, x: number, y: number }
+
+function MapView.neighbor(nodes: { Point }, origin: Point, direction: Vector2): string?
+    local best: string? = nil
+    local bestScore = math.huge
+    for _, node in nodes do
+        local delta = Vector2.new(node.x - origin.x, node.y - origin.y)
+        local forward = delta:Dot(direction)
+        if forward > 0 then
+            local sideways = math.abs(delta.X * direction.Y - delta.Y * direction.X)
+            -- Prefer the current lane before skipping diagonally across the board.
+            local score = delta.Magnitude + sideways * 2
+            if score < bestScore then
+                bestScore = score
+                best = node.id
+            end
+        end
+    end
+    return best
+end
+
 return MapView
