@@ -849,7 +849,7 @@ end
 T.describe("Einmalkauf auf dem Server: Ersatz-Gems statt eines zweiten Pakets (6.1)", function()
     T.it("Data/Offers: Ersatz-Gems 300 und Nachfrist 15 min, höchstens der Gem-Gegenwert von 149 Robux", function()
         T.expect(DUPLICATE_GEMS).toBe(300)
-        T.expect(STARTER.receiptGraceMinutes).toBe(15)
+        T.expect(STARTER.receiptGraceMinutes).toBe(4320)
         local price = Products.byId.starter_pack.priceRobux
         local bestRate = 0
         for _, pack in GemPacks.list do

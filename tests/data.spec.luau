@@ -864,14 +864,14 @@ T.describe("Angebote (4.5)", function()
         T.expect(broken(function(d) d.Offers.byId.starter.duplicateGems = 0 end)).toEqual({})
     end)
 
-    T.it("Nachfrist für Belege (6.1): ganze Zahl von 0 bis 60 Minuten", function()
-        T.expect(OffersData.byId.starter.receiptGraceMinutes).toBe(15)
-        for _, bad in { -1, 1.5, 61, 0 / 0, math.huge, "15", false } do
-            expectError(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = bad end), "receiptGraceMinutes muss eine ganze Zahl von 0 bis 60 sein")
+    T.it("Nachfrist für Belege (6.1): ganze Zahl von 0 bis 5760 Minuten", function()
+        T.expect(OffersData.byId.starter.receiptGraceMinutes).toBe(4320)
+        for _, bad in { -1, 1.5, 5761, 0 / 0, math.huge, "15", false } do
+            expectError(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = bad end), "receiptGraceMinutes muss eine ganze Zahl von 0 bis 5760 sein")
         end
         expectError(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = nil end), "receiptGraceMinutes muss eine ganze Zahl")
         T.expect(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = 0 end)).toEqual({})
-        T.expect(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = 60 end)).toEqual({})
+        T.expect(broken(function(d) d.Offers.byId.starter.receiptGraceMinutes = 5760 end)).toEqual({})
     end)
 end)
 

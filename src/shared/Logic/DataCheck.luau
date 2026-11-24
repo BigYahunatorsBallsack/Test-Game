@@ -983,7 +983,7 @@ local OFFER_FIELDS = {
 
 -- Längste Nachfrist für Angebots-Belege nach dem Fensterende (Minuten). Sie deckt einen Kaufdialog
 -- über das Fensterende und verschieden gehende Server-Uhren ab, ist aber kein zweites Fenster.
-local MAX_OFFER_GRACE_MINUTES = 60
+local MAX_OFFER_GRACE_MINUTES = 4 * 24 * 60 -- bis 4 Tage
 
 -- Gem-Gegenwert eines Robux-Preises zum besten Paketkurs unter den Gem-Paketen bis zu diesem Preis
 -- (0, wenn es kein solches Paket gibt), oder nil ohne brauchbare Paketliste oder Preis.

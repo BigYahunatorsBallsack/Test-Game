@@ -44,7 +44,7 @@ export type Offer = {
     -- Produktpreises zum besten Paketkurs (DataCheck). Keine Items.
     duplicateGems: number,
     -- Nachfrist in Minuten nach dem Fensterende: Ein Beleg in dieser Zeit bekommt noch das Paket
-    -- (Kaufdialog über das Fensterende offen, Uhren verschiedener Server). Ganze Zahl von 0 bis 60.
+    -- (Kaufdialog über das Fensterende offen, Uhren verschiedener Server). Ganze Zahl von 0 bis 5760 (4 Tage).
     receiptGraceMinutes: number,
 }
 
@@ -64,7 +64,7 @@ local list: { Offer } = {
         -- (Economy.seasonPass.duplicateGems): Der Spieler verliert nichts, ein absichtlicher Zweitkauf
         -- bringt keinen besseren Kurs als die Gem-Pakete.
         duplicateGems = 300,
-        receiptGraceMinutes = 15,
+        receiptGraceMinutes = 4320, -- 3 Tage: ein Beleg, der nach einem Verbindungsabbruch erst später gebucht wird, bekommt das Paket
     },
 }
 
