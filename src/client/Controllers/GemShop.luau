@@ -61,15 +61,19 @@ local BANNER_SECONDS = 2.6
 local BANNER_FADE_SECONDS = 0.3
 local BANNER_DISPLAY_ORDER = 9
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local GOOD_COLOR = Color3.fromRGB(150, 220, 120)
-local WARN_COLOR = Color3.fromRGB(235, 150, 90)
-local BUTTON_COLOR = Color3.fromRGB(80, 66, 52)
-local GEM_COLOR = Color3.fromRGB(120, 200, 235)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local GOOD_COLOR = UI.good
+local WARN_COLOR = UI.warn
+local BUTTON_COLOR = UI.button
+local GEM_COLOR = UI.gem
 
 local TEXT_MISSING_PRODUCT = "Noch nicht eingerichtet."
 local TEXT_BUY_FAILED = "Der Kaufdialog ließ sich nicht öffnen."
@@ -82,10 +86,10 @@ local TEXT_AUTO_ON = "Auto: an"
 local TEXT_AUTO_OFF = "Auto: aus"
 local TEXT_BOOST_BOUGHT = "Münz-Boost aktiv!"
 local TEXT_BOOST_REALTIME = "Läuft in Echtzeit, auch offline"
-local TOGGLE_ON_COLOR = Color3.fromRGB(150, 220, 120)
-local PASS_COLOR = Color3.fromRGB(255, 214, 110)
-local TAB_ACTIVE_COLOR = Color3.fromRGB(120, 200, 235)
-local OFFER_COLOR = Color3.fromRGB(255, 190, 90)
+local TOGGLE_ON_COLOR = UI.good
+local PASS_COLOR = UI.accent
+local TAB_ACTIVE_COLOR = UI.accent
+local OFFER_COLOR = UI.warn
 local TEXT_OFFER_BOUGHT = "Angebot erhalten!"
 local TEXT_OFFER_FALLBACK_NAME = "Angebot" -- Ersatz-Gems ohne bekanntes Produkt (Meldung "duplicate")
 local TEXT_OFFER_OVER = "Vorbei"
@@ -210,8 +214,8 @@ function GemShop.Start()
     openButton.Activated:Connect(window.toggle)
 
     -- Kontostand und Meldung im festen Fuß, damit sie beim Scrollen der Liste stehen bleiben.
-    local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, GEM_COLOR, "Du hast 0 Gems")
-    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
+    local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Theme.font.bold, GEM_COLOR, "Du hast 0 Gems")
+    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Theme.font.bold, WARN_COLOR, "")
 
     -- Banner "+N Gems" (liegt über allem)
     local bannerGui = Instance.new("ScreenGui")
@@ -219,7 +223,7 @@ function GemShop.Start()
     bannerGui.ResetOnSpawn = false
     bannerGui.DisplayOrder = BANNER_DISPLAY_ORDER
     bannerGui.IgnoreGuiInset = true
-    local banner = newText(bannerGui, "Banner", UDim2.new(0.5, -260, 0.32, 0), UDim2.new(0, 520, 0, 90), Enum.Font.GothamBold, GEM_COLOR, "")
+    local banner = newText(bannerGui, "Banner", UDim2.new(0.5, -260, 0.32, 0), UDim2.new(0, 520, 0, 90), Theme.font.bold, GEM_COLOR, "")
     banner.TextXAlignment = Enum.TextXAlignment.Center
     banner.TextTransparency = 1
     banner.TextStrokeTransparency = 1
@@ -325,17 +329,19 @@ function GemShop.Start()
         Instance.new("UICorner").Parent = row
         table.insert(tabRows.gems, row)
 
-        newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.5, -12, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, pack.name)
+        newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.5, -12, 0, 26), Theme.font.bold, TEXT_COLOR, pack.name)
         local bonusText = if pack.bonusPercentConcept > 0 then `+{pack.bonusPercentConcept} % Bonus` else "Einstieg"
-        local bonusLabel = newText(row, "Bonus", UDim2.new(0, 12, 0, 36), UDim2.new(0.5, -12, 0, 20), Enum.Font.Gotham, GOOD_COLOR, bonusText)
+        local bonusLabel = newText(row, "Bonus", UDim2.new(0, 12, 0, 36), UDim2.new(0.5, -12, 0, 20), Theme.font.body, GOOD_COLOR, bonusText)
 
         local buy = Instance.new("TextButton")
+
+        Kit.flat(buy)
         buy.Name = "Buy"
         buy.AnchorPoint = Vector2.new(1, 0.5)
         buy.Position = UDim2.new(1, -8, 0.5, 0)
         buy.Size = UDim2.new(0.42, 0, 0, controls.rowButtonH)
         buy.BackgroundColor3 = if pack.productId == 0 then BUTTON_COLOR else GEM_COLOR
-        buy.Font = Enum.Font.GothamBold
+        buy.Font = Theme.font.bold
         buy.TextColor3 = if pack.productId == 0 then MUTED_COLOR else PANEL_COLOR
         buy.TextScaled = true
         buy.Text = PriceView.buttonText(pack.productId, priceInfo(false, pack.productId), pack.robux)
@@ -375,7 +381,7 @@ function GemShop.Start()
     end
 
     -- Pässe und Boosts (Paket 4.4): Überschrift und eine Zeile je Produkt aus Data/Products.
-    local section = newText(window.body, "PerkSection", UDim2.new(), UDim2.new(1, 0, 0, SECTION_HEIGHT), Enum.Font.GothamBold, PASS_COLOR, TEXT_SECTION)
+    local section = newText(window.body, "PerkSection", UDim2.new(), UDim2.new(1, 0, 0, SECTION_HEIGHT), Theme.font.bold, PASS_COLOR, TEXT_SECTION)
     section.LayoutOrder = PERK_SECTION_ORDER
     table.insert(tabRows.perks, section)
 
@@ -450,17 +456,19 @@ function GemShop.Start()
         Instance.new("UICorner").Parent = row
         table.insert(tabRows.perks, row)
 
-        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.55, -12, 0, 24), Enum.Font.GothamBold, TEXT_COLOR, product.name)
-        local effect = newText(row, "Effect", UDim2.new(0, 12, 0, 32), UDim2.new(0.55, -12, 0, 36), Enum.Font.Gotham, MUTED_COLOR, product.effect)
+        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.55, -12, 0, 24), Theme.font.bold, TEXT_COLOR, product.name)
+        local effect = newText(row, "Effect", UDim2.new(0, 12, 0, 32), UDim2.new(0.55, -12, 0, 36), Theme.font.body, MUTED_COLOR, product.effect)
         effect.TextYAlignment = Enum.TextYAlignment.Top
-        local status = newText(row, "Status", UDim2.new(0, 12, 1, -22), UDim2.new(0.55, -12, 0, 18), Enum.Font.GothamBold, GOOD_COLOR, "")
+        local status = newText(row, "Status", UDim2.new(0, 12, 1, -22), UDim2.new(0.55, -12, 0, 18), Theme.font.bold, GOOD_COLOR, "")
 
         local buy = Instance.new("TextButton")
+
+        Kit.flat(buy)
         buy.Name = "Buy"
         buy.AnchorPoint = Vector2.new(1, 0.5)
         buy.Position = UDim2.new(1, -8, 0.5, 0)
         buy.Size = UDim2.new(0.4, 0, 0, controls.rowButtonH)
-        buy.Font = Enum.Font.GothamBold
+        buy.Font = Theme.font.bold
         buy.TextScaled = true
         buy.Parent = row
         Instance.new("UICorner").Parent = buy
@@ -579,7 +587,7 @@ function GemShop.Start()
 
     local DIRECT_INTRO_RESTRICTED = "Kisten gibt es in deiner Region nicht. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten."
     local DIRECT_INTRO_UNKNOWN = "Kisten sind gerade nicht verfügbar. Hier kaufst du jedes Item direkt, ohne Zufall. Der Preis entspricht den durchschnittlichen Kosten über Kisten."
-    local directIntro = newText(window.body, "DirectIntro", UDim2.new(), UDim2.new(1, 0, 0, DIRECT_INTRO_HEIGHT), Enum.Font.Gotham, MUTED_COLOR, DIRECT_INTRO_RESTRICTED)
+    local directIntro = newText(window.body, "DirectIntro", UDim2.new(), UDim2.new(1, 0, 0, DIRECT_INTRO_HEIGHT), Theme.font.body, MUTED_COLOR, DIRECT_INTRO_RESTRICTED)
     directIntro.LayoutOrder = DIRECT_SECTION_ORDER
     directIntro.Visible = false
     table.insert(tabRows.direct, directIntro)
@@ -646,16 +654,18 @@ function GemShop.Start()
         table.insert(tabRows.direct, row)
 
         local title = if rarity ~= nil then `{entry.name} ({rarity.name})` else entry.name
-        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Enum.Font.GothamBold, if rarity ~= nil then hex(rarity.colorHex) else TEXT_COLOR, title)
-        local info = newText(row, "Info", UDim2.new(0, 12, 0, 36), UDim2.new(0.6, -12, 0, 40), Enum.Font.Gotham, MUTED_COLOR, "")
+        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Theme.font.bold, if rarity ~= nil then hex(rarity.colorHex) else TEXT_COLOR, title)
+        local info = newText(row, "Info", UDim2.new(0, 12, 0, 36), UDim2.new(0.6, -12, 0, 40), Theme.font.body, MUTED_COLOR, "")
         info.TextYAlignment = Enum.TextYAlignment.Top
 
         local buy = Instance.new("TextButton")
+
+        Kit.flat(buy)
         buy.Name = "Buy"
         buy.AnchorPoint = Vector2.new(1, 0.5)
         buy.Position = UDim2.new(1, -8, 0.5, 0)
         buy.Size = UDim2.new(0.36, 0, 0, controls.rowButtonH)
-        buy.Font = Enum.Font.GothamBold
+        buy.Font = Theme.font.bold
         buy.TextScaled = true
         buy.Text = `{groupedNumber(entry.price)} Gems`
         buy.Parent = row
@@ -767,23 +777,25 @@ function GemShop.Start()
         row.Parent = window.body
         Instance.new("UICorner").Parent = row
 
-        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Enum.Font.GothamBold, OFFER_COLOR, product.name)
+        newText(row, "Name", UDim2.new(0, 12, 0, 6), UDim2.new(0.6, -12, 0, 26), Theme.font.bold, OFFER_COLOR, product.name)
         local names: { string } = {}
         table.insert(names, `{groupedNumber(offer.gems)} Gems`)
         for _, itemId in offer.items do
             local item = CrateItems.byId[itemId]
             table.insert(names, if item ~= nil then item.name else itemId)
         end
-        local contents = newText(row, "Contents", UDim2.new(0, 12, 0, 34), UDim2.new(0.6, -12, 0, 62), Enum.Font.Gotham, TEXT_COLOR, table.concat(names, " · "))
+        local contents = newText(row, "Contents", UDim2.new(0, 12, 0, 34), UDim2.new(0.6, -12, 0, 62), Theme.font.body, TEXT_COLOR, table.concat(names, " · "))
         contents.TextYAlignment = Enum.TextYAlignment.Top
-        local status = newText(row, "Status", UDim2.new(0, 12, 1, -26), UDim2.new(0.6, -12, 0, 22), Enum.Font.GothamBold, GOOD_COLOR, "")
+        local status = newText(row, "Status", UDim2.new(0, 12, 1, -26), UDim2.new(0.6, -12, 0, 22), Theme.font.bold, GOOD_COLOR, "")
 
         local buy = Instance.new("TextButton")
+
+        Kit.flat(buy)
         buy.Name = "Buy"
         buy.AnchorPoint = Vector2.new(1, 0.5)
         buy.Position = UDim2.new(1, -8, 0.5, 0)
         buy.Size = UDim2.new(0.34, 0, 0, controls.rowButtonH)
-        buy.Font = Enum.Font.GothamBold
+        buy.Font = Theme.font.bold
         buy.TextScaled = true
         buy.Parent = row
         Instance.new("UICorner").Parent = buy
@@ -870,8 +882,9 @@ function GemShop.Start()
     local tabButtons: { [string]: TextButton } = {}
     for _, tabId in TAB_ORDER do
         local b = Instance.new("TextButton")
+        Kit.flat(b)
         b.Name = `Tab_{tabId}`
-        b.Font = Enum.Font.GothamBold
+        b.Font = Theme.font.bold
         b.TextScaled = true
         b.Text = TAB_LABELS[tabId]
         b.Parent = window.sub

@@ -1,23 +1,25 @@
 --!strict
 local Art = {}
 local tierArt = require(script.Parent.TierArt)
-local function hex(value)
-    return Color3.fromHex(value)
-end
+-- Überarbeitung Ü5: ein Stil. Die Werkstatt nimmt die Farben aus Interface/Theme statt eigener.
+local Theme = require(script.Parent.Parent.Theme)
 Art.c = {
-    ink = hex("0D1E20"),
-    board = hex("142E2F"),
-    panel = hex("1C3938"),
-    leaf = hex("81BEB0"),
-    brass = hex("C99A59"),
-    bright = hex("FFE0A1"),
-    ivory = hex("F7EBD2"),
-    mute = hex("B4C1B5"),
-    lock = hex("657673"),
-    edge = hex("456261"),
-    dark = hex("192222"),
-    wood = hex("423329"),
+    ink = Theme.ink,
+    board = Theme.ui.slot,
+    panel = Theme.ui.panel,
+    leaf = Theme.ui.good,
+    brass = Theme.ui.accent,
+    bright = Theme.gold.rim,
+    ivory = Theme.text,
+    mute = Theme.ui.muted,
+    lock = Theme.ui.button,
+    edge = Theme.ui.row,
+    dark = Theme.ui.backdrop,
+    wood = Theme.ui.slot,
+    warn = Theme.ui.warn,
+    white = Theme.ui.white,
 }
+Art.font = Theme.font
 Art.symbols = "rbxassetid://121329522523108"
 Art.scenes = "rbxassetid://133913310301503"
 Art.variantScenes = { "rbxassetid://127194462292023", "rbxassetid://139759034484553" }
@@ -81,7 +83,7 @@ function Art.text(parent, name, str, size, color, bold, z)
     o.Text = str
     o.TextSize = size
     o.TextColor3 = color or Art.c.ivory
-    o.Font = if bold then Enum.Font.GothamBold else Enum.Font.GothamMedium
+    o.Font = if bold then Theme.font.bold else Theme.font.body
     o.BackgroundTransparency = 1
     o.TextXAlignment = Enum.TextXAlignment.Left
     o.TextWrapped = true
@@ -94,7 +96,7 @@ function Art.button(parent, name, str)
     b.Name = name
     b.Text = str
     b.TextSize = 14
-    b.Font = Enum.Font.GothamBold
+    b.Font = Theme.font.bold
     b.TextColor3 = Art.c.ivory
     b.BackgroundColor3 = Art.c.panel
     b.BorderSizePixel = 0
@@ -169,19 +171,12 @@ function Art.nodeIcon(image, node)
     image:SetAttribute("Bildstufe", entry[3])
 end
 function Art.bezel(parent, roundness)
-    local ring = Art.box(parent, "Messingfassung", Color3.new(1, 1, 1), parent.ZIndex)
+    local ring = Art.box(parent, "Messingfassung", Theme.ui.white, parent.ZIndex)
     ring.Size = UDim2.fromScale(1, 1)
     Art.round(ring, roundness)
     local sheen = Instance.new("UIGradient")
     sheen.Rotation = 49
-    sheen.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, hex("5D3D25")),
-        ColorSequenceKeypoint.new(0.23, hex("F8D894")),
-        ColorSequenceKeypoint.new(0.45, hex("AE7643")),
-        ColorSequenceKeypoint.new(0.64, hex("5E412C")),
-        ColorSequenceKeypoint.new(0.87, hex("E7B86F")),
-        ColorSequenceKeypoint.new(1, hex("8E603A")),
-    })
+    sheen.Color = Theme.gold.fill -- Ü5: goldener Rand aus Theme statt Messing
     sheen.Parent = ring
     return ring
 end

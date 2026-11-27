@@ -61,18 +61,22 @@ local MIN_REVEAL_SECONDS_FOR_SKIP = 0.2 -- so kurz nach dem Start zählt ein Tip
 -- Sounds (Paket 3.5). Leer = kein Ton.
 local SOUND_IDS = { shake = "", pop = "", legendary = "" }
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local GOOD_COLOR = Color3.fromRGB(150, 220, 120)
-local WARN_COLOR = Color3.fromRGB(235, 150, 90)
-local BUTTON_COLOR = Color3.fromRGB(80, 66, 52)
-local BUY_COLOR = Color3.fromRGB(230, 200, 117)
-local GEM_COLOR = Color3.fromRGB(120, 200, 235)
-local CHEST_COLOR = Color3.fromRGB(120, 86, 52)
-local DIM_COLOR = Color3.fromRGB(0, 0, 0)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local GOOD_COLOR = UI.good
+local WARN_COLOR = UI.warn
+local BUTTON_COLOR = UI.button
+local BUY_COLOR = UI.accent
+local GEM_COLOR = UI.gem
+local CHEST_COLOR = UI.warn
+local DIM_COLOR = UI.black
 
 -- Event-Kiste (Paket 5.4): Höhe der Saison-Zeile und Texte. Der Server entscheidet, ob die Kiste
 -- offen ist (Snapshot `season`); der Client rechnet nur den Countdown herunter.
@@ -283,8 +287,8 @@ function CrateShop.Start()
     end
     openButton.Activated:Connect(window.toggle)
 
-    local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, GEM_COLOR, "")
-    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
+    local balanceLabel = newText(window.footer, "Balance", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Theme.font.bold, GEM_COLOR, "")
+    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Theme.font.bold, WARN_COLOR, "")
 
     local messageToken = 0
     local function showMessage(text: string)
@@ -316,12 +320,14 @@ function CrateShop.Start()
     dim.Parent = revealGui
 
     local skipButton = Instance.new("TextButton") -- einziger anklickbarer Teil des Reveals
+
+    Kit.flat(skipButton)
     skipButton.Name = "Skip"
     skipButton.AnchorPoint = Vector2.new(0.5, 1)
     skipButton.Position = UDim2.new(0.5, 0, 1, -24)
     skipButton.Size = UDim2.fromOffset(SKIP_BUTTON_WIDTH, SKIP_BUTTON_HEIGHT)
     skipButton.BackgroundColor3 = BUTTON_COLOR
-    skipButton.Font = Enum.Font.GothamBold
+    skipButton.Font = Theme.font.bold
     skipButton.TextColor3 = TEXT_COLOR
     skipButton.TextScaled = true
     skipButton.Text = "Überspringen"
@@ -397,8 +403,8 @@ function CrateShop.Start()
         stroke.Transparency = 1
         stroke.Parent = card
         local small = size.Y < 100
-        local rarityLabel = newText(card, "Rarity", UDim2.new(0, 6, 0, 4), UDim2.new(1, -12, 0, if small then 16 else 22), Enum.Font.GothamBold, color, rarity.name, Enum.TextXAlignment.Center)
-        local nameLabel = newText(card, "Name", UDim2.new(0, 6, 0, if small then 22 else 30), UDim2.new(1, -12, 0, if small then 34 else 50), Enum.Font.GothamBold, TEXT_COLOR, tostring(result.name), Enum.TextXAlignment.Center)
+        local rarityLabel = newText(card, "Rarity", UDim2.new(0, 6, 0, 4), UDim2.new(1, -12, 0, if small then 16 else 22), Theme.font.bold, color, rarity.name, Enum.TextXAlignment.Center)
+        local nameLabel = newText(card, "Name", UDim2.new(0, 6, 0, if small then 22 else 30), UDim2.new(1, -12, 0, if small then 34 else 50), Theme.font.bold, TEXT_COLOR, tostring(result.name), Enum.TextXAlignment.Center)
         local tag = if result.isNew == true then "Neu" else "Duplikat"
         if result.pityTriggered ~= nil then
             tag = `{tag} · Garantie`
@@ -408,11 +414,11 @@ function CrateShop.Start()
         if progressText ~= nil and not small then
             tag = `Duplikat · {progressText}`
         end
-        local infoLabel = newText(card, "Info", UDim2.new(0, 6, 1, if small then -22 else -30), UDim2.new(1, -12, 0, if small then 18 else 24), Enum.Font.Gotham, if result.isNew == true then GOOD_COLOR else MUTED_COLOR, if small then tag else `{kindName} · {tag}`, Enum.TextXAlignment.Center)
+        local infoLabel = newText(card, "Info", UDim2.new(0, 6, 1, if small then -22 else -30), UDim2.new(1, -12, 0, if small then 18 else 24), Theme.font.body, if result.isNew == true then GOOD_COLOR else MUTED_COLOR, if small then tag else `{kindName} · {tag}`, Enum.TextXAlignment.Center)
         -- Texte starten unsichtbar und blenden mit der Karte ein.
         local labels: { TextLabel } = { rarityLabel, nameLabel, infoLabel }
         if bonusText ~= nil and not small then
-            local bonusLabel = newText(card, "Bonus", UDim2.new(0, 6, 0, 84), UDim2.new(1, -12, 0, 20), Enum.Font.GothamBold, GOOD_COLOR, bonusText, Enum.TextXAlignment.Center)
+            local bonusLabel = newText(card, "Bonus", UDim2.new(0, 6, 0, 84), UDim2.new(1, -12, 0, 20), Theme.font.bold, GOOD_COLOR, bonusText, Enum.TextXAlignment.Center)
             table.insert(labels, bonusLabel)
         end
         for _, label in labels do
@@ -610,12 +616,13 @@ function CrateShop.Start()
         footerHeight = DETAILS_FOOTER_HEIGHT,
     })
     local backButton = Instance.new("TextButton")
+    Kit.flat(backButton)
     backButton.Name = "Back"
     backButton.AnchorPoint = Vector2.new(0.5, 0.5)
     backButton.Position = UDim2.fromScale(0.5, 0.5)
     backButton.Size = UDim2.new(1, -24, 0, controls.rowButtonH)
     backButton.BackgroundColor3 = BUTTON_COLOR
-    backButton.Font = Enum.Font.GothamBold
+    backButton.Font = Theme.font.bold
     backButton.TextColor3 = TEXT_COLOR
     backButton.TextScaled = true
     backButton.Text = TEXT_BACK
@@ -655,7 +662,7 @@ function CrateShop.Start()
 
         -- Items nach Seltenheit gruppiert (höchste zuerst); itemOdds liefert sie schon so sortiert.
         local function addSection(title: string, titleColor: Color3, sectionCounters: any)
-            add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, titleColor, title)
+            add(DETAILS_HEADER_HEIGHT, Theme.font.bold, titleColor, title)
             local effective = CrateRoll.effectiveOdds(crate, sectionCounters)
             local items = CrateRoll.itemOdds(crateId, sectionCounters)
             local groups: { { rarityId: string, entries: { any } } } = {}
@@ -673,10 +680,10 @@ function CrateShop.Start()
                 local share = if effective.total > 0 then weight / effective.total else 0
                 local first = group.entries[1]
                 local each = first.numerator / first.denominator
-                add(DETAILS_HEADER_HEIGHT, Enum.Font.GothamBold, if rarity then hexColor(rarity.colorHex) else TEXT_COLOR, `{if rarity then rarity.name else group.rarityId}: {OddsView.percentText(share)}, Quote je Item: {OddsView.percentText(each)}`)
+                add(DETAILS_HEADER_HEIGHT, Theme.font.bold, if rarity then hexColor(rarity.colorHex) else TEXT_COLOR, `{if rarity then rarity.name else group.rarityId}: {OddsView.percentText(share)}, Quote je Item: {OddsView.percentText(each)}`)
                 for _, entry in group.entries do
                     local kindName = KIND_NAMES[entry.kind] or tostring(entry.kind)
-                    add(DETAILS_ROW_HEIGHT, Enum.Font.Gotham, TEXT_COLOR, `   {entry.name} ({kindName}): {OddsView.percentText(entry.numerator / entry.denominator)}`)
+                    add(DETAILS_ROW_HEIGHT, Theme.font.body, TEXT_COLOR, `   {entry.name} ({kindName}): {OddsView.percentText(entry.numerator / entry.denominator)}`)
                 end
             end
         end
@@ -685,7 +692,7 @@ function CrateShop.Start()
         addSection(OddsView.oddsTitle(nil), TEXT_COLOR, nil)
         local dueLine = OddsView.dueLine(crate, counters)
         if dueLine ~= nil then
-            add(DETAILS_NOTE_HEIGHT, Enum.Font.GothamBold, GOOD_COLOR, dueLine)
+            add(DETAILS_NOTE_HEIGHT, Theme.font.bold, GOOD_COLOR, dueLine)
         end
         for _, tier in { "epic", "legendary" } do
             local tierCounters = OddsView.dueCounters(crate, tier)
@@ -695,15 +702,15 @@ function CrateShop.Start()
         end
 
         for _, line in OddsView.pityRules(crate) do
-            add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, GOOD_COLOR, line)
+            add(DETAILS_NOTE_HEIGHT, Theme.font.body, GOOD_COLOR, line)
         end
         if crate.pity ~= nil then
             for _, line in OddsView.pityLines(crate, counters) do
-                add(DETAILS_ROW_HEIGHT, Enum.Font.Gotham, GOOD_COLOR, line)
+                add(DETAILS_ROW_HEIGHT, Theme.font.body, GOOD_COLOR, line)
             end
         end
-        add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, MUTED_COLOR, OddsView.bundleRule(Crates.bundle.buy, Crates.bundle.get))
-        add(DETAILS_NOTE_HEIGHT, Enum.Font.Gotham, MUTED_COLOR, OddsView.ROUNDING_NOTE)
+        add(DETAILS_NOTE_HEIGHT, Theme.font.body, MUTED_COLOR, OddsView.bundleRule(Crates.bundle.buy, Crates.bundle.get))
+        add(DETAILS_NOTE_HEIGHT, Theme.font.body, MUTED_COLOR, OddsView.ROUNDING_NOTE)
     end
 
     openDetails = function(crate: any)
@@ -804,7 +811,7 @@ function CrateShop.Start()
             return line
         end
 
-        local title = newText(frame, "Title", UDim2.new(), UDim2.new(1, 0, 0, 26), Enum.Font.GothamBold, TEXT_COLOR, `{crate.name}: {priceText(crate, 1)}`)
+        local title = newText(frame, "Title", UDim2.new(), UDim2.new(1, 0, 0, 26), Theme.font.bold, TEXT_COLOR, `{crate.name}: {priceText(crate, 1)}`)
         title.LayoutOrder = nextLine()
 
         -- Event-Kiste (Paket 5.4): Zeile mit Saison-Countdown oder Hinweis. Die Karte selbst ist nur
@@ -812,7 +819,7 @@ function CrateShop.Start()
         local seasonLine: TextLabel? = nil
         if crate.eventOnly then
             frame.Visible = false
-            local created = newText(frame, "Season", UDim2.new(), UDim2.new(1, 0, 0, SEASON_LINE_HEIGHT), Enum.Font.GothamBold, GOOD_COLOR, "")
+            local created = newText(frame, "Season", UDim2.new(), UDim2.new(1, 0, 0, SEASON_LINE_HEIGHT), Theme.font.bold, GOOD_COLOR, "")
             created.LayoutOrder = nextLine()
             seasonLine = created
         end
@@ -820,7 +827,7 @@ function CrateShop.Start()
         -- Quotentabelle: alle Seltenheiten in Rang-Reihenfolge von oben (selten) nach unten. Die Werte
         -- schreibt `refresh` aus CrateRoll.effectiveOdds (bei anstehender Garantie die Quoten der
         -- nächsten Öffnung dieses Spielers, Paket 4.6).
-        local oddsTitle = newText(frame, "OddsTitle", UDim2.new(), UDim2.new(1, 0, 0, 20), Enum.Font.Gotham, MUTED_COLOR, OddsView.oddsTitle(nil))
+        local oddsTitle = newText(frame, "OddsTitle", UDim2.new(), UDim2.new(1, 0, 0, 20), Theme.font.body, MUTED_COLOR, OddsView.oddsTitle(nil))
         oddsTitle.LayoutOrder = nextLine()
         local oddsRows: { [string]: { name: TextLabel, value: TextLabel, color: Color3 } } = {}
         for index = #Rarities.list, 1, -1 do
@@ -832,25 +839,26 @@ function CrateShop.Start()
             row.BackgroundTransparency = 1
             row.Parent = frame
             local color = hexColor(rarity.colorHex)
-            local nameLabel = newText(row, "Name", UDim2.new(), UDim2.new(0.6, 0, 1, 0), Enum.Font.GothamBold, MUTED_COLOR, rarity.name)
-            local valueLabel = newText(row, "Value", UDim2.fromScale(0.6, 0), UDim2.fromScale(0.4, 1), Enum.Font.GothamBold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
+            local nameLabel = newText(row, "Name", UDim2.new(), UDim2.new(0.6, 0, 1, 0), Theme.font.bold, MUTED_COLOR, rarity.name)
+            local valueLabel = newText(row, "Value", UDim2.fromScale(0.6, 0), UDim2.fromScale(0.4, 1), Theme.font.bold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
             oddsRows[rarity.id] = { name = nameLabel, value = valueLabel, color = color }
         end
 
         local pityLabel: TextLabel? = nil
         if crate.pity ~= nil then
-            local created = newText(frame, "Pity", UDim2.new(), UDim2.new(1, 0, 0, PITY_TEXT_HEIGHT), Enum.Font.Gotham, GOOD_COLOR, "")
+            local created = newText(frame, "Pity", UDim2.new(), UDim2.new(1, 0, 0, PITY_TEXT_HEIGHT), Theme.font.body, GOOD_COLOR, "")
             created.LayoutOrder = nextLine()
             pityLabel = created
         end
 
         -- "Details": alle Items mit ihrer Quote (Roblox verlangt ein Wort am Knopf, kein nacktes Symbol).
         local detailsButton = Instance.new("TextButton")
+        Kit.flat(detailsButton)
         detailsButton.Name = "Details"
         detailsButton.LayoutOrder = nextLine()
         detailsButton.Size = UDim2.new(1, 0, 0, DETAILS_BUTTON_HEIGHT)
         detailsButton.BackgroundColor3 = BUTTON_COLOR
-        detailsButton.Font = Enum.Font.GothamBold
+        detailsButton.Font = Theme.font.bold
         detailsButton.TextColor3 = TEXT_COLOR
         detailsButton.TextScaled = true
         detailsButton.Text = TEXT_DETAILS
@@ -873,12 +881,13 @@ function CrateShop.Start()
 
         local function makeButton(name: string, anchorX: number, text: string, count: number): TextButton
             local b = Instance.new("TextButton")
+            Kit.flat(b)
             b.Name = name
             b.AnchorPoint = Vector2.new(anchorX, 0)
             b.Position = UDim2.fromScale(anchorX, 0)
             b.Size = UDim2.new(0.49, 0, 1, 0)
             b.BackgroundColor3 = BUY_COLOR
-            b.Font = Enum.Font.GothamBold
+            b.Font = Theme.font.bold
             b.TextColor3 = PANEL_COLOR
             b.TextScaled = true
             b.Text = text

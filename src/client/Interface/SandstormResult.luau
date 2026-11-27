@@ -5,7 +5,7 @@ local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 
-type Result = { windCrystals: string, ruinsUnlocked: boolean }
+type Result = { windCrystals: string, ruinsUnlocked: boolean, unit: string? } -- unit: Zeile unter der Zahl (Ü5)
 local px, size = UDim2.fromOffset, UDim2.new
 local appear = TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local swell = TweenInfo.new(0.27, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -127,6 +127,7 @@ local function mount(parent: PlayerGui)
         end
         clear()
         reward.Text = "+" .. result.windCrystals
+        label.Text = result.unit or "Windkristalle"
         unlocked.Visible, line.Visible = result.ruinsUnlocked, result.ruinsUnlocked
         card.Size = size(1, -24, 0, if result.ruinsUnlocked then 149 else 112)
         local reduced = GuiService.ReducedMotionEnabled

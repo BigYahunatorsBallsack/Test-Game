@@ -57,13 +57,20 @@ local REVEAL: { [string]: { big: boolean, charge: number, hold: number, flash: b
 
 -- Banner (Set fertig, Zonenbuch fertig)
 local BANNER_SECONDS = 2.2
-local BANNER_COLOR = Color3.fromRGB(255, 200, 80)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+local Icons = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Icons") :: ModuleScript) :: any
+local FindRevealUi = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("FindReveal") :: ModuleScript) :: any
+local ZonesData = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Zones") :: ModuleScript) :: any
+
+local BANNER_COLOR = UI.accent
 
 -- Platzhalter-Objekt im Sand
 -- Ü4: Fund aus einer Fundstelle steigt dort auf (Lage vom Server), wenn sie höchstens so weit weg ist.
 local SPOT_MAX_DISTANCE = 60
 local SPOT_BURST_COUNT = 18
-local SPOT_BURST_COLOR = Color3.fromRGB(230, 200, 117)
+local SPOT_BURST_COLOR = UI.accent
 local SPOT_BURST_SPEED = NumberRange.new(6, 12)
 local SPOT_BURST_LIFETIME = NumberRange.new(0.4, 0.8)
 
@@ -91,10 +98,9 @@ local SOUND_IDS: { [string]: string } = {
     setComplete = "",
 }
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(200, 185, 160)
+-- Farben aus Interface/Theme (Ü5)
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -164,14 +170,13 @@ local function makeCard(size: Vector2, color: Color3): TextButton
     card.AutoButtonColor = false
     card.Text = ""
     card.Size = UDim2.fromOffset(size.X, size.Y)
-    card.BackgroundColor3 = PANEL_COLOR
-    card.BackgroundTransparency = 0.1
     card.Parent = gui
-    Instance.new("UICorner").Parent = card
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color
-    stroke.Thickness = 3
-    stroke.Parent = card
+    Kit.window(card) -- Ü5: Fensterstil, der helle Rand in der Farbe der Seltenheit
+    local rim = card:FindFirstChild("ColorRim")
+    if rim ~= nil and rim:IsA("UIStroke") then
+        rim.Color = color
+        rim.Thickness = 3
+    end
     card.Activated:Connect(function()
         skip = true
     end)
@@ -291,15 +296,42 @@ local function smallPlacement(): (Vector2, Vector2, UDim2, UDim2)
     return size, Vector2.new(1, c.anchorY), UDim2.new(1, -c.margin, c.yScale, c.yOffset), UDim2.new(1, c.w + c.margin, c.yScale, c.yOffset)
 end
 
+-- Überarbeitung Ü5: kleine Fundkarte im Stil aus Interface/FindReveal (Icon, Name, Seltenheit, Zone).
+local findReveal: any = nil
+local FIND_REVEAL_SECONDS = 2.6
+local FIND_REVEAL_SHORT_SECONDS = 1.2
+
+local function showStyled(payload: any, find: any, rarity: any, short: boolean): boolean
+    if findReveal == nil or type(find.icon) ~= "string" then
+        return false
+    end
+    local zone = ZonesData.byId[find.zoneId]
+    local ok, shown = pcall(findReveal.ShowRow, {
+        name = find.name,
+        icon = find.icon,
+        rarity = rarity.id,
+        zoneName = if zone ~= nil then zone.name else "",
+    }, payload.isNew == true)
+    if not ok or shown ~= true then
+        return false
+    end
+    pause(if short then FIND_REVEAL_SHORT_SECONDS else FIND_REVEAL_SECONDS)
+    return true
+end
+
 local function showSmall(payload: any, find: any, rarity: any, short: boolean)
+    if showStyled(payload, find, rarity, short) then
+        playSound("setComplete")
+        return
+    end
     local color = Color3.fromHex(rarity.colorHex)
     local size, anchor, shown, hidden = smallPlacement()
     local card = makeCard(size, color)
     card.AnchorPoint = anchor
     card.Position = hidden
-    label(card, UDim2.new(0, 10, 0.07, 0), UDim2.new(1, -20, 0.3, 0), Enum.Font.GothamBold, color, find.name)
-    label(card, UDim2.new(0, 10, 0.4, 0), UDim2.new(1, -20, 0.24, 0), Enum.Font.GothamBold, TEXT_COLOR, `{rarity.name} · {statusText(payload)}`)
-    label(card, UDim2.new(0, 10, 0.68, 0), UDim2.new(1, -20, 0.22, 0), Enum.Font.Gotham, MUTED_COLOR, setProgressText(payload))
+    label(card, UDim2.new(0, 10, 0.07, 0), UDim2.new(1, -20, 0.3, 0), Theme.font.bold, color, find.name)
+    label(card, UDim2.new(0, 10, 0.4, 0), UDim2.new(1, -20, 0.24, 0), Theme.font.bold, TEXT_COLOR, `{rarity.name} · {statusText(payload)}`)
+    label(card, UDim2.new(0, 10, 0.68, 0), UDim2.new(1, -20, 0.22, 0), Theme.font.body, MUTED_COLOR, setProgressText(payload))
 
     local slide = TweenInfo.new(SMALL_SLIDE_SECONDS, SMALL_SLIDE_EASING)
     TweenService:Create(card, slide, { Position = shown }):Play()
@@ -359,7 +391,7 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
     if effects and timing.flash and not short then
         local flash = Instance.new("Frame")
         flash.Size = UDim2.fromScale(1, 1)
-        flash.BackgroundColor3 = Color3.new(1, 1, 1)
+        flash.BackgroundColor3 = UI.white
         flash.BackgroundTransparency = 0.3
         flash.BorderSizePixel = 0
         flash.Active = false
@@ -377,11 +409,28 @@ local function showBig(payload: any, find: any, rarity: any, short: boolean)
     local scale = Instance.new("UIScale")
     scale.Scale = CARD_POP_START_SCALE
     scale.Parent = card
-    label(card, UDim2.new(0, 12, 0, 12), UDim2.new(1, -24, 0, 30), Enum.Font.GothamBold, color, string.upper(rarity.name))
-    label(card, UDim2.new(0, 12, 0, 52), UDim2.new(1, -24, 0, 44), Enum.Font.GothamBold, TEXT_COLOR, find.name)
-    label(card, UDim2.new(0, 12, 0, 108), UDim2.new(1, -24, 0, 30), Enum.Font.GothamBold, TEXT_COLOR, statusText(payload))
-    label(card, UDim2.new(0, 12, 0, 146), UDim2.new(1, -24, 0, 24), Enum.Font.Gotham, MUTED_COLOR, setProgressText(payload))
-    label(card, UDim2.new(0, 12, 1, -30), UDim2.new(1, -24, 0, 18), Enum.Font.Gotham, MUTED_COLOR, "Tippen zum Schließen")
+    -- Ü5: Bild des Fundstücks oben rechts, die Texte machen ihm Platz.
+    local iconSide = if type(find.icon) == "string" then 96 else 0
+    if iconSide > 0 then
+        local picture = Instance.new("ImageLabel")
+        picture.Name = "FindIcon"
+        picture.BackgroundTransparency = 1
+        picture.AnchorPoint = Vector2.new(1, 0)
+        picture.Position = UDim2.new(1, -12, 0, 12)
+        picture.Size = UDim2.fromOffset(iconSide, iconSide)
+        picture.ScaleType = Enum.ScaleType.Fit
+        picture.Parent = card
+        if not pcall(Icons.Set, picture, find.icon) then
+            picture:Destroy()
+            iconSide = 0
+        end
+    end
+    local textInset = if iconSide > 0 then iconSide + 36 else 24
+    label(card, UDim2.new(0, 12, 0, 12), UDim2.new(1, -textInset, 0, 30), Theme.font.bold, color, string.upper(rarity.name))
+    label(card, UDim2.new(0, 12, 0, 52), UDim2.new(1, -textInset, 0, 44), Theme.font.bold, TEXT_COLOR, find.name)
+    label(card, UDim2.new(0, 12, 0, 108), UDim2.new(1, -24, 0, 30), Theme.font.bold, TEXT_COLOR, statusText(payload))
+    label(card, UDim2.new(0, 12, 0, 146), UDim2.new(1, -24, 0, 24), Theme.font.body, MUTED_COLOR, setProgressText(payload))
+    label(card, UDim2.new(0, 12, 1, -30), UDim2.new(1, -24, 0, 18), Theme.font.body, MUTED_COLOR, "Tippen zum Schließen")
     TweenService:Create(scale, TweenInfo.new(CARD_POP_SECONDS, CARD_POP_EASING), { Scale = 1 }):Play()
 
     pause(CARD_POP_SECONDS + hold)
@@ -395,9 +444,9 @@ local function showBanner(text: string, subText: string?)
     local card = makeCard(size, BANNER_COLOR)
     card.AnchorPoint = anchor
     card.Position = hidden
-    label(card, UDim2.new(0, 10, 0.1, 0), UDim2.new(1, -20, 0.37, 0), Enum.Font.GothamBold, BANNER_COLOR, text)
+    label(card, UDim2.new(0, 10, 0.1, 0), UDim2.new(1, -20, 0.37, 0), Theme.font.bold, BANNER_COLOR, text)
     if subText ~= nil then
-        label(card, UDim2.new(0, 10, 0.54, 0), UDim2.new(1, -20, 0.33, 0), Enum.Font.GothamBold, TEXT_COLOR, subText)
+        label(card, UDim2.new(0, 10, 0.54, 0), UDim2.new(1, -20, 0.33, 0), Theme.font.bold, TEXT_COLOR, subText)
     end
     playSound("setComplete")
     local slide = TweenInfo.new(SMALL_SLIDE_SECONDS, SMALL_SLIDE_EASING)
@@ -464,6 +513,12 @@ end
 function Reveal.Init() end
 
 function Reveal.Start()
+    local okReveal, mounted = pcall(FindRevealUi.Mount, player:WaitForChild("PlayerGui"))
+    if okReveal then
+        findReveal = mounted
+    else
+        warn(`[Reveal] Fundkarte nicht verfügbar: {tostring(mounted)}`)
+    end
     -- Lichtstoß und Blitz decken den ganzen Bildschirm, die Karten liegen auf der sicheren Fläche.
     local fx = Instance.new("ScreenGui")
     fx.Name = "DuneBaronRevealFx"

@@ -31,11 +31,15 @@ local BEAM_START_HEIGHT_STUDS = 1
 local ARRIVED_DISTANCE_STUDS = 10
 local UPDATE_SECONDS = 0.2
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local STEP_TEXT_COLOR = Color3.fromRGB(230, 200, 117)
-local MARKER_COLOR = Color3.fromRGB(255, 220, 120)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local TEXT_COLOR = UI.text
+local STEP_TEXT_COLOR = UI.accent
+local MARKER_COLOR = UI.accent
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -98,14 +102,14 @@ function Tutorial.Start()
     banner.BackgroundTransparency = 1
     banner.Visible = false
     banner.Parent = gui
-    Instance.new("UICorner").Parent = banner
+    Kit.window(banner) -- Ü5: Fensterstil aus Interface/Kit
 
     local stepLabel = Instance.new("TextLabel")
     stepLabel.Name = "Step"
     stepLabel.BackgroundTransparency = 1
     stepLabel.Position = UDim2.new(0, BANNER_PAD, 0, 3)
     stepLabel.Size = UDim2.new(1, -2 * BANNER_PAD, 0, 15)
-    stepLabel.Font = Enum.Font.GothamBold
+    stepLabel.Font = Theme.font.bold
     stepLabel.TextColor3 = STEP_TEXT_COLOR
     stepLabel.TextScaled = true
     stepLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -117,7 +121,7 @@ function Tutorial.Start()
     textLabel.BackgroundTransparency = 1
     textLabel.Position = UDim2.new(0, BANNER_PAD, 0, 19)
     textLabel.Size = UDim2.new(1, -2 * BANNER_PAD, 1, -22)
-    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Font = Theme.font.bold
     textLabel.TextColor3 = TEXT_COLOR
     textLabel.TextScaled = true
     textLabel.TextWrapped = true

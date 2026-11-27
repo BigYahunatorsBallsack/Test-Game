@@ -1178,6 +1178,18 @@ local function checkFinds(errors: { string }, data: DataSet)
         return
     end
 
+    -- Überarbeitung Ü5: jedes Fundstück hat ein eigenes Bild aus dem UI-Atlas.
+    local icons: { [string]: string } = {}
+    for _, find in finds.list do
+        if type(find.icon) ~= "string" or find.icon == "" then
+            table.insert(errors, `Finds: {tostring(find.id)} hat kein icon`)
+        elseif icons[find.icon] ~= nil then
+            table.insert(errors, `Finds: icon {find.icon} doppelt ({icons[find.icon]} und {tostring(find.id)})`)
+        else
+            icons[find.icon] = tostring(find.id)
+        end
+    end
+
     -- Sets: eindeutige IDs, bekannte Zone, 6 Sets zu je 5 pro Zone.
     local seen: { [string]: boolean } = {}
     local perZone: { [string]: number } = {}

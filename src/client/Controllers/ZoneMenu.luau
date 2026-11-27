@@ -22,13 +22,17 @@ local GATE_SIGN_SIZE = UDim2.new(0, 260, 0, 70)
 local GATE_SIGN_OFFSET = Vector3.new(0, 4, 0)
 local GATE_SIGN_DISTANCE = 120
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local GO_COLOR = Color3.fromRGB(230, 200, 117)
-local DISABLED_COLOR = Color3.fromRGB(90, 80, 70)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local GO_COLOR = UI.accent
+local DISABLED_COLOR = UI.slot
 
 local REASON_TEXT = {
     locked = "Diese Zone ist noch gesperrt.",
@@ -126,7 +130,7 @@ local function addGate(part: Instance)
     text.BackgroundColor3 = PANEL_COLOR
     text.BackgroundTransparency = 0.25
     text.Size = UDim2.new(1, 0, 1, 0)
-    text.Font = Enum.Font.GothamBold
+    text.Font = Theme.font.bold
     text.TextColor3 = TEXT_COLOR
     text.TextScaled = true
     text.Parent = sign
@@ -162,7 +166,7 @@ function ZoneMenu.Start()
     message.BackgroundTransparency = 1
     message.Position = UDim2.fromOffset(16, 4)
     message.Size = UDim2.new(1, -32, 1, -8)
-    message.Font = Enum.Font.Gotham
+    message.Font = Theme.font.body
     message.TextColor3 = MUTED_COLOR
     message.TextScaled = true
     message.TextXAlignment = Enum.TextXAlignment.Left
@@ -194,7 +198,7 @@ function ZoneMenu.Start()
         nameLabel.BackgroundTransparency = 1
         nameLabel.Position = UDim2.new(0, 10, 0, 4)
         nameLabel.Size = UDim2.new(1, textWidth, 0, 28)
-        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Font = Theme.font.bold
         nameLabel.TextColor3 = TEXT_COLOR
         nameLabel.TextScaled = true
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -205,17 +209,19 @@ function ZoneMenu.Start()
         status.BackgroundTransparency = 1
         status.Position = UDim2.new(0, 10, 0, 34)
         status.Size = UDim2.new(1, textWidth, 0, 22)
-        status.Font = Enum.Font.Gotham
+        status.Font = Theme.font.body
         status.TextColor3 = MUTED_COLOR
         status.TextScaled = true
         status.TextXAlignment = Enum.TextXAlignment.Left
         status.Parent = row
 
         local go = Instance.new("TextButton")
+
+        Kit.flat(go)
         go.AnchorPoint = Vector2.new(1, 0.5)
         go.Position = UDim2.new(1, -10, 0.5, 0)
         go.Size = UDim2.fromOffset(ROW_BUTTON_W, controls.rowButtonH)
-        go.Font = Enum.Font.GothamBold
+        go.Font = Theme.font.bold
         go.TextColor3 = PANEL_COLOR
         go.TextScaled = true
         go.Text = "Reisen"

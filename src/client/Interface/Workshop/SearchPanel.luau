@@ -36,7 +36,7 @@ function SearchPanel.mount(root, config)
     close.Position = UDim2.new(1, -56, 0, 8)
     close.Size = UDim2.fromOffset(44, 44)
     local heading = Art.text(card, "Titel", "Upgrades finden", 24, C.bright, true)
-    heading.Font = Enum.Font.Antique
+    heading.Font = Art.font.title
     heading.Position = UDim2.fromOffset(14, 8)
     heading.Size = UDim2.new(1, -74, 0, 44)
 
@@ -48,7 +48,7 @@ function SearchPanel.mount(root, config)
     field.PlaceholderColor3 = C.mute
     field.TextColor3 = C.ivory
     field.TextSize = 16
-    field.Font = Enum.Font.GothamMedium
+    field.Font = Art.font.body
     field.TextXAlignment = Enum.TextXAlignment.Left
     field.BackgroundColor3 = C.ink
     field.BorderSizePixel = 0

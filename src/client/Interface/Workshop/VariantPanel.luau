@@ -30,7 +30,7 @@ function VariantPanel.mount(root, config)
     Art.round(Art.surface(panel, "steel", 0.32), 10)
 
     local heading = Art.text(panel, "Titel", "", 24, C.bright, true)
-    heading.Font = Enum.Font.Antique
+    heading.Font = Art.font.title
     heading.Position = UDim2.fromOffset(16, 6)
     heading.Size = UDim2.new(1, -79, 0, 46)
     local close = Art.button(panel, "Schliessen", "×")
@@ -120,7 +120,7 @@ function VariantPanel.mount(root, config)
         Art.rect(icon, 10, 8, 48, 48)
         Art.round(icon, 5)
         local name = Art.text(shell, "Name", node.name, 23, accent, true)
-        name.Font = Enum.Font.Antique
+        name.Font = Art.font.title
         name.Position = UDim2.fromOffset(68, 7)
         name.Size = UDim2.new(1, -80, 0, 50)
 

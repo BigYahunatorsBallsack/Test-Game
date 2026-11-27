@@ -21,17 +21,21 @@ local ROW_PADDING = 8
 local MESSAGE_SECONDS = 3
 local ACTION_COOLDOWN_SECONDS = 0.6 -- gegen Doppeltippen, länger als das Limit des Servers (2 Aufrufe je Sekunde)
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local GOOD_COLOR = Color3.fromRGB(150, 220, 120)
-local WARN_COLOR = Color3.fromRGB(235, 150, 90)
-local BUTTON_COLOR = Color3.fromRGB(80, 66, 52)
-local ACTIVE_TAB_COLOR = Color3.fromRGB(230, 200, 117)
-local EQUIP_COLOR = Color3.fromRGB(230, 200, 117)
-local MERGE_COLOR = Color3.fromRGB(150, 220, 120)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local GOOD_COLOR = UI.good
+local WARN_COLOR = UI.warn
+local BUTTON_COLOR = UI.button
+local ACTIVE_TAB_COLOR = UI.accent
+local EQUIP_COLOR = UI.accent
+local MERGE_COLOR = UI.good
 
 local TABS = {
     { slot = "skin", label = "Skins" },
@@ -106,9 +110,10 @@ end
 
 local function newButton(parent: Instance, name: string, color: Color3, textColor: Color3): TextButton
     local b = Instance.new("TextButton")
+    Kit.flat(b)
     b.Name = name
     b.BackgroundColor3 = color
-    b.Font = Enum.Font.GothamBold
+    b.Font = Theme.font.bold
     b.TextColor3 = textColor
     b.TextScaled = true
     b.Parent = parent
@@ -173,8 +178,8 @@ function EquipmentMenu.Start()
     local openButton = Screen.addMenuButton("EquipmentButton", "Ausrüstung", MENU_ORDER)
     openButton.Activated:Connect(window.toggle)
 
-    local bonusLabel = newText(window.footer, "Bonus", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Enum.Font.GothamBold, GOOD_COLOR, "Sammelrate durch Items: +0 %")
-    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Enum.Font.GothamBold, WARN_COLOR, "")
+    local bonusLabel = newText(window.footer, "Bonus", UDim2.new(0, 12, 0, 4), UDim2.new(1, -24, 0, 26), Theme.font.bold, GOOD_COLOR, "Sammelrate durch Items: +0 %")
+    local messageLabel = newText(window.footer, "Message", UDim2.new(0, 12, 0, 34), UDim2.new(1, -24, 0, 24), Theme.font.bold, WARN_COLOR, "")
 
     local messageToken = 0
     local function showMessage(text: string)
@@ -192,10 +197,11 @@ function EquipmentMenu.Start()
     local tabButtons: { [string]: TextButton } = {}
     for index, tab in TABS do
         local b = Instance.new("TextButton")
+        Kit.flat(b)
         b.Name = `Tab_{tab.slot}`
         b.Size = UDim2.new(1 / #TABS, -6, 1, -8)
         b.Position = UDim2.new((index - 1) / #TABS, 3, 0, 4)
-        b.Font = Enum.Font.GothamBold
+        b.Font = Theme.font.bold
         b.TextScaled = true
         b.Text = tab.label
         b.Parent = window.sub
@@ -267,7 +273,7 @@ function EquipmentMenu.Start()
         if #items == 0 then
             local directHint = snapshot.cratePolicy == "restricted" or snapshot.cratePolicy == "unknown"
             local emptyText = EMPTY_TEXTS[activeSlot] .. (if snapshot.cratesAllowed == true then EMPTY_CRATES_HINT elseif directHint then EMPTY_DIRECT_HINT else "")
-            local empty = newText(window.body, "Empty", UDim2.new(), UDim2.new(1, 0, 0, 56), Enum.Font.Gotham, MUTED_COLOR, emptyText)
+            local empty = newText(window.body, "Empty", UDim2.new(), UDim2.new(1, 0, 0, 56), Theme.font.body, MUTED_COLOR, emptyText)
             empty.LayoutOrder = 1
             return
         end
@@ -292,13 +298,13 @@ function EquipmentMenu.Start()
             row.Parent = window.body
             Instance.new("UICorner").Parent = row
 
-            local nameLabel = newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.55, -12, 0, 30), Enum.Font.GothamBold, hexColor(rarity.colorHex), `{item.name} {string.rep("★", itemStars)}`)
+            local nameLabel = newText(row, "Name", UDim2.new(0, 12, 0, 8), UDim2.new(0.55, -12, 0, 30), Theme.font.bold, hexColor(rarity.colorHex), `{item.name} {string.rep("★", itemStars)}`)
             nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-            newText(row, "Bonus", UDim2.new(0, 12, 0, 42), UDim2.new(0.55, -12, 0, 22), Enum.Font.GothamBold, GOOD_COLOR, `+{percentText(bonus)} % Sammelrate`)
+            newText(row, "Bonus", UDim2.new(0, 12, 0, 42), UDim2.new(0.55, -12, 0, 22), Theme.font.bold, GOOD_COLOR, `+{percentText(bonus)} % Sammelrate`)
             local copiesText = if cost == nil
                 then `Exemplare: {copies}. Höchster Stern.`
                 else `Exemplare: {copies}. Nächster Stern: {cost} Kopien`
-            newText(row, "Copies", UDim2.new(0, 12, 0, 68), UDim2.new(0.55, -12, 0, 22), Enum.Font.Gotham, if canMerge then TEXT_COLOR else MUTED_COLOR, copiesText)
+            newText(row, "Copies", UDim2.new(0, 12, 0, 68), UDim2.new(0.55, -12, 0, 22), Theme.font.body, if canMerge then TEXT_COLOR else MUTED_COLOR, copiesText)
 
             local equip = newButton(row, "Equip", EQUIP_COLOR, PANEL_COLOR)
             equip.AnchorPoint = Vector2.new(1, 0)

@@ -5,6 +5,8 @@
 -- Maße und Plätze kommen aus Data/Screen je Größenklasse (Paket 3.6): am Handy ein kleineres Panel,
 -- damit Tutorial-Banner, Menüspalte und Steuerung Platz haben.
 -- Überarbeitung Ü4: Beim Verkaufen fliegen Münzen zum Münzzähler (Interface/SaleFeedback).
+-- Überarbeitung Ü5: Stil aus Interface/Theme und Kit (Panel mit Verlauf und Kontur, Münz- und
+-- Sand-Icon, runde Schrift). Plätze bleiben aus Data/Screen, damit Menüleiste und Tutorial passen.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,12 +21,13 @@ local TOAST_EASING = Enum.EasingStyle.Sine
 -- Countdown des Münz-Boosts (Paket 4.4): so oft wird die Restzeit neu geschrieben
 local BOOST_TICK_SECONDS = 0.5
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local TANK_FILL_COLOR = Color3.fromRGB(230, 200, 117)
-local TANK_FULL_COLOR = Color3.fromRGB(220, 120, 60)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local PERKS_COLOR = Color3.fromRGB(255, 214, 110) -- Zeile "Pässe und Boost"
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+
+-- Farben aus Interface/Theme (Ü5)
+local TANK_FILL_COLOR = UI.accent
+local TANK_FULL_COLOR = UI.danger
+local PERKS_COLOR = UI.accent -- Zeile "Pässe und Boost"
 
 local MESSAGES = {
     tankFull = "Tank voll! Ab zum Händlerstand.",
@@ -38,6 +41,8 @@ local Zones = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Dat
 local Tools = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Tools") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+local Icons = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Icons") :: ModuleScript) :: any
 local SaleFeedback = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("SaleFeedback") :: ModuleScript) :: any
 
 local TOAST_HEIGHT = 36
@@ -87,8 +92,7 @@ local function label(parent: Instance, name: string, position: UDim2, size: UDim
     l.BackgroundTransparency = 1
     l.Position = position
     l.Size = size
-    l.Font = Enum.Font.GothamBold
-    l.TextColor3 = TEXT_COLOR
+    Kit.title(l)
     l.TextScaled = true
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Parent = parent
@@ -105,18 +109,24 @@ function Hud.Start()
 
     local panel = Instance.new("Frame")
     panel.Name = "Panel"
-    panel.BackgroundColor3 = PANEL_COLOR
-    panel.BackgroundTransparency = 0.25
     panel.Parent = gui
-    Instance.new("UICorner").Parent = panel
+    Kit.window(panel)
 
+    -- Münz-Icon links neben der Zahl, Zahl in Gold.
+    local coinIcon = Instance.new("ImageLabel")
+    coinIcon.Name = "CoinIcon"
+    coinIcon.BackgroundTransparency = 1
+    coinIcon.ScaleType = Enum.ScaleType.Fit
+    coinIcon.Parent = panel
+    pcall(Icons.Set, coinIcon, "icon_currency_coin")
     local coinsLabel = label(panel, "Coins", UDim2.new(), UDim2.new())
-    coinsLabel.Text = "Münzen: 0"
+    coinsLabel.TextColor3 = UI.accent
+    coinsLabel.Text = "0"
 
     local bar = Instance.new("Frame")
     bar.Name = "TankBar"
-    bar.BackgroundColor3 = Color3.new(0, 0, 0)
-    bar.BackgroundTransparency = 0.5
+    bar.BackgroundColor3 = UI.slot
+    bar.BackgroundTransparency = 0
     bar.ClipsDescendants = true
     bar.Parent = panel
     Instance.new("UICorner").Parent = bar
@@ -148,6 +158,11 @@ function Hud.Start()
     local toast = label(gui, "Toast", UDim2.new(), UDim2.new())
     toast.AnchorPoint = Vector2.new(0.5, 0)
     toast.TextXAlignment = Enum.TextXAlignment.Center
+    toast.TextStrokeColor3 = UI.ink
+    local toastOutline = toast:FindFirstChild("LetterOutline")
+    if toastOutline ~= nil then
+        toastOutline:Destroy() -- die Meldung blendet über TextStroke aus, eine Kontur bliebe stehen
+    end
     toast.TextTransparency = 1
     toast.TextStrokeTransparency = 1
 
@@ -157,8 +172,10 @@ function Hud.Start()
         local hud, lines = data.hud, data.lines
         panel.Position = UDim2.fromOffset(hud.x, hud.y)
         panel.Size = UDim2.fromOffset(hud.w, hud.h)
-        coinsLabel.Position = UDim2.fromOffset(hud.pad, hud.coinsY)
-        coinsLabel.Size = UDim2.new(1, -2 * hud.pad, 0, hud.coinsH)
+        coinIcon.Position = UDim2.fromOffset(hud.pad, hud.coinsY)
+        coinIcon.Size = UDim2.fromOffset(hud.coinsH, hud.coinsH)
+        coinsLabel.Position = UDim2.fromOffset(hud.pad + hud.coinsH + 6, hud.coinsY)
+        coinsLabel.Size = UDim2.new(1, -2 * hud.pad - hud.coinsH - 6, 0, hud.coinsH)
         bar.Position = UDim2.fromOffset(hud.pad, hud.barY)
         bar.Size = UDim2.new(1, -2 * hud.pad, 0, hud.barH)
         toolLabel.Position = UDim2.fromOffset(hud.x + hud.pad, lines.toolY)
@@ -226,7 +243,7 @@ function Hud.Start()
         local luckSeconds = if type(snapshot.luckBoostSeconds) == "number" and snapshot.luckBoostSeconds == snapshot.luckBoostSeconds then snapshot.luckBoostSeconds else 0
         perks.luckEndsAt = if luckSeconds > 0 then os.clock() + luckSeconds else 0
         renderPerks()
-        coinsLabel.Text = `Münzen: {display(snapshot.coins)}`
+        coinsLabel.Text = display(snapshot.coins)
         local tool = Tools.byId[snapshot.toolId]
         local zone = Zones.byId[snapshot.zoneId]
         local zoneText = if zone ~= nil then `{zone.name} · ` else ""

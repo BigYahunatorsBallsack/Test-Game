@@ -167,11 +167,26 @@ function FindReveal.Mount(gui: PlayerGui)
 
     local api = {}
 
+    -- Zeigt einen Fund aus den Spieldaten (Überarbeitung Ü5): Name, Icon, Seltenheit, Zone kommen
+    -- vom Aufrufer (Data/Finds), nicht aus dem Entwurfskatalog.
+    local showRow: (row: FindRow, isNew: boolean) -> boolean
+
     function api.Show(id: string, isNew: boolean): boolean
         local row = finds[id]
         if destroyed or not row then
             return false
         end
+        return showRow(row, isNew)
+    end
+
+    function api.ShowRow(row: FindRow, isNew: boolean): boolean
+        if destroyed or appearances[row.rarity] == nil or Theme.finds[row.rarity] == nil then
+            return false
+        end
+        return showRow(row, isNew)
+    end
+
+    showRow = function(row: FindRow, isNew: boolean): boolean
         clearAnimation()
         local rarity = appearances[row.rarity]
         local swatch = Theme.finds[row.rarity]

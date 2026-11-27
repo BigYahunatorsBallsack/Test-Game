@@ -838,3 +838,20 @@ Plan "Plan Ü4: Gefühl beim Stechen". Rechnung in `Logic/StabFeel`, Zahlen in `
 - [ ] [Studio] Handy-Emulator: kein Ruckeln, weniger Klumpen; Grafikstufe "minimal" ohne Kamera-Ruck und ohne Klumpen.
 
 Hinweise: Der Kamera-Ruck kommt sofort beim Klick und nutzt die Schicht des letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck). Ein sauberer Stich zeigt sich deshalb über den grünen Ring, den hellen Ton und den Staubstoß, nicht über einen stärkeren Ruck. Die Kamera wird nur verschoben, nicht gedreht, damit die Blickrichtung nicht wandert. Ton-IDs und die Arm-Animation fehlen noch (Waltuh, ChatGPT).
+
+## Ü5 Ein Look für die Oberfläche (Überarbeitung)
+
+Plan "Plan Ü5: Ein Look für die Oberfläche", Stil "Bunter Stil (Theme)". Farben und Schriften in `Interface/Theme` (`Theme.ui`, `Theme.font`), Bausteine in `Interface/Kit`, Tests in `tests/uitheme.spec.luau`. Nur Client und Daten (Fund-Icons), keine Server-Änderung.
+
+- [x] [Lune] Kein Menü-Controller und keine Werkstatt-Datei hat eigene Farbzahlen (`Color3.fromRGB/new/fromHex`) oder `Enum.Font`; alles kommt aus Theme.
+- [x] [Lune] Alle Theme-Schlüssel, die die Menüs nutzen, sind vorhanden.
+- [x] [Lune] Jeder Fund hat ein Icon, das im Icon-Katalog existiert, nur einmal vorkommt und zur Zone des Funds gehört. DataCheck prüft das auch.
+- [x] [Lune] Die Werkstatt zeigt ohne Entwürfe nur echte Knoten: Kosten und Voraussetzungen gleich `UpgradeTree`. Mit Entwürfen bleiben die Geräte-Reiter.
+- [ ] [Studio] HUD: Münzen mit Münz-Icon in Gold, Leisten und Texte im neuen Stil, nichts überlappt (PC und Handy-Emulator).
+- [ ] [Studio] Laden, Gem-Laden, Ausrüstung, Zonen, Skilltree, Werkstatt, Sammelbuch, Tutorial: gleiche Fenster, gleiche Knöpfe, gleiche Schrift.
+- [ ] [Studio] Fund: kleine Funde als Zeile mit Icon, große als Karte mit Icon und Rand in Seltenheitsfarbe.
+- [ ] [Studio] Sammelbuch: gefundene Funde mit buntem Icon, fehlende als dunkle Silhouette. Prüfen, ob die Bilder zu den Namen passen.
+- [ ] [Studio] Sandsturm: Ergebnisfenster mit Windkristallen und Bonus.
+- [ ] [Studio] Werkstatt startet auf "Hand", kein Probelauf-Knopf.
+
+Hinweise: Das HUD wird an Ort und Stelle umgefärbt (Layout bleibt aus `Data/Screen`), nicht über `View.Mount`. Fund-Icons sind je Zone nach Seltenheit zugeordnet, Bild und Name passen deshalb nicht immer; bei Bedarf in `Data/Finds` tauschen. Menüs abgeschalteter Systeme werden erst in Ü11 umgestellt. Probelauf bleibt bis Ü7 versteckt.
