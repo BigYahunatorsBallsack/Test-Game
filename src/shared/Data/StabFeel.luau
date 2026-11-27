@@ -5,14 +5,15 @@
 -- Töne stehen in Data/StabSounds. Startwerte, Feinschliff nach Waltuhs Studio-Test.
 
 return {
-    -- Stich der Arme (Platzhalter-Kurve bis zur Animation von ChatGPT). Ein Stich dauert einen Takt
+    -- Ein Stich der Arme dauert einen Takt
     -- des Werkzeugs (Data/Deposits) und beginnt mit dem Klick, damit er sofort sitzt. Anteile am Takt:
     -- Einstechen bis `strikeEnd`, unten halten bis `holdEnd`, danach zurück in die Ruhelage.
     arm = {
         strikeEnd = 0.18,
         holdEnd = 0.3,
-        -- Animation-ID für später (leer = Platzhalter-Kurve).
-        animationId = "",
+        -- Leere ID verwendet die prozedurale Stichkurve.
+        animationId = "rbxassetid://138942650732146",
+        animationSeconds = 0.5,
     },
 
     -- Takt-Ring am Fadenkreuz: zieht sich vom Stich bis zum nächsten Takt zusammen.

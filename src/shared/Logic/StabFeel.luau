@@ -25,6 +25,14 @@ local function easeInOut(x: number): number
     return x * x * (3 - 2 * x)
 end
 
+-- Spielt den Clip in der Dauer eines Werkzeugtakts ab.
+function StabFeel.animationSpeed(interval: number, data: any?): number
+    if not isFinite(interval) or interval <= 0 then
+        return 1
+    end
+    return (data or DefaultData).arm.animationSeconds / interval
+end
+
 -- Fortschritt des laufenden Stichs in [0, 1), nil, wenn gerade kein Stich läuft.
 function StabFeel.phase(now: number, stabAt: number?, interval: number): number?
     if stabAt == nil or not isFinite(now) or not isFinite(stabAt) or not isFinite(interval) or interval <= 0 then
@@ -172,6 +180,7 @@ function StabFeel.check(data: any, sounds: any, levels: { string }?, layerCount:
     if type(arm.animationId) ~= "string" or (arm.animationId ~= "" and string.match(arm.animationId, SOUND_ID_PATTERN) == nil) then
         fail(`arm.animationId muss leer oder "rbxassetid://" plus Ziffern sein`)
     end
+    positive("arm.animationSeconds", arm.animationSeconds)
     positive("ring.minSize", ring.minSize)
     positive("ring.maxSize", ring.maxSize)
     if isFinite(ring.minSize) and isFinite(ring.maxSize) and ring.minSize >= ring.maxSize then
