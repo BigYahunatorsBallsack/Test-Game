@@ -755,3 +755,37 @@ Plan: docs/overhaul-plan.md, Abschnitt 5.3, und das Plan-Dokument zu Ü1 und Ü2
 - [ ] [Studio] Verkaufen, Werkstatt, Sammlung, Sandsturm, Kistenkauf und Gem-Kauf funktionieren wie vorher. Testkauf `DebugPurchase "starter_pack"` wird trotz ausgeschalteter Angebote gutgeschrieben.
 - [ ] [Studio] Server-Ausgabe: "Ausgeschaltet (Data/Features): Offers, Daily, ..." und "Every Last Grain läuft".
 - [ ] [Studio] Place ohne Händlerstand: In Studio erscheint der Platzhalter mit Warnung. Im veröffentlichten Testserver steht "[Welt] FEHLT im Place: ..." rot im Server-Log (Entwicklerkonsole, Reiter Server).
+
+## Ü2 Stich und Sandschichten (Überarbeitung)
+
+Plan: Plan-Dokument zu Ü1 und Ü2 (freigegeben am 27.11.2026). Neue Remote `Stab(x, y, z, held)`, Regeln in `Logic/Deposits`, Zahlen in `Data/Deposits`. Zellen 8 × 8 Studs mit drei Schichten (4, 6 und 8 Stiche, Faktor 1, 1,5 und 2,5 auf die Menge), danach leer, nach 60 Sekunden wieder voll. Das Terrain wächst nach derselben Zeit nach (`Terrain.regrow.delaySeconds`). Takt je Werkzeug (Hand 0,5 s bis Großmaschine 0,35 s) auf der Server-Uhr mit 0,12 s Spielraum. Sauberer Stich (Lücke zum vorigen Stich bis Takt + 0,25 s, nicht durch Halten): Faktor 1, sonst 0,6. `SetCollecting(true)` wirkt nur noch mit aktivem Auto-Dig-Pass, der über die Zeit mit Faktor 0,6 sammelt (Abweichung vom Plan: Auto-Dig sticht nicht in Zellen, sondern sammelt wie bisher über die Zeit, nur mit dem Faktor von Halten). Funde laufen bis Ü3 über den bisherigen Würfel: Jeder angenommene Stich zählt einen Takt Sammelzeit.
+
+- [x] [Lune] Ziel außerhalb der Reichweite, zu hoch, ohne Charakter, NaN oder unendlich: kein Sand, keine Zelle (`tests/deposits.spec.luau`).
+- [x] [Lune] Reichweite mit Spielraum: genau an der Grenze geht, knapp darüber nicht.
+- [x] [Lune] Kein Sand unter dem Punkt: kein Stich.
+- [x] [Lune] Zwei Stiche schneller als der Takt: der zweite zählt nicht. Über 200 zu frühe Stiche höchstens einer je Takt.
+- [x] [Lune] Schichten: nach 4 Stichen Schicht 2, nach 10 Schicht 3, nach 18 leer. Die Menge folgt dem Faktor.
+- [x] [Lune] Nachbarzelle voll, leere Zelle nach der Auffüllzeit wieder voll, leere Stiche verlängern das Auffüllen nicht.
+- [x] [Lune] Sauberer Stich nur im Fenster, nicht beim ersten Stich und nicht zu spät. Halten: im Takt, nie sauber, Faktor 0,6. Bruchteile der Hand werden mitgenommen.
+- [x] [Lune] Tank voll: kein Sand, Zelle und Takt nicht verbraucht. Tank läuft voll: Menge gekappt, Bruchteil verfällt.
+- [x] [Lune] Fundzeit ein Takt je angenommenem Stich, 0 bei Ablehnung. `isDigging` kurz nach einem Stich an.
+- [x] [Lune] Speicher: höchstens `maxTrackedCells` Zellen je Spieler.
+- [x] [Lune] Remote `Stab`: kein Mengen-Argument, Schema lehnt zusätzliche Argumente, NaN, unendlich, zu große Zahlen und Texte ab. Kommazahlen sind nur als Weltkoordinate erlaubt (`tests/policyguards.spec.luau`).
+- [x] [Lune] DataCheck prüft `Data/Deposits` (Takt je Werkzeug, Spielraum kleiner als jeder Takt, Nachwachsen gleich Auffüllzeit).
+- [ ] [Studio] Dieselbe Stelle immer wieder stechen: Das Loch wird tiefer, der Staub dunkler, nach 18 Stichen "Hier ist nichts mehr. Ein paar Schritte weiter graben." Einen Schritt weiter geht es wieder voll los. Nach einer Minute ist die alte Stelle wieder zu und voll.
+- [ ] [Studio] Im Takt klicken gibt sichtbar mehr als Halten (Tankanzeige), ein sauberer Stich macht einen zweiten Staubstoß.
+- [ ] [Studio] Zu schnell klicken bringt nicht mehr als im Takt klicken.
+- [ ] [Studio] Arme und Maschinen bewegen sich beim Stechen und hören kurz nach dem letzten Stich auf. Ein zweiter Spieler sieht die Maschine arbeiten.
+- [ ] [Studio] Am Händlerstand und mit vollem Tank wird nicht gestochen ("Tank voll" erscheint).
+- [ ] [Studio] Handy-Emulator: Tippen auf "Graben" sticht einmal, Halten sticht im Takt.
+- [ ] [Studio] Auto-Dig-Pass (DebugPurchase oder Studio-Pass) mit Schalter an: sammelt ohne Taste, langsamer als vorher (Faktor 0,6).
+- [ ] [Studio] Funde kommen beim Stechen weiterhin (Würfel je Takt).
+
+Security-Review Ü2 (keine kritischen oder hohen Funde), umgesetzt:
+- M1: Stechen und Auto-Dig schließen sich aus (Stich beendet laufendes Halten, Auto-Dig pausiert, solange gestochen wird), Fundzeit zählt nicht doppelt.
+- M2: Der Bonus für saubere Stiche lässt sich mit schnellem Klicken oder einem Autoklicker immer holen. Gemildert: Ein Druck wird nur bis 0,12 s vor dem Takt gemerkt. Offene Designfrage für den Fun-Test A1: Bonus behalten, kleiner machen oder nur als Optik.
+- L1: Günstige Takt-Vorprüfung (`Deposits.tooSoon`) vor Strahl und Rechnung.
+- L2: "Tank voll" und "Hier ist nichts mehr" höchstens alle 2 s.
+- L3: Event-Kiste ist zu, solange die Event-Zone ausgeschaltet ist (`Events.inSeason`).
+- L4 (offen, nur Optik): Bei Lag abgelehnte Stiche haben schon ein Loch gegraben.
+- [x] [Lune] `tooSoon` stimmt mit `stab` überein.

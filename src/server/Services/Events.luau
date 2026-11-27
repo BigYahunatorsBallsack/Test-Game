@@ -40,6 +40,7 @@ local DEBUG_ATTRIBUTE = "DebugSeason"
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local SeasonsLogic = require(shared:WaitForChild("Logic"):WaitForChild("Seasons") :: ModuleScript) :: any
 local SeasonPassLogic = require(shared:WaitForChild("Logic"):WaitForChild("SeasonPass") :: ModuleScript) :: any
+local FeatureRules = require(shared:WaitForChild("Logic"):WaitForChild("Features") :: ModuleScript) :: any
 
 local servicesFolder = script.Parent
 local SeasonClock = require(servicesFolder:WaitForChild("SeasonClock") :: ModuleScript) :: any
@@ -87,6 +88,10 @@ end
 -- Ist die Event-Kiste dieses Spielers jetzt offen? Nur true für die Kiste der laufenden Saison in
 -- einer Woche mit crateOpen. Bei einem Fehler false (Kiste bleibt zu).
 function Events.inSeason(player: Player, crateId: string): boolean
+    -- Überarbeitung Ü1: Ist die Event-Zone (Saison) ausgeschaltet, gibt es keine Event-Kiste.
+    if not FeatureRules.on("eventZone") then
+        return false
+    end
     local ok, result = pcall(function(): boolean
         return SeasonsLogic.inSeason(timeFor(player), crateId)
     end)

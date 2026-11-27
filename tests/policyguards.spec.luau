@@ -208,6 +208,7 @@ local INVENTORY_REMOTES: { [string]: string } = {
 -- hier oder oben eingeordnet werden (der Test scheitert sonst).
 local OTHER_REMOTES: { [string]: string } = {
     SetCollecting = "Sammeltaste",
+    Stab = "Stich in den Sand (Überarbeitung Ü2): Zielpunkt und Halten, kein Inventar",
     Sell = "Sand verkaufen (nicht Items)",
     TravelZone = "Zone wechseln",
     PurchaseNode = "Skilltree-Knoten",
@@ -262,6 +263,9 @@ local SMALL_INT_ARGS: { [string]: { min: number, max: number, reason: string } }
     },
 }
 local SMALL_INT_MAX = 1000
+-- Kommazahlen sind nur als Weltkoordinate erlaubt: Der Server nutzt sie für Reichweite und Zelle des
+-- eigenen Spielers, nie als Verweis auf einen anderen Spieler (Überarbeitung Ü2).
+local WORLD_COORD_ARGS: { [string]: boolean } = { ["Stab#1"] = true, ["Stab#2"] = true, ["Stab#3"] = true }
 -- Wörter in Remote-Namen, die auf Tausch, Verkauf oder Verschenken hindeuten.
 local FORBIDDEN_NAME_PARTS = { "trade", "gift", "send", "transfer", "give", "sellitem", "market" }
 
@@ -391,6 +395,10 @@ T.describe("Kein Tausch, kein Verschenken, Inventar nur über bekannte Remotes",
                 elseif rule.kind == "string" then
                     if FREE_TEXT_ARGS[label] == nil then
                         error(`{label}: freier Text als Argument (könnte ein Spielername sein)`)
+                    end
+                elseif rule.kind == "number" then
+                    if WORLD_COORD_ARGS[label] == nil then
+                        error(`{label}: Kommazahl als Argument ist nur als Weltkoordinate erlaubt`)
                     end
                 elseif rule.kind ~= "boolean" then
                     error(`{label}: unbekannte Regel {tostring(rule.kind)}`)

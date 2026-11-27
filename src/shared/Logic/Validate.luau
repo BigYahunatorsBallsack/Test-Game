@@ -9,6 +9,7 @@ export type Rule =
     | { kind: "int", min: number, max: number }
     | { kind: "oneOf", values: { any } }
     | { kind: "idIn", ids: { [string]: any }, maxLen: number }
+    | { kind: "number", min: number, max: number }
 
 local Validate = {}
 
@@ -31,6 +32,12 @@ end
 -- Genau einer der erlaubten Werte (Zahlen, Texte oder Booleans).
 function Validate.oneOf(values: { any }): Rule
     return { kind = "oneOf", values = values }
+end
+
+-- Endliche Zahl (auch mit Nachkommastellen) im Bereich min bis max (Überarbeitung Ü2: Zielpunkt eines
+-- Stichs in Weltkoordinaten).
+function Validate.number(min: number, max: number): Rule
+    return { kind = "number", min = min, max = max }
 end
 
 -- Text, der als Schlüssel in der Tabelle `ids` vorkommt (z. B. Zones.byId).
@@ -80,6 +87,17 @@ local function checkOne(rule: Rule, value: any, index: number): (boolean, string
         end
         if value % 1 ~= 0 then
             return false, `Argument {index}: ganze Zahl erwartet ({value})`
+        end
+        if value < rule.min or value > rule.max then
+            return false, `Argument {index}: außerhalb des Bereichs {rule.min} bis {rule.max} ({value})`
+        end
+        return true, nil
+    elseif rule.kind == "number" then
+        if type(value) ~= "number" then
+            return false, `Argument {index}: number erwartet, {describe(value)} erhalten`
+        end
+        if not isFinite(value) then
+            return false, `Argument {index}: ungültige Zahl ({describe(value)})`
         end
         if value < rule.min or value > rule.max then
             return false, `Argument {index}: außerhalb des Bereichs {rule.min} bis {rule.max} ({value})`

@@ -29,6 +29,7 @@ local MESSAGES = {
     tankFull = "Tank voll! Ab zum Händlerstand.",
     tankEmpty = "Der Tank ist leer.",
     sellTooFar = "Zu weit vom Händlerstand entfernt.",
+    cellEmpty = "Hier ist nichts mehr. Ein paar Schritte weiter graben.", -- Überarbeitung Ü2
 }
 
 local BigNum = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Logic"):WaitForChild("BigNum") :: ModuleScript) :: any

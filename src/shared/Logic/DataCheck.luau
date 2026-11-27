@@ -11,6 +11,7 @@ local DirectShop = require("./DirectShop")
 local Seasons = require("./Seasons")
 local SeasonPass = require("./SeasonPass")
 local FeatureRules = require("./Features")
+local DepositRules = require("./Deposits")
 local RemoteSpec = require("../Net/RemoteSpec")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
@@ -114,6 +115,7 @@ export type DataSet = {
     Social: any,
     Analytics: any,
     Features: any?, -- Überarbeitung Ü1; fehlt sie in einem Test-Datensatz, wird sie nicht geprüft
+    Deposits: any?, -- Überarbeitung Ü2; ebenso
 }
 
 local DataCheck = {}
@@ -151,6 +153,7 @@ function DataCheck.defaults(): DataSet
         Social = require("../Data/Social"),
         Analytics = require("../Data/Analytics"),
         Features = require("../Data/Features"),
+        Deposits = require("../Data/Deposits"),
     }
 end
 
@@ -3244,6 +3247,23 @@ local function checkFeatures(errors: { string }, data: DataSet)
     end
 end
 
+-- Lagerstätten und Stich (Überarbeitung Ü2): Form, Takt je Werkzeug, Nachwachsen wie im Terrain.
+local function checkDeposits(errors: { string }, data: DataSet)
+    if data.Deposits == nil then
+        return
+    end
+    local toolIds: { string } = {}
+    if type(data.Tools) == "table" and type(data.Tools.list) == "table" then
+        for _, tool in data.Tools.list do
+            table.insert(toolIds, tool.id)
+        end
+    end
+    local regrow = if type(data.Terrain) == "table" and type(data.Terrain.regrow) == "table" then data.Terrain.regrow.delaySeconds else nil
+    for _, message in DepositRules.check(data.Deposits, toolIds, regrow) do
+        table.insert(errors, message)
+    end
+end
+
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
     local errors: { string } = {}
@@ -3285,6 +3305,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkTankChain(errors, data)
     checkTutorial(errors, data)
     checkFeatures(errors, data)
+    checkDeposits(errors, data)
     return errors
 end
 

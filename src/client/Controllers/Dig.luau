@@ -8,6 +8,11 @@
 -- Ego-Perspektive: Das Loch entsteht dort, wohin Fadenkreuz oder freie Maus zeigen (Logic/DigAim),
 -- begrenzt auf die Reichweite des Werkzeugs, nicht mehr fest vor dem Charakter.
 --
+-- Überarbeitung Ü2: Gegraben wird mit Stichen im Takt des Werkzeugs (Data/Deposits). Jeder Stich
+-- sendet "Stab" (Zielpunkt, durch Halten?) an den Server und gräbt sofort das Loch. Ein Druck kurz
+-- vor dem Takt wird gemerkt und beim Takt gestochen. Halten sticht weiter im Takt (ohne Bonus).
+-- Das Ergebnis (StabResult) färbt den Staub: tiefere Schicht = dunkler, sauberer Stich = mehr Staub.
+--
 -- Modi: "full" verformt das Terrain. "fallback" (schwaches Gerät, Logic/PerfGuard) lässt das
 -- Terrain in Ruhe und zeigt nur eine sinkende Sandscheibe und Partikel.
 -- Zum Testen in der Client-Befehlszeile:
@@ -51,6 +56,14 @@ local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 local DIG_MODE_ATTRIBUTE = "DigMode"
 local TOOL_MODELS_FOLDER = "ToolModels" -- Ordner von Controllers/ToolVisual, Teile blockieren den Strahl nicht
 local DEFAULT_SAND_COLOR = Color3.fromRGB(230, 200, 117)
+-- Stich (Ü2): so viel dunkler wird der Staub je Schicht unter der Oberfläche, so viel mehr Staub bei
+-- einem sauberen Stich, und so lange nach dem letzten Stich gilt der Grabpunkt noch (in Takten).
+local LAYER_DARKEN_STEP = 0.18
+local CLEAN_DUST_FACTOR = 2.5
+local AIM_HOLD_TAKTS = 1.5
+-- Ein Druck wird nur gemerkt, wenn er höchstens so kurz vor dem Takt kommt. Frühere Drücke verfallen,
+-- damit wildes Klicken nicht automatisch jeden Stich "sauber" macht (Review Ü2, M2).
+local PRESS_BUFFER_SECONDS = 0.12
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -69,6 +82,7 @@ local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript)
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 local FirstPerson = require(script.Parent:WaitForChild("FirstPerson") :: ModuleScript) :: any
 local DigAim = loadShared("Logic", "DigAim")
+local Deposits = loadShared("Logic", "Deposits")
 local FirstPersonData = loadShared("Data", "FirstPerson")
 
 local VOXEL = TerrainData.voxelSize
@@ -148,19 +162,23 @@ local function aliveRoot(): BasePart?
     return root
 end
 
--- Gräbt der Spieler gerade? Nur wenn er hält und der Server das Sammeln bestätigt hat
--- (nicht am Stand, nicht tot, Tank nicht voll).
-local function wantsDig(): boolean
-    if not Input.isHolding() then
-        return false
-    end
+-- Passt noch Sand in den Tank? (Sonst wird nicht gestochen.)
+local function tankHasSpace(): boolean
     local snapshot = State.get()
-    if snapshot == nil or not snapshot.collecting then
+    if snapshot == nil then
         return false
     end
     local tank = BigNum.deserialize(snapshot.tank)
     return BigNum.lt(tank, BigNum.new(snapshot.capacity))
 end
+
+-- Stich-Zustand (Ü2)
+local nextStabAt = 0
+local lastStabAt = -math.huge
+local lastStabHit: Vector3? = nil
+local pressesServed = 0
+local lastLayer = 1 -- Schicht des letzten Ergebnisses vom Server
+local stabRemote: RemoteEvent? = nil
 
 local function rayParams(): RaycastParams
     local params = RaycastParams.new()
@@ -236,7 +254,8 @@ local function emitParticles(position: Vector3, count: number, toolId: string?)
         NumberSequenceKeypoint.new(1, size * PARTICLE_SIZE_END_FACTOR),
     })
     emitterAttachment.WorldPosition = position
-    emitter.Color = ColorSequence.new(sandColor())
+    local darken = math.clamp((lastLayer - 1) * LAYER_DARKEN_STEP, 0, 0.8)
+    emitter.Color = ColorSequence.new(sandColor():Lerp(Color3.new(0, 0, 0), darken))
     emitter:Emit(count)
 end
 
@@ -439,6 +458,25 @@ function Dig.Start()
     player:GetAttributeChangedSignal(DIG_MODE_ATTRIBUTE):Connect(readForcedMode)
     createEffects()
 
+    local remotes = ReplicatedStorage:WaitForChild("Remotes")
+    stabRemote = remotes:WaitForChild("Stab") :: RemoteEvent
+    local stabResult = remotes:WaitForChild("StabResult") :: RemoteEvent
+    stabResult.OnClientEvent:Connect(function(result: any)
+        if type(result) ~= "table" or result.ok ~= true then
+            return
+        end
+        if type(result.layer) == "number" then
+            lastLayer = result.layer
+        end
+        -- Sauberer Stich: ein zweiter, kräftiger Staubstoß an der Stelle.
+        if result.clean == true and lastStabHit ~= nil then
+            local snapshot = State.get()
+            local toolId = if snapshot ~= nil then snapshot.toolId else nil
+            local dust = math.max(1, math.ceil(ToolLook.dustCount(toolId) * CLEAN_DUST_FACTOR * Graphics.settings().particleFactor))
+            emitParticles(lastStabHit, dust, toolId)
+        end
+    end)
+
     local overlay: TextLabel? = if TerrainData.debug.showOverlay then createOverlay() else nil
     local nextOverlayAt = 0
 
@@ -456,20 +494,35 @@ function Dig.Start()
             for _, action in SandDig.update(digState, t, if root ~= nil then vec(root.Position) else nil) do
                 regrowChunk(action)
             end
-            currentAim = nil
-            if root ~= nil and wantsDig() then
-                local snapshot = State.get()
-                local toolId = if snapshot ~= nil then snapshot.toolId else nil
+            local snapshot = State.get()
+            local toolId = if snapshot ~= nil then snapshot.toolId else nil
+            local interval = Deposits.stabSeconds(toolId)
+            -- Ein neuer Druck wird beim nächsten Takt gestochen, auch wenn er schon losgelassen ist.
+            if Input.presses() > pressesServed and not Input.isHolding() and t < nextStabAt - PRESS_BUFFER_SECONDS then
+                pressesServed = Input.presses() -- zu früh geklickt und schon losgelassen: verfällt
+            end
+            local pressed = Input.presses() > pressesServed
+            if root ~= nil and (pressed or Input.isHolding()) and t >= nextStabAt and tankHasSpace() then
                 local hit = findGround(root, toolId)
                 if hit ~= nil then
-                    currentAim = hit.Position
+                    pressesServed = Input.presses()
+                    nextStabAt = t + interval
+                    lastStabAt = t
+                    lastStabHit = hit.Position
+                    if stabRemote ~= nil then
+                        -- Durch Halten, wenn kein neuer Druck dahintersteht (dann nie sauber).
+                        stabRemote:FireServer(hit.Position.X, hit.Position.Y, hit.Position.Z, not pressed)
+                    end
                     if mode == "full" then
                         digTerrain(t, hit, toolId, if snapshot ~= nil then snapshot.zoneId else nil)
                     else
                         digFallback(t, hit, toolId)
                     end
+                elseif pressed and not Input.isHolding() then
+                    pressesServed = Input.presses() -- Klick ins Leere: verwerfen
                 end
             end
+            currentAim = if t < lastStabAt + interval * AIM_HOLD_TAKTS then lastStabHit else nil
         end)
         if not ok and errorsShown < MAX_ERRORS_SHOWN then
             errorsShown += 1
