@@ -12,6 +12,7 @@ local Seasons = require("./Seasons")
 local SeasonPass = require("./SeasonPass")
 local FeatureRules = require("./Features")
 local DepositRules = require("./Deposits")
+local FindSpotRules = require("./FindSpots")
 local RemoteSpec = require("../Net/RemoteSpec")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
@@ -116,6 +117,7 @@ export type DataSet = {
     Analytics: any,
     Features: any?, -- Überarbeitung Ü1; fehlt sie in einem Test-Datensatz, wird sie nicht geprüft
     Deposits: any?, -- Überarbeitung Ü2; ebenso
+    FindSpots: any?, -- Überarbeitung Ü3; ebenso
 }
 
 local DataCheck = {}
@@ -154,6 +156,7 @@ function DataCheck.defaults(): DataSet
         Analytics = require("../Data/Analytics"),
         Features = require("../Data/Features"),
         Deposits = require("../Data/Deposits"),
+        FindSpots = require("../Data/FindSpots"),
     }
 end
 
@@ -3264,6 +3267,17 @@ local function checkDeposits(errors: { string }, data: DataSet)
     end
 end
 
+-- Fundstellen (Überarbeitung Ü3).
+local function checkFindSpots(errors: { string }, data: DataSet)
+    if data.FindSpots == nil then
+        return
+    end
+    local layerCount = if type(data.Deposits) == "table" and type(data.Deposits.layers) == "table" then #data.Deposits.layers else nil
+    for _, message in FindSpotRules.check(data.FindSpots, layerCount) do
+        table.insert(errors, message)
+    end
+end
+
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
     local errors: { string } = {}
@@ -3306,6 +3320,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkTutorial(errors, data)
     checkFeatures(errors, data)
     checkDeposits(errors, data)
+    checkFindSpots(errors, data)
     return errors
 end
 

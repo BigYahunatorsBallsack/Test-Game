@@ -47,6 +47,12 @@ local list: { RemoteDef } = {
         description = "Spieler sticht an einer Stelle in den Sand (Überarbeitung Ü2).",
     },
     {
+        name = "FindSpots",
+        kind = "Event",
+        direction = "ServerToClient",
+        description = "Fundstellen des Spielers zum Glitzern: Liste { id, x, y, z } (Überarbeitung Ü3).",
+    },
+    {
         name = "StabResult",
         kind = "Event",
         direction = "ServerToClient",

@@ -789,3 +789,31 @@ Security-Review Ü2 (keine kritischen oder hohen Funde), umgesetzt:
 - L3: Event-Kiste ist zu, solange die Event-Zone ausgeschaltet ist (`Events.inSeason`).
 - L4 (offen, nur Optik): Bei Lag abgelehnte Stiche haben schon ein Loch gegraben.
 - [x] [Lune] `tooSoon` stimmt mit `stab` überein.
+
+## Ü3 Fundstellen im Sand (Überarbeitung)
+
+Plan "Plan Ü3: Fundstellen im Sand". Regeln in `Logic/FindSpots`, Zahlen in `Data/FindSpots`, Tests in `tests/findspots.spec.luau`.
+
+- [x] [Lune] Neue Stellen nur auf Sand (`surfaceAt` liefert eine Höhe) und 8 bis 30 Studs vom Stich, nie in der Stichzelle.
+- [x] [Lune] Höchstens 3 Stellen je Spieler, jede in einer eigenen Zelle. Nach 120 s verschwindet eine Stelle.
+- [x] [Lune] Entstehungsrate im Mittel eine Stelle je ~40 s Graben (Simulation), Faktor aus Zone, Glück, Boost und Wetter wirkt nur auf die Rate. Kaputte Werte (NaN, unendlich, 0) geben keine Stelle.
+- [x] [Lune] Treffer nur in der Zelle der Stelle und erst ab ihrer Schicht. Eine Stelle gibt genau einen Fund, eine abgelaufene keinen.
+- [x] [Lune] Seltenheit aus einer Stelle folgt der unveränderten Quotentabelle (100.000 Würfe, ±0,5 Prozentpunkte). Glück ändert die Seltenheit nicht.
+- [x] [Lune] Erster Fund sicher: nach 20 Stichen ohne jeden Fund eine Stelle in Schicht 1 eine Zelle hinter dem Stich (ohne Sand dort in der Stichzelle), nur einmal je Sitzung, nicht für Spieler mit Funden. Ihr Fund ist immer "Gewöhnlich".
+- [x] [Lune] Stellen einer anderen Zone fallen beim nächsten Stich weg (Reise, Sandsturm). Zone ohne Fundchance: keine Stellen.
+- [x] [Lune] Zufallsfunde ohne Stelle: ein Viertel der bisherigen Chance, ohne die alte Regel "Erster Fund nach 60 s".
+- [x] [Lune] Neue Remote `FindSpots` nur Server->Client, nur Lage (keine Schicht, keine Seltenheit). Keine neue Client->Server-Remote (weiter 18).
+- [x] [Lune] DataCheck prüft `Data/FindSpots` (Abstände, Rate höchstens 1, ganze Zahlen, Gewichte passen zu den Schichten).
+- [ ] [Studio] Ein paar Minuten graben: In der Nähe glitzert es im Sand (bis 40 Studs sichtbar). Dort bis in die richtige Tiefe stechen gibt einen Fund mit Enthüllung, das Glitzern ist danach weg.
+- [ ] [Studio] Neuer Spieler (leere Sammlung): spätestens nach 20 Stichen glitzert es direkt vor einem, ein paar Stiche dort geben den ersten Fund.
+- [ ] [Studio] Eine Stelle, die man liegen lässt, hört nach etwa 2 Minuten auf zu glitzern.
+- [ ] [Studio] In der Event-Zone entstehen keine Stellen.
+- [ ] [Studio] Handy-Emulator: Glitzern ruckelt nicht, weit entfernte Stellen glitzern nicht.
+
+Security-Review Ü3 (keine kritischen oder hohen Funde), umgesetzt:
+- M2: Stellen gehören zu einer Zone. Neue Stellen nur in der aktuellen Zone, Stellen einer anderen Zone fallen weg (Reise, Sandsturm).
+- M1 (Teil): Die erste Stelle gibt wie früher immer "Gewöhnlich" (kein legendärer Start, Starterpaket wie bisher).
+- L1: Neue Stellen nur in Zellen, die der Spieler noch nicht angestochen hat (`Sand.dugAt`).
+- L2: Zone ohne Fundchance: Stiche ändern die Stellen nicht, keine erste Stelle.
+- L3: Kein Zustand mehr nach PlayerRemoving.
+- Offen für Ü10/A1: Mit allen Stellen ausgegraben liegt die Fundrate bei etwa 1,5× der alten (0,25 Grundchance + 1/40 Stellen). Auto-Dig bekommt nur die Grundchance (0,25×). Volltank sperrt das Ausgraben (Stelle kann ablaufen). Genaue Lage geht an den Client (wichtig erst, wenn Nebel oder "Kornprobe" Stellen verstecken sollen).

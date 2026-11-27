@@ -427,6 +427,44 @@ local function sandUnder(x: number, y: number, z: number): boolean
     return result ~= nil and result.Instance == workspace.Terrain and diggable[result.Material] == true
 end
 
+-- Höhe der Sandoberfläche bei (x, z), gesucht von `yHint` + upStuds nach unten (Überarbeitung Ü3:
+-- Fundstellen). nil, wenn dort kein grabbarer Sand liegt.
+function Sand.sandSurface(x: number, yHint: number, z: number, upStuds: number, lengthStuds: number): number?
+    local origin = Vector3.new(x, yHint + upStuds, z)
+    local result = workspace:Raycast(origin, Vector3.new(0, -lengthStuds, 0), terrainParams)
+    if result == nil or result.Instance ~= workspace.Terrain or diggable[result.Material] ~= true then
+        return nil
+    end
+    return result.Position.Y
+end
+
+-- Wie oft der Spieler die Zelle bei (x, z) schon angestochen hat (0 = unberührt oder wieder voll).
+function Sand.dugAt(player: Player, x: number, z: number): number
+    local state = depositStates[player]
+    return if state ~= nil then Deposits.dugAt(state, x, z, now()) else 0
+end
+
+-- Andere Services hören auf angenommene Stiche (Überarbeitung Ü3: Finds für Fundstellen). Ein Listener
+-- bekommt (player, profile, { zoneId, point, root, layer, seconds }) und darf nicht warten.
+local stabListeners: { (Player, any, any) -> () } = {}
+
+function Sand.addStabListener(listener: (Player, any, any) -> ())
+    table.insert(stabListeners, listener)
+end
+
+local function notifyStab(player: Player, profile: any, info: any)
+    for _, listener in stabListeners do
+        local co = coroutine.create(listener)
+        local ok, err = coroutine.resume(co, player, profile, info)
+        if coroutine.status(co) ~= "dead" then
+            coroutine.close(co)
+            warn("[Sand] Ein Stich-Listener hat gewartet und wird abgebrochen")
+        elseif not ok then
+            warn(`[Sand] Stich-Listener fehlgeschlagen: {tostring(err)}`)
+        end
+    end
+end
+
 -- Ein Stich (Überarbeitung Ü2). Ergebnis an den Client (StabResult), Tank neu senden.
 local function onStab(player: Player, x: number, y: number, z: number, held: boolean)
     local profile = PlayerData.get(player)
@@ -468,6 +506,13 @@ local function onStab(player: Player, x: number, y: number, z: number, held: boo
             end
             local zoneId = Collecting.zoneOf(profile).id
             state.findSeconds[zoneId] = (state.findSeconds[zoneId] or 0) + result.seconds
+            notifyStab(player, profile, {
+                zoneId = zoneId,
+                point = { x = x, y = y, z = z },
+                root = { x = p.X, z = p.Z },
+                layer = result.layer,
+                seconds = result.seconds,
+            })
             local tutorialChanged = result.added > 0 and Tutorial.evaluate(profile)
             if result.added > 0 or tutorialChanged or not wasDigging then
                 sync(player)
