@@ -23,12 +23,16 @@ type Service = {
     Init: () -> (),
     Start: () -> (),
     AfterStart: (() -> ())?, -- optional: Prüfungen, wenn alle Services gestartet sind
+    -- optional (Überarbeitung Ü1): läuft statt Start, wenn das System in Data/Features aus ist. Dort
+    -- registriert ein Service, was auch ausgeschaltet laufen muss (Kauf-Handler, Zeitmarken).
+    StartDisabled: (() -> ())?,
 }
 
-print("[Server] Dune Baron startet")
+print("[Server] Every Last Grain startet")
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local DataCheck: any = require(shared:WaitForChild("Logic"):WaitForChild("DataCheck") :: ModuleScript)
+local Features: any = require(shared:WaitForChild("Logic"):WaitForChild("Features") :: ModuleScript)
 
 -- 1. Daten prüfen: bei Fehlern abbrechen und alle Texte ausgeben.
 local dataErrors: { string } = DataCheck.run()
@@ -44,21 +48,30 @@ print("[Server] Remotes angelegt")
 
 -- 3. Services laden.
 local servicesFolder = script:WaitForChild("Services")
-local services: { { name: string, service: Service } } = {}
+local services: { { name: string, service: Service, active: boolean } } = {}
 for _, name in SERVICE_NAMES do
     local module = servicesFolder:WaitForChild(name) :: ModuleScript
-    table.insert(services, { name = name, service = require(module) :: Service })
+    table.insert(services, { name = name, service = require(module) :: Service, active = Features.serviceActive(name) })
     print(`[Server] Service geladen: {name}`)
 end
 
--- 4. Alle Init(), danach alle Start().
+-- 4. Alle Init(), danach alle Start(). Ein ausgeschalteter Service (Data/Features) bekommt Init, aber
+-- statt Start nur sein StartDisabled (falls vorhanden) und kein AfterStart.
 for _, entry in services do
     entry.service.Init()
     print(`[Server] Init: {entry.name}`)
 end
 for _, entry in services do
-    entry.service.Start()
-    print(`[Server] Start: {entry.name}`)
+    if entry.active then
+        entry.service.Start()
+        print(`[Server] Start: {entry.name}`)
+    else
+        local startDisabled = entry.service.StartDisabled
+        if startDisabled ~= nil then
+            startDisabled()
+        end
+        print(`[Server] Ausgeschaltet (Data/Features): {entry.name}`)
+    end
 end
 
 -- 5. Nach allen Start(): Abschlussprüfungen (zum Beispiel Shop: jedes Produkt mit ProductId hat
@@ -68,7 +81,7 @@ end
 local afterStartFailures: { string } = {}
 for _, entry in services do
     local afterStart = entry.service.AfterStart
-    if afterStart ~= nil then
+    if afterStart ~= nil and entry.active then
         local ok, err = pcall(afterStart)
         if ok then
             print(`[Server] AfterStart: {entry.name}`)
@@ -81,4 +94,4 @@ for _, failure in afterStartFailures do
     warn(`[Server] AfterStart fehlgeschlagen, bitte beheben: {failure}`)
 end
 
-print("[Server] Dune Baron läuft")
+print("[Server] Every Last Grain läuft")

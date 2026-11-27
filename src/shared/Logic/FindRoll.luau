@@ -46,6 +46,10 @@ export type Input = {
     unixTime: number?, -- Unix-Zeit des Servers (os.time) für den Glücks-Boost; fehlt sie, zählt serverTime
     sessionSeconds: number, -- Sammelzeit dieser Sitzung (inklusive `seconds`)
     random: () -> number,
+    -- Überarbeitung Ü3: Faktor auf die Chance (Data/FindSpots.baseChanceFactor, Standard 1) und ob die
+    -- alte Regel "Erster Fund sicher nach Sekunden" gilt (Standard ja; mit Fundstellen nein).
+    chanceFactor: number?,
+    noForced: boolean?,
 }
 
 local FindRoll = {}
@@ -56,7 +60,22 @@ end
 
 -- Chance pro Sekunde in [0, 1]. `data` ist für Tests überschreibbar ({ FindOdds, Weather, Economy }).
 -- `unixTime` ist die Uhr für den Glücks-Boost (os.time des Servers); fehlt sie, zählt `serverTime`.
-function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: number, data: any?, unixTime: number?): number
+-- Faktor auf die Grundchance aus Zone, Glück-Ast, Glücks-Boost und Wetter (ab 0). Fundstellen (Ü3)
+-- entstehen mit demselben Faktor schneller.
+function FindRoll.chanceFactor(profile: any, zoneId: string, serverTime: number, data: any?, unixTime: number?): number
+    local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
+    local base = odds.findChancePerSecond / 10000
+    if not isGoodNumber(base) or base <= 0 then
+        return 0
+    end
+    local factor = FindRoll.chancePerSecond(profile, zoneId, serverTime, data, unixTime, true) / base
+    if not isGoodNumber(factor) or factor < 0 then
+        return 0
+    end
+    return factor
+end
+
+function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: number, data: any?, unixTime: number?, unclamped: boolean?): number
     local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
     local zoneFactor = (odds.zoneFindChanceFactor[zoneId] or 0) / 10000
     local weather = WeatherLogic.stateAt(zoneId, serverTime, if data and data.Weather then data.Weather else nil)
@@ -66,6 +85,9 @@ function FindRoll.chancePerSecond(profile: any, zoneId: string, serverTime: numb
     local p = (odds.findChancePerSecond / 10000) * zoneFactor * TreeEffects.luckMultiplier(profile) * luckBoost * weatherFactor
     if not isGoodNumber(p) then
         return 0
+    end
+    if unclamped then
+        return math.max(p, 0)
     end
     return math.clamp(p, 0, 1)
 end
@@ -181,18 +203,24 @@ function FindRoll.roll(input: Input, data: any?): Roll?
     local forced = false
     local rarityId: string
     local noFindsYet = Collection.distinctFound(profile, data) == 0
-    if noFindsYet and input.sessionSeconds >= odds.firstFindGuaranteeSeconds then
+    local factor = if input.chanceFactor ~= nil and isGoodNumber(input.chanceFactor) then math.clamp(input.chanceFactor, 0, 1) else 1
+    if noFindsYet and input.noForced ~= true and input.sessionSeconds >= odds.firstFindGuaranteeSeconds then
         forced = true
         rarityId = "common"
     else
-        local chance = FindRoll.chanceInWindow(FindRoll.chancePerSecond(profile, zoneId, input.serverTime, data, input.unixTime), input.seconds)
+        local chance = FindRoll.chanceInWindow(FindRoll.chancePerSecond(profile, zoneId, input.serverTime, data, input.unixTime) * factor, input.seconds)
         if input.random() >= chance then
             return nil
         end
         rarityId = FindRoll.pickRarity(oddsTable, input.random(), if data and data.Rarities then data.Rarities else nil)
     end
 
-    local find = FindRoll.pickFind(zoneId, rarityId, input.random(), data)
+    return FindRoll.build(profile, zoneId, rarityId, input.random(), forced, data)
+end
+
+-- Fundstück, Wert und Ergebnis zu einer schon gewählten Seltenheit.
+function FindRoll.build(profile: any, zoneId: string, rarityId: string, r: number, forced: boolean, data: any?): Roll?
+    local find = FindRoll.pickFind(zoneId, rarityId, r, data)
     if find == nil then
         return nil
     end
@@ -206,6 +234,19 @@ function FindRoll.roll(input: Input, data: any?): Roll?
         value = value,
         forced = forced,
     }
+end
+
+-- Fund aus einer Fundstelle (Überarbeitung Ü3): keine Chance, nur Seltenheit nach der unveränderten
+-- Quotentabelle der Zone, Fundstück und Wert. nil, wenn die Zone keine Tabelle oder Funde hat.
+function FindRoll.fromSpot(profile: any, zoneId: string, random: () -> number, data: any?): Roll?
+    local odds = if data and data.FindOdds then data.FindOdds else FindOddsData
+    local tableName = odds.zoneOddsTable[zoneId]
+    local oddsTable = if tableName then odds.tables[tableName] else nil
+    if oddsTable == nil then
+        return nil
+    end
+    local rarityId = FindRoll.pickRarity(oddsTable, random(), if data and data.Rarities then data.Rarities else nil)
+    return FindRoll.build(profile, zoneId, rarityId, random(), false, data)
 end
 
 return FindRoll

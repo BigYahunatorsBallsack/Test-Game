@@ -14,6 +14,7 @@ local Equipment = require("../Logic/Equipment")
 local Codes = require("../Logic/Codes") -- nur die Längen; die Codes selbst stehen nur auf dem Server
 local Social = require("../Data/Social") -- Platzzahl der Freundesliste (Paket 5.7)
 local SeasonPass = require("../Logic/SeasonPass") -- Spuren und höchste Stufennummer (Paket 5.5b)
+local Deposits = require("../Data/Deposits") -- Grenze der Koordinaten im Stich (Überarbeitung Ü2)
 
 export type Limit = RateLimiter.Limit
 
@@ -30,7 +31,33 @@ local ID_MAX_LEN = 64
 local ZONE_ID_MAX_LEN = 32
 local CRATE_ID_MAX_LEN = 32
 
+local COORD = Deposits.coordinateLimit
+
 local list: { RemoteDef } = {
+    {
+        name = "Stab",
+        kind = "Event",
+        direction = "ClientToServer",
+        -- Zielpunkt x, y, z (Weltkoordinaten) und ob der Stich durch Halten kam. Keine Menge: Takt,
+        -- Reichweite, Sand unter dem Punkt und Menge prüft und rechnet der Server (Logic/Deposits).
+        schema = { Validate.number(-COORD, COORD), Validate.number(-COORD, COORD), Validate.number(-COORD, COORD), Validate.boolean() },
+        -- Der schnellste Takt ist 0,35 s (knapp 3 je Sekunde). Das Limit lässt Klick-Spitzen zu,
+        -- der Takt selbst wird in Logic/Deposits gezählt.
+        limit = { calls = 8, per = 1 },
+        description = "Spieler sticht an einer Stelle in den Sand (Überarbeitung Ü2).",
+    },
+    {
+        name = "FindSpots",
+        kind = "Event",
+        direction = "ServerToClient",
+        description = "Fundstellen des Spielers zum Glitzern: Liste { id, x, y, z } (Überarbeitung Ü3).",
+    },
+    {
+        name = "StabResult",
+        kind = "Event",
+        direction = "ServerToClient",
+        description = "Ergebnis eines Stichs: angenommen, Grund, Schicht, Menge, sauber, Zelle leer.",
+    },
     {
         name = "SetCollecting",
         kind = "Event",

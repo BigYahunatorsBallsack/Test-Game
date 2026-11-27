@@ -16,10 +16,19 @@
 -- Einstellung an startet der Server das Halten selbst und erneuert die Frist bei jedem Takt
 -- (Entscheidung in Perks.autoDigStep); ein SetCollecting(false) vom Client stoppt es nicht. Ohne Pass
 -- oder mit Schalter aus bleibt alles wie vor Paket 4.4.
+--
+-- Stich (Überarbeitung Ü2): Der Client sendet "Stab" mit dem Zielpunkt und ob der Stich durch Halten
+-- kam. Logic/Deposits prüft Takt (Server-Uhr), Reichweite und Zelle und rechnet die Menge; hier kommen
+-- Charakterposition, ein Strahl auf das Terrain (liegt unter dem Punkt grabbarer Sand?) und der Tank
+-- dazu. Sammeln über die Zeit (SetCollecting, Collecting.update) gibt es nur noch für den Auto-Dig-Pass,
+-- mit dem Faktor Deposits.autoDigFactor auf die Rate. Ein SetCollecting(true) ohne aktiven Pass bewirkt
+-- nichts.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local IS_STUDIO = RunService:IsStudio() -- Platzhalter-Stände nur in Studio (Überarbeitung Ü1)
 
 -- Wie oft der Server laufendes Sammeln abrechnet und den Tank an den Client schickt (s).
 local TICK_SECONDS = 0.25
@@ -50,6 +59,11 @@ local Wind = loadShared("Logic", "Wind")
 local Sandstorm = loadShared("Logic", "Sandstorm")
 local Perks = loadShared("Logic", "Perks")
 local Passes = loadShared("Logic", "Passes")
+local Deposits = loadShared("Logic", "Deposits")
+local DepositData = loadShared("Data", "Deposits")
+local DigAim = loadShared("Logic", "DigAim")
+local TerrainData = loadShared("Data", "Terrain")
+local SandTypes = loadShared("Data", "SandTypes")
 
 local servicesFolder = script.Parent
 local SeasonClock = require(servicesFolder:WaitForChild("SeasonClock") :: ModuleScript) :: any -- Saison-Uhr für die Event-Zone (Paket 5.5)
@@ -67,6 +81,32 @@ local autoDig: { [Player]: any } = {}
 -- Münz-Faktor im zuletzt gesendeten Zustand: Läuft der Münz-Boost ab, sendet der Takt neu, damit die
 -- Anzeige (pricePerSand, coinMultiplier) nicht veraltet.
 local sentCoinMultiplier: { [Player]: number } = {}
+-- Lagerstätten je Spieler (Überarbeitung Ü2, Logic/Deposits). Nur im Speicher, nicht gespeichert.
+local depositStates: { [Player]: any } = {}
+-- Zuletzt gesendetes "sammelt" (Halten des Auto-Dig oder Stich vor kurzem), damit der Takt beim
+-- Wechsel neu sendet.
+local sentDigging: { [Player]: boolean } = {}
+-- Letzte Meldung "Hier ist nichts mehr" (os.clock), höchstens eine je EMPTY_NOTICE_SECONDS.
+local emptyNoticeAt: { [Player]: number } = {}
+local EMPTY_NOTICE_SECONDS = 2
+
+-- Terrain-Materialien, in die gestochen werden darf (wie Controllers/Dig: Data/Terrain plus die
+-- Materialien aller Sandsorten).
+local diggable: { [Enum.Material]: boolean } = {}
+do
+    local names: { string } = table.clone(TerrainData.diggableMaterials)
+    for _, sandType in SandTypes.list do
+        table.insert(names, sandType.terrainMaterial)
+    end
+    for _, name in names do
+        local ok, material = pcall(function(): any
+            return (Enum.Material :: any)[name]
+        end)
+        if ok and material ~= nil then
+            diggable[material] = true
+        end
+    end
+end
 
 local function now(): number
     return os.clock()
@@ -85,6 +125,8 @@ local friendFactors: { [Player]: number } = {}
 
 local function optionsOf(profile: any, player: Player): any
     local options = Perks.options(profile, unixNow())
+    -- Sammeln über die Zeit gibt es nur noch für Auto-Dig (Ü2): so viel wie Halten.
+    options.rateMultiplier = DepositData.autoDigFactor
     local friends = friendFactors[player]
     if friends ~= nil and options.coinMultiplier ~= nil then
         options.coinMultiplier *= friends
@@ -112,6 +154,20 @@ function Sand.optionsFor(player: Player): any
         return {}
     end
     return optionsOf(profile, player)
+end
+
+local function depositStateOf(player: Player): any
+    local state = depositStates[player]
+    if state == nil then
+        state = Deposits.newState()
+        depositStates[player] = state
+    end
+    return state
+end
+
+-- Sammelt der Spieler gerade (Anzeige): Auto-Dig hält oder ein Stich war vor kurzem.
+local function isDigging(player: Player, holding: boolean): boolean
+    return holding or Deposits.isDigging(depositStates[player], now())
 end
 
 local function stateOf(player: Player): any
@@ -185,7 +241,7 @@ function Sand.snapshot(player: Player): any?
         capacity = Collecting.capacityOf(profile, options), -- mit "Großer Tank" (Paket 4.4)
         rate = Collecting.rateOf(profile),
         toolId = Collecting.toolOf(profile).id,
-        collecting = state.holding,
+        collecting = isDigging(player, state.holding), -- Auto-Dig oder Stich vor kurzem (Ü2)
         zoneId = zone.id,
         pricePerSand = Collecting.pricePerSand(profile, options), -- mit Münz-Faktor (Paket 4.4)
         nodes = Collecting.ownedNodes(profile),
@@ -207,6 +263,7 @@ function Sand.snapshot(player: Player): any?
         coinBoostSeconds = Perks.coinBoostSeconds(profile, unix), -- Restsekunden, Server-Uhr
     }
     sentCoinMultiplier[player] = options.coinMultiplier
+    sentDigging[player] = snapshot.collecting
     for _, provider in snapshotProviders do
         -- Ein Provider darf nicht warten und nicht werfen: Koroutine, bei Yield schließen.
         local co = coroutine.create(provider)
@@ -248,7 +305,7 @@ local function publishLook(player: Player)
         return
     end
     local attributes: { [string]: any } = {}
-    for name, value in ToolLook.attributesFor(profile, stateOf(player).holding) do
+    for name, value in ToolLook.attributesFor(profile, isDigging(player, stateOf(player).holding)) do
         attributes[name] = value
     end
     -- Ausrüstung der Kisten-Items (Paket 4.3): SkinId, CompanionId, ToolVariantId.
@@ -343,8 +400,9 @@ local function onSetCollecting(player: Player, holding: boolean)
     local state = stateOf(player)
     local wasHolding = state.holding
     local options = optionsOf(profile, player)
-    -- Auto-Dig (Paket 4.4): Solange es aktiv ist, stoppt ein Loslassen der Taste das Sammeln nicht.
-    local wanted = Perks.wantsCollecting(holding, Perks.autoDigActive(profile))
+    -- Überarbeitung Ü2: Sammeln über die Zeit nur noch mit aktivem Auto-Dig. Von Hand wird gestochen
+    -- (Remote Stab); ein SetCollecting(true) ohne Pass bewirkt nichts.
+    local wanted = Perks.autoDigActive(profile)
     local result = Collecting.setHolding(state, profile, wanted and canCollect(player), now(), options)
     if result.full and holding then
         notify(player, { kind = "tankFull" })
@@ -353,6 +411,128 @@ local function onSetCollecting(player: Player, holding: boolean)
     if result.added > 0 or tutorialChanged or wasHolding ~= state.holding then
         sync(player)
     end
+end
+
+-- Liegt unter dem Punkt grabbarer Sand? Strahl von oben nur auf das Terrain (auf dem Server ist es
+-- unverformt, Löcher gibt es nur beim Client).
+local terrainParams = RaycastParams.new()
+terrainParams.FilterType = Enum.RaycastFilterType.Include
+terrainParams.FilterDescendantsInstances = { workspace.Terrain }
+terrainParams.IgnoreWater = true
+
+local function sandUnder(x: number, y: number, z: number): boolean
+    local reach = DepositData.reach
+    local origin = Vector3.new(x, y + reach.rayUpStuds, z)
+    local result = workspace:Raycast(origin, Vector3.new(0, -reach.rayLengthStuds, 0), terrainParams)
+    return result ~= nil and result.Instance == workspace.Terrain and diggable[result.Material] == true
+end
+
+-- Höhe der Sandoberfläche bei (x, z), gesucht von `yHint` + upStuds nach unten (Überarbeitung Ü3:
+-- Fundstellen). nil, wenn dort kein grabbarer Sand liegt.
+function Sand.sandSurface(x: number, yHint: number, z: number, upStuds: number, lengthStuds: number): number?
+    local origin = Vector3.new(x, yHint + upStuds, z)
+    local result = workspace:Raycast(origin, Vector3.new(0, -lengthStuds, 0), terrainParams)
+    if result == nil or result.Instance ~= workspace.Terrain or diggable[result.Material] ~= true then
+        return nil
+    end
+    return result.Position.Y
+end
+
+-- Wie oft der Spieler die Zelle bei (x, z) schon angestochen hat (0 = unberührt oder wieder voll).
+function Sand.dugAt(player: Player, x: number, z: number): number
+    local state = depositStates[player]
+    return if state ~= nil then Deposits.dugAt(state, x, z, now()) else 0
+end
+
+-- Andere Services hören auf angenommene Stiche (Überarbeitung Ü3: Finds für Fundstellen). Ein Listener
+-- bekommt (player, profile, { zoneId, point, root, layer, seconds }) und darf nicht warten.
+local stabListeners: { (Player, any, any) -> () } = {}
+
+function Sand.addStabListener(listener: (Player, any, any) -> ())
+    table.insert(stabListeners, listener)
+end
+
+local function notifyStab(player: Player, profile: any, info: any)
+    for _, listener in stabListeners do
+        local co = coroutine.create(listener)
+        local ok, err = coroutine.resume(co, player, profile, info)
+        if coroutine.status(co) ~= "dead" then
+            coroutine.close(co)
+            warn("[Sand] Ein Stich-Listener hat gewartet und wird abgebrochen")
+        elseif not ok then
+            warn(`[Sand] Stich-Listener fehlgeschlagen: {tostring(err)}`)
+        end
+    end
+end
+
+-- Ein Stich (Überarbeitung Ü2). Ergebnis an den Client (StabResult), Tank neu senden.
+local function onStab(player: Player, x: number, y: number, z: number, held: boolean)
+    local profile = PlayerData.get(player)
+    if profile == nil then
+        return
+    end
+    local root = aliveRoot(player)
+    local state = stateOf(player)
+    local options = optionsOf(profile, player)
+    local toolId = Collecting.toolOf(profile).id
+    local result: any
+    if root == nil or nearSellStand(player) then
+        result = { ok = false, reason = "badInput", added = 0, clean = false, full = false, emptyNow = false, seconds = 0 }
+    elseif Deposits.tooSoon(depositStateOf(player), now(), Collecting.toolOf(profile).id) then
+        -- Günstige Vorprüfung des Takts vor Strahl und Rechnung (Review Ü2, L1).
+        result = { ok = false, reason = "tooSoon", added = 0, clean = false, full = false, emptyNow = false, seconds = 0 }
+    else
+        local p = root.Position
+        local deposit = depositStateOf(player)
+        local wasDigging = Deposits.isDigging(deposit, now())
+        result = Deposits.stab(deposit, {
+            now = now(),
+            root = { x = p.X, y = p.Y, z = p.Z },
+            point = { x = x, y = y, z = z },
+            reachMax = DigAim.reach(toolId).max,
+            toolId = toolId,
+            held = held,
+            isSand = sandUnder(x, y, z),
+            space = Collecting.space(profile, options),
+            rate = Collecting.rateOf(profile),
+        })
+        if result.ok then
+            -- Stechen und Auto-Dig schließen sich aus (Review Ü2, M1): ein laufendes Halten erst beenden.
+            if state.holding then
+                Collecting.setHolding(state, profile, false, now(), options)
+            end
+            if result.added > 0 then
+                Collecting.addSand(profile, result.added)
+            end
+            local zoneId = Collecting.zoneOf(profile).id
+            state.findSeconds[zoneId] = (state.findSeconds[zoneId] or 0) + result.seconds
+            notifyStab(player, profile, {
+                zoneId = zoneId,
+                point = { x = x, y = y, z = z },
+                root = { x = p.X, z = p.Z },
+                layer = result.layer,
+                seconds = result.seconds,
+            })
+            local tutorialChanged = result.added > 0 and Tutorial.evaluate(profile)
+            if result.added > 0 or tutorialChanged or not wasDigging then
+                sync(player)
+            end
+        end
+    end
+    if (result.full or result.reason == "empty") and now() - (emptyNoticeAt[player] or -math.huge) >= EMPTY_NOTICE_SECONDS then
+        emptyNoticeAt[player] = now()
+        notify(player, { kind = if result.full then "tankFull" else "cellEmpty" })
+    end
+    Net.fire(player, "StabResult", {
+        ok = result.ok,
+        reason = result.reason,
+        added = result.added,
+        layer = result.layer,
+        clean = result.clean,
+        emptyNow = result.emptyNow,
+        x = x,
+        z = z,
+    })
 end
 
 local function onSell(player: Player)
@@ -407,7 +587,10 @@ local function setupSellStands()
                 end
             end
         end
-        if not nearby then
+        if not nearby and not IS_STUDIO then
+            -- Überarbeitung Ü1: im veröffentlichten Place kein grauer Block, sondern ein roter Fehler im Log.
+            task.spawn(error, `[Welt] FEHLT im Place: Händlerstand der Zone {area.id} (Teil mit Tag "{tag}" nahe x={pos.x}, z={pos.z})`, 0)
+        elseif not nearby then
             local part = Instance.new("Part")
             part.Name = `SellStand_Platzhalter_{area.id}`
             part.Anchored = true
@@ -416,7 +599,7 @@ local function setupSellStands()
             part.Position = Vector3.new(pos.x, pos.y, pos.z)
             part:AddTag(tag)
             part.Parent = workspace
-            warn(`[Sand] Kein Händlerstand für Zone {area.id}: Platzhalter angelegt (bis Phase 3)`)
+            warn(`[Sand] Kein Händlerstand für Zone {area.id}: Platzhalter angelegt (nur in Studio)`)
         end
     end
     for _, stand in CollectionService:GetTagged(tag) do
@@ -443,7 +626,8 @@ local function tickPlayer(player: Player, state: any, t: number)
     local options = optionsOf(profile, player)
     -- Abrechnen und Auto-Dig in einem reinen Schritt (Logic/Perks.collectTick, Lune-Tests).
     -- Wie canCollect, mit der Standprobe von eben (lebender Charakter, nicht am Stand).
-    local collect = aliveRoot(player) ~= nil and not near
+    -- Während gestochen wird, sammelt Auto-Dig nicht zusätzlich (Review Ü2, M1).
+    local collect = aliveRoot(player) ~= nil and not near and not Deposits.isDigging(depositStates[player], t)
     local result = Perks.collectTick(state, profile, t, options, collect, autoDig[player])
     autoDig[player] = result.memory
     if result.notifyFull then
@@ -454,6 +638,10 @@ local function tickPlayer(player: Player, state: any, t: number)
     -- Münz-Boost abgelaufen (oder neu gültig): Zustand neu senden, damit der Preis stimmt.
     local sent = sentCoinMultiplier[player]
     if sent ~= nil and sent ~= options.coinMultiplier then
+        changed = true
+    end
+    -- Stich-Anzeige abgelaufen (Ü2): "sammelt" neu senden.
+    if sentDigging[player] ~= nil and sentDigging[player] ~= isDigging(player, state.holding) then
         changed = true
     end
     if changed then
@@ -479,10 +667,12 @@ end
 function Sand.Start()
     setupSellStands()
     Net.on("SetCollecting", onSetCollecting)
+    Net.on("Stab", onStab)
     Net.on("Sell", onSell)
 
     PlayerData.onLoaded(function(player: Player, profile: any)
         states[player] = Collecting.newState(now())
+        depositStates[player] = Deposits.newState()
         autoDig[player] = nil
         -- Zonen, deren Knoten schon gekauft sind (alte Spielstände), still freischalten.
         Zones.unlockNew(profile)
@@ -495,6 +685,9 @@ function Sand.Start()
         states[player] = nil
         wasNearStand[player] = nil
         autoDig[player] = nil
+        depositStates[player] = nil
+        sentDigging[player] = nil
+        emptyNoticeAt[player] = nil
         sentCoinMultiplier[player] = nil
         friendFactors[player] = nil
     end)

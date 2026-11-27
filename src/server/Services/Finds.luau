@@ -16,6 +16,13 @@
 -- (z. B. "dunes_set_1") oder "DebugFindZone" auf eine Zonen-ID (z. B. "oasis"), dann trägt der
 -- Server alle Fundstücke dieses Sets oder der Zone in die Sammlung ein.
 --
+-- Fundstellen (Überarbeitung Ü3): Sand meldet jeden angenommenen Stich (Sand.addStabListener). Logic/
+-- FindSpots legt je Spieler Stellen um die Stichstelle an und meldet Treffer; ein Treffer würfelt mit
+-- FindRoll.fromSpot (unveränderte Quotentabelle). Der Client bekommt die Lage seiner Stellen über
+-- "FindSpots" (nur Lage). Der bisherige Würfel über die Sammelzeit bleibt als Grundchance mit
+-- Data/FindSpots.baseChanceFactor und ohne die alte Regel "Erster Fund nach 60 s" (die übernimmt
+-- FindSpots nach firstFindStabs Stichen).
+--
 -- Für andere Services (Paket 4.5): `Finds.addFindListener(fn)` meldet jeden gebuchten Fund mit
 -- fn(player, profile, { findId, rarityId, isNew, studio }). Der Offers-Service startet so das
 -- Starterpaket-Fenster. Ein Listener darf nicht warten; ein Fehler darin wird gemeldet und ändert
@@ -44,6 +51,9 @@ local Collection = loadShared("Logic", "Collection")
 local BigNum = loadShared("Logic", "BigNum")
 local FindsData = loadShared("Data", "Finds")
 local ZonesData = loadShared("Data", "Zones")
+local ZoneRules = loadShared("Logic", "Zones")
+local FindSpots = loadShared("Logic", "FindSpots")
+local FindSpotsData = loadShared("Data", "FindSpots")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -60,6 +70,8 @@ local findListeners: { (Player, any, FindInfo) -> () } = {}
 local random = Random.new()
 -- Sammelzeit dieser Sitzung je Spieler (für "Erster Fund sicher").
 local sessionSeconds: { [Player]: number } = {}
+-- Fundstellen je Spieler (Ü3), nur im Speicher.
+local spotStates: { [Player]: any } = {}
 
 local function serverTime(): number
     return workspace:GetServerTimeNow()
@@ -91,8 +103,9 @@ local function notifyListeners(player: Player, profile: any, info: FindInfo)
     end
 end
 
--- Bucht einen Fund und meldet ihn dem Spieler.
-local function award(player: Player, profile: any, roll: any, zoneId: string)
+-- Bucht einen Fund und meldet ihn dem Spieler. `at` = Lage der Fundstelle (Ü4: das Fundstück steigt
+-- dort aus dem Sand), nil bei Zufallsfunden.
+local function award(player: Player, profile: any, roll: any, zoneId: string, at: { x: number, y: number, z: number }?)
     local recorded = Collection.record(profile, roll.find.id, roll.value)
     if recorded == nil then
         return
@@ -100,6 +113,7 @@ local function award(player: Player, profile: any, roll: any, zoneId: string)
     Net.fire(player, "Notify", {
         kind = "find",
         findId = recorded.findId,
+        at = at,
         zoneId = zoneId,
         rarityId = recorded.rarityId,
         isNew = recorded.isNew,
@@ -116,6 +130,61 @@ local function award(player: Player, profile: any, roll: any, zoneId: string)
     notifyListeners(player, profile, { findId = recorded.findId, rarityId = recorded.rarityId, isNew = recorded.isNew, studio = false })
     syncCollection(player)
     Sand.refresh(player) -- Münzen aus einem Duplikat, der neue Preis mit Bonus, gestartete Angebote
+end
+
+-- Schickt dem Spieler die Lage seiner Fundstellen.
+local function sendSpots(player: Player)
+    local state = spotStates[player]
+    Net.fire(player, "FindSpots", if state ~= nil then FindSpots.view(state) else {})
+end
+
+-- Ein angenommener Stich (Sand.addStabListener, Ü3).
+local function onStab(player: Player, profile: any, info: any)
+    if ZonesData.eventById[info.zoneId] ~= nil then
+        return -- Event-Zonen haben keine Funde
+    end
+    local state = spotStates[player]
+    if state == nil then
+        return -- erst nach onLoaded, nach PlayerRemoving nicht mehr
+    end
+    local rateFactor = FindRoll.chanceFactor(profile, info.zoneId, serverTime(), nil, os.time())
+    if rateFactor <= 0 then
+        return -- Zone ohne Funde: die Stellen bleiben unberührt
+    end
+    local outcome = FindSpots.onStab(state, {
+        now = os.clock(),
+        zoneId = info.zoneId,
+        point = info.point,
+        root = info.root,
+        layer = info.layer,
+        seconds = info.seconds,
+        rateFactor = rateFactor,
+        neverFound = not state.firstSpawned and Collection.distinctFound(profile) == 0,
+        random = function(): number
+            return random:NextNumber()
+        end,
+        surfaceAt = function(x: number, z: number): number?
+            -- Nur in derselben Zone und in einer noch unberührten Zelle (sonst wäre die Schicht geschenkt).
+            if ZoneRules.zoneAt({ x = x, y = info.point.y, z = z }) ~= info.zoneId or Sand.dugAt(player, x, z) > 0 then
+                return nil
+            end
+            return Sand.sandSurface(x, info.point.y, z, FindSpotsData.rayUpStuds, FindSpotsData.rayLengthStuds)
+        end,
+    })
+    if outcome.found ~= nil then
+        local roll = if outcome.found.forced
+            then FindRoll.build(profile, info.zoneId, "common", random:NextNumber(), true)
+            else FindRoll.fromSpot(profile, info.zoneId, function(): number
+                return random:NextNumber()
+            end)
+        if roll ~= nil then
+            local spot = outcome.found
+            award(player, profile, roll, info.zoneId, { x = spot.x, y = spot.y, z = spot.z })
+        end
+    end
+    if outcome.changed then
+        sendSpots(player)
+    end
 end
 
 -- Würfelt die gesammelte Zeit eines Spielers.
@@ -147,6 +216,8 @@ local function tickPlayer(player: Player)
                 serverTime = serverTime(),
                 unixTime = os.time(), -- Glücks-Boost (boosts.luckUntil), Paket 5.1
                 sessionSeconds = total,
+                chanceFactor = FindSpotsData.baseChanceFactor, -- Ü3: Fundstellen sind der Hauptweg
+                noForced = true, -- Ü3: "Erster Fund sicher" kommt über eine Fundstelle
                 random = function(): number
                     return random:NextNumber()
                 end,
@@ -162,6 +233,13 @@ local function tickPlayer(player: Player)
 end
 
 local function tick()
+    -- Abgelaufene Fundstellen entfernen und melden (Ü3).
+    local t = os.clock()
+    for player, state in spotStates do
+        if FindSpots.expire(state, t) then
+            pcall(sendSpots, player)
+        end
+    end
     for _, player in Players:GetPlayers() do
         local ok, err = pcall(tickPlayer, player)
         if not ok then
@@ -212,12 +290,15 @@ function Finds.Init()
     Sand = require(servicesFolder:WaitForChild("Sand") :: ModuleScript)
     Events = require(servicesFolder:WaitForChild("Events") :: ModuleScript)
     Net = require(servicesFolder.Parent:WaitForChild("Net"):WaitForChild("Net") :: ModuleScript)
+    Sand.addStabListener(onStab)
 end
 
 function Finds.Start()
     PlayerData.onLoaded(function(player: Player, _profile: any)
         sessionSeconds[player] = 0
+        spotStates[player] = FindSpots.newState()
         syncCollection(player)
+        sendSpots(player)
     end)
     local function onAdded(player: Player)
         if RunService:IsStudio() then
@@ -230,6 +311,7 @@ function Finds.Start()
     Players.PlayerAdded:Connect(onAdded)
     Players.PlayerRemoving:Connect(function(player: Player)
         sessionSeconds[player] = nil
+        spotStates[player] = nil
     end)
 
     task.spawn(function()

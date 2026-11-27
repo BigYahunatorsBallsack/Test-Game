@@ -56,6 +56,10 @@ export type Options = {
     -- Faktor auf alle Münzen aus Verkäufen (Gamepass "2x Münzen" mal Münz-Boost, Paket 4.4).
     -- Standard 1; kaputte Werte (kein number, NaN, unendlich, 0 oder negativ) zählen als 1.
     coinMultiplier: number?,
+    -- Faktor auf die Rate beim Sammeln über die Zeit (`update`). Seit Überarbeitung Ü2 sammelt so nur
+    -- noch der Auto-Dig-Pass (Data/Deposits.autoDigFactor); von Hand wird gestochen (Logic/Deposits).
+    -- Standard 1; kaputte Werte (kein number, NaN, unendlich, 0 oder negativ) zählen als 1.
+    rateMultiplier: number?,
 }
 
 -- Fallback, wenn die Zone im Profil unbekannt ist (sollte nach sanitize nicht vorkommen).
@@ -224,7 +228,8 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     local space = math.max(math.floor(capacity - math.max(BigNum.toNumber(tank), 0)), 0)
 
     local carryBefore = state.carry
-    local accrued = Collecting.rateOf(profile) * dt + carryBefore
+    local rate = Collecting.rateOf(profile) * factor(if options ~= nil then options.rateMultiplier else nil)
+    local accrued = rate * dt + carryBefore
     local whole = math.floor(accrued)
     state.carry = accrued - whole
     local added = math.min(whole, math.floor(space))
@@ -234,7 +239,6 @@ function Collecting.update(state: State, profile: any, now: number, options: Opt
     result.added = added
     -- Echte Sammelzeit für die Fundchance: läuft der Tank in diesem Fenster voll, zählt nur die
     -- Zeit bis "voll".
-    local rate = Collecting.rateOf(profile)
     local flowSeconds = dt
     if rate > 0 and whole > space then
         flowSeconds = math.clamp((space - carryBefore) / rate, 0, dt)

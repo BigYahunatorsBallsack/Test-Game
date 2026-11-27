@@ -1,9 +1,11 @@
 --!strict
 -- Input-Controller
--- Übersetzt Eingaben in Absichten für den Server: Sammeltaste halten (SetCollecting) und
--- den Prompt am Händlerstand (Sell). Sendet nie Mengen oder Preise.
--- Solange gehalten wird, schickt der Client SetCollecting(true) alle
--- Economy.collecting.holdRefreshSeconds; bleibt das aus, stoppt der Server von selbst.
+-- Übersetzt Eingaben in Absichten: Sammeltaste drücken oder halten und den Prompt am Händlerstand
+-- (Sell). Sendet nie Mengen oder Preise.
+-- Überarbeitung Ü2: Gegraben wird mit Stichen (Remote "Stab", gesendet von Controllers/Dig). Input
+-- merkt sich nur, ob gehalten wird, und zählt Drücke (`presses`), damit Dig einen Klick kurz vor dem
+-- Takt nicht verliert. SetCollecting sendet Input nicht mehr (nur noch der Auto-Dig-Pass sammelt über
+-- die Zeit, das startet der Server selbst).
 --
 -- Handy (Paket 3.6): Statt des kleinen Standard-Knopfs von Roblox gibt es einen eigenen, großen
 -- runden Knopf "Graben" links neben dem Sprungknopf (Platz aus Logic/ScreenLayout). Halten sammelt,
@@ -30,13 +32,13 @@ local DIG_BUTTON_TEXT_COLOR = Color3.fromRGB(40, 32, 24)
 local DIG_BUTTON_TRANSPARENCY = 0.15
 local DIG_BUTTON_HELD_TRANSPARENCY = 0
 
-local Economy = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Economy") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
 
 local Input = {}
 
 local holding = false
-local holdToken = 0
+local presses = 0 -- zählt jeden neuen Druck (Ü2)
+local heldSince = 0 -- os.clock() beim letzten Druck
 local suspended = false
 local setHolding: (boolean) -> () = function(_value: boolean) end
 local digGui: ScreenGui? = nil
@@ -44,6 +46,16 @@ local refreshDigButton: () -> () = function() end
 
 function Input.isHolding(): boolean
     return holding
+end
+
+-- Anzahl der bisherigen Drücke (wächst bei jedem neuen Druck um 1).
+function Input.presses(): number
+    return presses
+end
+
+-- Seit wann (os.clock) wird gehalten? Nur gültig, solange isHolding() wahr ist.
+function Input.heldSince(): number
+    return heldSince
 end
 
 -- Ist das Sammeln gerade pausiert (Skilltree offen)? Die Ego-Perspektive gibt dann die Maus frei.
@@ -165,7 +177,6 @@ function Input.Init() end
 
 function Input.Start()
     local remotes = ReplicatedStorage:WaitForChild("Remotes")
-    local setCollecting = remotes:WaitForChild("SetCollecting") :: RemoteEvent
     local sell = remotes:WaitForChild("Sell") :: RemoteEvent
 
     setHolding = function(value: boolean)
@@ -173,18 +184,9 @@ function Input.Start()
             return
         end
         holding = value
-        holdToken += 1
-        setCollecting:FireServer(value)
         if value then
-            local token = holdToken
-            task.spawn(function()
-                while holding and holdToken == token do
-                    task.wait(Economy.collecting.holdRefreshSeconds)
-                    if holding and holdToken == token then
-                        setCollecting:FireServer(true)
-                    end
-                end
-            end)
+            presses += 1
+            heldSince = os.clock()
         end
     end
 

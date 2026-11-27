@@ -48,8 +48,9 @@ local Terrain = {
     defaultToolId = "hand",
 
     regrow = {
-        -- So lange nach dem letzten Graben in einem Block bleibt das Loch unverändert.
-        delaySeconds = 8,
+        -- So lange nach dem letzten Graben in einem Block bleibt das Loch unverändert. Gleich wie
+        -- Data/Deposits.refillSeconds (Überarbeitung Ü2): Das Loch wächst zu, wenn die Zelle wieder voll ist.
+        delaySeconds = 60,
         -- Danach wächst der Block in so vielen Schritten über diese Zeit zum Original zurück.
         seconds = 4,
         steps = 8,

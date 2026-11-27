@@ -50,6 +50,7 @@ local function loadShared(folder: string, name: string): any
 end
 local OffersLogic = loadShared("Logic", "Offers")
 local OffersData = loadShared("Data", "Offers")
+local FeatureRules = loadShared("Logic", "Features")
 
 local servicesFolder = script.Parent
 local PlayerData: any = nil
@@ -97,6 +98,9 @@ end
 -- Fund-Listener (Finds.addFindListener): startet passende Angebote. Wartet nie; Finds sendet danach
 -- den Zustand neu.
 local function onFind(player: Player, profile: any, info: any)
+    if not FeatureRules.on("offers") then
+        return -- Angebote sind ausgeschaltet (Data/Features): kein Fenster starten
+    end
     if PlayerData.get(player) ~= profile then
         return -- Profil gewechselt (Rejoin), nichts schreiben
     end
@@ -172,12 +176,22 @@ function Offers.Init()
     Finds.addFindListener(onFind)
 end
 
-function Offers.Start()
-    -- Shop.Init hat Purchases schon angelegt (alle Init laufen vor allen Start). Je Angebot ein
-    -- Handler für sein Produkt (DataCheck: eigenes Developer Product mit oneTime = true).
+-- Je Angebot ein Handler für sein Produkt (DataCheck: eigenes Developer Product mit oneTime = true).
+-- Shop.Init hat Purchases schon angelegt (alle Init laufen vor allen Start).
+local function registerHandlers()
     for _, offer in OffersData.list do
         Shop.registerProduct(offer.productId, OffersLogic.offerHandler(offer.id, os.time, log))
     end
+end
+
+-- Angebote ausgeschaltet (Data/Features, Ü1): nur die Kauf-Handler, damit ein offener Kauf trotzdem
+-- gutgeschrieben wird. Kein Fenster, kein Snapshot, keine Studio-Hilfe.
+function Offers.StartDisabled()
+    registerHandlers()
+end
+
+function Offers.Start()
+    registerHandlers()
     if type(Sand.addSnapshotProvider) == "function" then
         Sand.addSnapshotProvider(snapshotFor)
     else

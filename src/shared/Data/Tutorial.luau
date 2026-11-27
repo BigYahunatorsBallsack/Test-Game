@@ -27,7 +27,7 @@ export type Step = {
 local steps: { Step } = {
     {
         id = "collect",
-        text = "Halte die Taste zum Graben und fülle deinen Tank!",
+        text = "Klick im Takt in den Sand (oder halte die Taste) und fülle deinen Tank!",
         target = "sand",
         done = { kind = "tankAtLeast", amount = 15 },
     },

@@ -10,6 +10,11 @@ local Equipment = require("./Equipment")
 local DirectShop = require("./DirectShop")
 local Seasons = require("./Seasons")
 local SeasonPass = require("./SeasonPass")
+local FeatureRules = require("./Features")
+local DepositRules = require("./Deposits")
+local FindSpotRules = require("./FindSpots")
+local StabFeelRules = require("./StabFeel")
+local RemoteSpec = require("../Net/RemoteSpec")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -111,6 +116,11 @@ export type DataSet = {
     Koloss: any,
     Social: any,
     Analytics: any,
+    Features: any?, -- Überarbeitung Ü1; fehlt sie in einem Test-Datensatz, wird sie nicht geprüft
+    Deposits: any?, -- Überarbeitung Ü2; ebenso
+    FindSpots: any?, -- Überarbeitung Ü3; ebenso
+    StabFeel: any?, -- Überarbeitung Ü4; ebenso (mit StabSounds)
+    StabSounds: any?,
 }
 
 local DataCheck = {}
@@ -147,6 +157,11 @@ function DataCheck.defaults(): DataSet
         Koloss = require("../Data/Koloss"),
         Social = require("../Data/Social"),
         Analytics = require("../Data/Analytics"),
+        Features = require("../Data/Features"),
+        Deposits = require("../Data/Deposits"),
+        FindSpots = require("../Data/FindSpots"),
+        StabFeel = require("../Data/StabFeel"),
+        StabSounds = require("../Data/StabSounds"),
     }
 end
 
@@ -3224,6 +3239,62 @@ local function checkAnalytics(errors: { string }, data: DataSet)
 end
 
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
+-- System-Schalter (Überarbeitung Ü1): Form der Tabelle und nur Remotes, die es in RemoteSpec gibt.
+local function checkFeatures(errors: { string }, data: DataSet)
+    if data.Features == nil then
+        return
+    end
+    local remoteNames: { string } = {}
+    for _, def in RemoteSpec.list do
+        if def.direction == "ClientToServer" then
+            table.insert(remoteNames, def.name)
+        end
+    end
+    for _, message in FeatureRules.check(data.Features, { remotes = remoteNames }) do
+        table.insert(errors, message)
+    end
+end
+
+-- Lagerstätten und Stich (Überarbeitung Ü2): Form, Takt je Werkzeug, Nachwachsen wie im Terrain.
+local function checkDeposits(errors: { string }, data: DataSet)
+    if data.Deposits == nil then
+        return
+    end
+    local toolIds: { string } = {}
+    if type(data.Tools) == "table" and type(data.Tools.list) == "table" then
+        for _, tool in data.Tools.list do
+            table.insert(toolIds, tool.id)
+        end
+    end
+    local regrow = if type(data.Terrain) == "table" and type(data.Terrain.regrow) == "table" then data.Terrain.regrow.delaySeconds else nil
+    for _, message in DepositRules.check(data.Deposits, toolIds, regrow) do
+        table.insert(errors, message)
+    end
+end
+
+-- Fundstellen (Überarbeitung Ü3).
+local function checkFindSpots(errors: { string }, data: DataSet)
+    if data.FindSpots == nil then
+        return
+    end
+    local layerCount = if type(data.Deposits) == "table" and type(data.Deposits.layers) == "table" then #data.Deposits.layers else nil
+    for _, message in FindSpotRules.check(data.FindSpots, layerCount) do
+        table.insert(errors, message)
+    end
+end
+
+-- Gefühl beim Stechen (Überarbeitung Ü4).
+local function checkStabFeel(errors: { string }, data: DataSet)
+    if data.StabFeel == nil then
+        return
+    end
+    local levels = if type(data.Screen) == "table" and type(data.Screen.graphics) == "table" then data.Screen.graphics.order else nil
+    local layerCount = if type(data.Deposits) == "table" and type(data.Deposits.layers) == "table" then #data.Deposits.layers else nil
+    for _, message in StabFeelRules.check(data.StabFeel, data.StabSounds, levels, layerCount) do
+        table.insert(errors, message)
+    end
+end
+
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
     local errors: { string } = {}
@@ -3264,6 +3335,10 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkTerrain(errors, data)
     checkTankChain(errors, data)
     checkTutorial(errors, data)
+    checkFeatures(errors, data)
+    checkDeposits(errors, data)
+    checkFindSpots(errors, data)
+    checkStabFeel(errors, data)
     return errors
 end
 

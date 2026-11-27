@@ -60,6 +60,13 @@ local BANNER_SECONDS = 2.2
 local BANNER_COLOR = Color3.fromRGB(255, 200, 80)
 
 -- Platzhalter-Objekt im Sand
+-- Ü4: Fund aus einer Fundstelle steigt dort auf (Lage vom Server), wenn sie höchstens so weit weg ist.
+local SPOT_MAX_DISTANCE = 60
+local SPOT_BURST_COUNT = 18
+local SPOT_BURST_COLOR = Color3.fromRGB(230, 200, 117)
+local SPOT_BURST_SPEED = NumberRange.new(6, 12)
+local SPOT_BURST_LIFETIME = NumberRange.new(0.4, 0.8)
+
 local SAND_OBJECT = {
     forwardStuds = 4, -- vor dem Charakter
     groundOffset = 2.5, -- Fußhöhe unter der Mitte des Charakters
@@ -188,7 +195,38 @@ local function statusText(payload: any): string
 end
 
 -- Platzhalter-Objekt, das aus dem Sand steigt (nur auf dem eigenen Bildschirm).
-local function spawnSandObject(color: Color3)
+local function finite(v: any): boolean
+    return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
+end
+
+-- Sandstoß an der Fundstelle (Ü4).
+local function burstAt(position: Vector3)
+    local holder = Instance.new("Part")
+    holder.Name = "FindBurst"
+    holder.Anchored = true
+    holder.CanCollide = false
+    holder.CanQuery = false
+    holder.CanTouch = false
+    holder.Transparency = 1
+    holder.Size = Vector3.new(1, 0.2, 1)
+    holder.Position = position
+    local e = Instance.new("ParticleEmitter")
+    e.Texture = "rbxasset://textures/particles/smoke_main.dds"
+    e.Color = ColorSequence.new(SPOT_BURST_COLOR)
+    e.Speed = SPOT_BURST_SPEED
+    e.Lifetime = SPOT_BURST_LIFETIME
+    e.SpreadAngle = Vector2.new(40, 40)
+    e.EmissionDirection = Enum.NormalId.Top
+    e.Acceleration = Vector3.new(0, -workspace.Gravity * 0.6, 0)
+    e.Size = NumberSequence.new(0.6, 0.2)
+    e.Rate = 0
+    e.Parent = holder
+    holder.Parent = workspace
+    e:Emit(SPOT_BURST_COUNT)
+    Debris:AddItem(holder, 2)
+end
+
+local function spawnSandObject(color: Color3, at: any?)
     local graphics = Graphics.settings()
     if graphics.revealEffects ~= true then
         return -- schwaches Gerät: keine Effekte
@@ -199,6 +237,14 @@ local function spawnSandObject(color: Color3)
         return
     end
     local ground = root.Position + root.CFrame.LookVector * SAND_OBJECT.forwardStuds - Vector3.new(0, SAND_OBJECT.groundOffset, 0)
+    -- Ü4: Fund aus einer Fundstelle steigt dort auf, wo sie war (nur wenn sie in der Nähe liegt).
+    if type(at) == "table" and finite(at.x) and finite(at.y) and finite(at.z) then
+        local spot = Vector3.new(at.x, at.y, at.z)
+        if (spot - root.Position).Magnitude <= SPOT_MAX_DISTANCE then
+            ground = spot
+            burstAt(spot)
+        end
+    end
     local part = Instance.new("Part")
     part.Name = "FindReveal"
     part.Anchored = true
@@ -370,7 +416,7 @@ local function show(payload: any, short: boolean)
         return
     end
     local timing = REVEAL[rarity.id] or REVEAL.common
-    spawnSandObject(Color3.fromHex(rarity.colorHex))
+    spawnSandObject(Color3.fromHex(rarity.colorHex), payload.at)
     playSound(rarity.id)
     if timing.big then
         showBig(payload, find, rarity, short)

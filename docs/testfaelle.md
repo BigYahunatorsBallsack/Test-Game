@@ -737,3 +737,104 @@ Entscheidung (Waltuh: "was du am besten hältst", Koordinator-Empfehlung): L2 un
 - [x] [Lune] `worth`: kleine Schwelle wahr, große falsch, nur bei möglichem Sturm, ohne sichtbaren Knoten wahr, kaputte Schwelle nutzt 180 s, Lauf-Anfang ohne Hinweis.
 - [x] [Lune] DataCheck meldet fehlendes oder falsches `worthSeconds` (0, negativ, über 3600, NaN, unendlich).
 - [ ] [Studio] Sturm-Fenster: Hinweis "Jetzt lohnt sich ein Sturm." erscheint, wenn der nächste Knoten weit weg ist, und nicht zu Beginn eines Laufs.
+
+## Ü1 Aufräumen und Schalter (Überarbeitung)
+
+Plan: docs/overhaul-plan.md, Abschnitt 5.3, und das Plan-Dokument zu Ü1 und Ü2 (freigegeben am 27.11.2026). Neues Datenmodul `Data/Features` mit Regeln in `Logic/Features`. Ein ausgeschalteter Service bekommt Init, statt Start nur `StartDisabled`; Remotes ausgeschalteter Systeme bekommen keinen Handler; Controller ausgeschalteter Systeme werden nicht geladen. Kisten, Gems und Ausrüstung stehen im Fenster "Shop". Der Knopf "Zonen" erscheint ab der zweiten freien Zone. Platzhalter (Stand, Sandfeld, Tor) gibt es nur noch in Studio. Offline aus heißt: kein Ertrag beim Laden; `lastSeen` setzt das Speichern weiter, beim Wiederanschalten zählt also nur die Zeit seit dem letzten Speichern.
+
+- [x] [Lune] `Features`: jeder Schalter ist ein Wahrheitswert, DataCheck meldet nichts, kaputte Einträge werden gemeldet, unbekannte Systeme gelten als aus (`tests/features.spec.luau`).
+- [x] [Lune] Kern (Werkstatt, Sammlung, Sandsturm, Shop) ist an, Angebote, Daily, Codes, Saison-Pass, Event-Zone, Koloss, Social und Offline sind aus.
+- [x] [Lune] Services, Controller und Remotes in der Tabelle gibt es wirklich.
+- [x] [Lune] Aktive Remote-Liste: Remotes ausgeschalteter Systeme sind nicht aktiv, Kern-Remotes immer.
+- [x] [Lune] Kauf-Handler: Jeder ausschaltbare Service mit `registerProduct` registriert in Init oder StartDisabled (Offers, SeasonPasses).
+- [x] [Lune] `activeControllers` lässt ausgeschaltete weg, kein aktiver Controller lädt einen ausgeschalteten.
+- [x] [Lune] Event-Zone ausgeschaltet: nie offen, zu keiner Zeit. `tests/seasonpoints.spec.luau` schaltet sie für die alten Tests an.
+- [ ] [Studio] Spielstart: Menüleiste zeigt nur Sammlung und Shop (Sandsturm ab Canyon-Knoten, Zonen ab der zweiten Zone), dazu der Baum-Knopf. Kein Daily-Fenster, kein Angebots-Hinweis, keine Koloss-Leiste, keine Willkommen-zurück-Karte.
+- [ ] [Studio] Shop-Fenster: Zeilen Kisten, Gems und Ausrüstung öffnen ihr Fenster. Mit gesperrten Zufallsitems fehlt die Zeile Kisten, der Shop-Knopf bleibt.
+- [ ] [Studio] Zonenmenü: Event-Zone nicht wählbar.
+- [ ] [Studio] Verkaufen, Werkstatt, Sammlung, Sandsturm, Kistenkauf und Gem-Kauf funktionieren wie vorher. Testkauf `DebugPurchase "starter_pack"` wird trotz ausgeschalteter Angebote gutgeschrieben.
+- [ ] [Studio] Server-Ausgabe: "Ausgeschaltet (Data/Features): Offers, Daily, ..." und "Every Last Grain läuft".
+- [ ] [Studio] Place ohne Händlerstand: In Studio erscheint der Platzhalter mit Warnung. Im veröffentlichten Testserver steht "[Welt] FEHLT im Place: ..." rot im Server-Log (Entwicklerkonsole, Reiter Server).
+
+## Ü2 Stich und Sandschichten (Überarbeitung)
+
+Plan: Plan-Dokument zu Ü1 und Ü2 (freigegeben am 27.11.2026). Neue Remote `Stab(x, y, z, held)`, Regeln in `Logic/Deposits`, Zahlen in `Data/Deposits`. Zellen 8 × 8 Studs mit drei Schichten (4, 6 und 8 Stiche, Faktor 1, 1,5 und 2,5 auf die Menge), danach leer, nach 60 Sekunden wieder voll. Das Terrain wächst nach derselben Zeit nach (`Terrain.regrow.delaySeconds`). Takt je Werkzeug (Hand 0,5 s bis Großmaschine 0,35 s) auf der Server-Uhr mit 0,12 s Spielraum. Sauberer Stich (Lücke zum vorigen Stich bis Takt + 0,25 s, nicht durch Halten): Faktor 1, sonst 0,6. `SetCollecting(true)` wirkt nur noch mit aktivem Auto-Dig-Pass, der über die Zeit mit Faktor 0,6 sammelt (Abweichung vom Plan: Auto-Dig sticht nicht in Zellen, sondern sammelt wie bisher über die Zeit, nur mit dem Faktor von Halten). Funde laufen bis Ü3 über den bisherigen Würfel: Jeder angenommene Stich zählt einen Takt Sammelzeit.
+
+- [x] [Lune] Ziel außerhalb der Reichweite, zu hoch, ohne Charakter, NaN oder unendlich: kein Sand, keine Zelle (`tests/deposits.spec.luau`).
+- [x] [Lune] Reichweite mit Spielraum: genau an der Grenze geht, knapp darüber nicht.
+- [x] [Lune] Kein Sand unter dem Punkt: kein Stich.
+- [x] [Lune] Zwei Stiche schneller als der Takt: der zweite zählt nicht. Über 200 zu frühe Stiche höchstens einer je Takt.
+- [x] [Lune] Schichten: nach 4 Stichen Schicht 2, nach 10 Schicht 3, nach 18 leer. Die Menge folgt dem Faktor.
+- [x] [Lune] Nachbarzelle voll, leere Zelle nach der Auffüllzeit wieder voll, leere Stiche verlängern das Auffüllen nicht.
+- [x] [Lune] Sauberer Stich nur im Fenster, nicht beim ersten Stich und nicht zu spät. Halten: im Takt, nie sauber, Faktor 0,6. Bruchteile der Hand werden mitgenommen.
+- [x] [Lune] Tank voll: kein Sand, Zelle und Takt nicht verbraucht. Tank läuft voll: Menge gekappt, Bruchteil verfällt.
+- [x] [Lune] Fundzeit ein Takt je angenommenem Stich, 0 bei Ablehnung. `isDigging` kurz nach einem Stich an.
+- [x] [Lune] Speicher: höchstens `maxTrackedCells` Zellen je Spieler.
+- [x] [Lune] Remote `Stab`: kein Mengen-Argument, Schema lehnt zusätzliche Argumente, NaN, unendlich, zu große Zahlen und Texte ab. Kommazahlen sind nur als Weltkoordinate erlaubt (`tests/policyguards.spec.luau`).
+- [x] [Lune] DataCheck prüft `Data/Deposits` (Takt je Werkzeug, Spielraum kleiner als jeder Takt, Nachwachsen gleich Auffüllzeit).
+- [ ] [Studio] Dieselbe Stelle immer wieder stechen: Das Loch wird tiefer, der Staub dunkler, nach 18 Stichen "Hier ist nichts mehr. Ein paar Schritte weiter graben." Einen Schritt weiter geht es wieder voll los. Nach einer Minute ist die alte Stelle wieder zu und voll.
+- [ ] [Studio] Im Takt klicken gibt sichtbar mehr als Halten (Tankanzeige), ein sauberer Stich macht einen zweiten Staubstoß.
+- [ ] [Studio] Zu schnell klicken bringt nicht mehr als im Takt klicken.
+- [ ] [Studio] Arme und Maschinen bewegen sich beim Stechen und hören kurz nach dem letzten Stich auf. Ein zweiter Spieler sieht die Maschine arbeiten.
+- [ ] [Studio] Am Händlerstand und mit vollem Tank wird nicht gestochen ("Tank voll" erscheint).
+- [ ] [Studio] Handy-Emulator: Tippen auf "Graben" sticht einmal, Halten sticht im Takt.
+- [ ] [Studio] Auto-Dig-Pass (DebugPurchase oder Studio-Pass) mit Schalter an: sammelt ohne Taste, langsamer als vorher (Faktor 0,6).
+- [ ] [Studio] Funde kommen beim Stechen weiterhin (Würfel je Takt).
+
+Security-Review Ü2 (keine kritischen oder hohen Funde), umgesetzt:
+- M1: Stechen und Auto-Dig schließen sich aus (Stich beendet laufendes Halten, Auto-Dig pausiert, solange gestochen wird), Fundzeit zählt nicht doppelt.
+- M2: Der Bonus für saubere Stiche lässt sich mit schnellem Klicken oder einem Autoklicker immer holen. Gemildert: Ein Druck wird nur bis 0,12 s vor dem Takt gemerkt. Offene Designfrage für den Fun-Test A1: Bonus behalten, kleiner machen oder nur als Optik.
+- L1: Günstige Takt-Vorprüfung (`Deposits.tooSoon`) vor Strahl und Rechnung.
+- L2: "Tank voll" und "Hier ist nichts mehr" höchstens alle 2 s.
+- L3: Event-Kiste ist zu, solange die Event-Zone ausgeschaltet ist (`Events.inSeason`).
+- L4 (offen, nur Optik): Bei Lag abgelehnte Stiche haben schon ein Loch gegraben.
+- [x] [Lune] `tooSoon` stimmt mit `stab` überein.
+
+## Ü3 Fundstellen im Sand (Überarbeitung)
+
+Plan "Plan Ü3: Fundstellen im Sand". Regeln in `Logic/FindSpots`, Zahlen in `Data/FindSpots`, Tests in `tests/findspots.spec.luau`.
+
+- [x] [Lune] Neue Stellen nur auf Sand (`surfaceAt` liefert eine Höhe) und 8 bis 30 Studs vom Stich, nie in der Stichzelle.
+- [x] [Lune] Höchstens 3 Stellen je Spieler, jede in einer eigenen Zelle. Nach 120 s verschwindet eine Stelle.
+- [x] [Lune] Entstehungsrate im Mittel eine Stelle je ~40 s Graben (Simulation), Faktor aus Zone, Glück, Boost und Wetter wirkt nur auf die Rate. Kaputte Werte (NaN, unendlich, 0) geben keine Stelle.
+- [x] [Lune] Treffer nur in der Zelle der Stelle und erst ab ihrer Schicht. Eine Stelle gibt genau einen Fund, eine abgelaufene keinen.
+- [x] [Lune] Seltenheit aus einer Stelle folgt der unveränderten Quotentabelle (100.000 Würfe, ±0,5 Prozentpunkte). Glück ändert die Seltenheit nicht.
+- [x] [Lune] Erster Fund sicher: nach 20 Stichen ohne jeden Fund eine Stelle in Schicht 1 eine Zelle hinter dem Stich (ohne Sand dort in der Stichzelle), nur einmal je Sitzung, nicht für Spieler mit Funden. Ihr Fund ist immer "Gewöhnlich".
+- [x] [Lune] Stellen einer anderen Zone fallen beim nächsten Stich weg (Reise, Sandsturm). Zone ohne Fundchance: keine Stellen.
+- [x] [Lune] Zufallsfunde ohne Stelle: ein Viertel der bisherigen Chance, ohne die alte Regel "Erster Fund nach 60 s".
+- [x] [Lune] Neue Remote `FindSpots` nur Server->Client, nur Lage (keine Schicht, keine Seltenheit). Keine neue Client->Server-Remote (weiter 18).
+- [x] [Lune] DataCheck prüft `Data/FindSpots` (Abstände, Rate höchstens 1, ganze Zahlen, Gewichte passen zu den Schichten).
+- [ ] [Studio] Ein paar Minuten graben: In der Nähe glitzert es im Sand (bis 40 Studs sichtbar). Dort bis in die richtige Tiefe stechen gibt einen Fund mit Enthüllung, das Glitzern ist danach weg.
+- [ ] [Studio] Neuer Spieler (leere Sammlung): spätestens nach 20 Stichen glitzert es direkt vor einem, ein paar Stiche dort geben den ersten Fund.
+- [ ] [Studio] Eine Stelle, die man liegen lässt, hört nach etwa 2 Minuten auf zu glitzern.
+- [ ] [Studio] In der Event-Zone entstehen keine Stellen.
+- [ ] [Studio] Handy-Emulator: Glitzern ruckelt nicht, weit entfernte Stellen glitzern nicht.
+
+Security-Review Ü3 (keine kritischen oder hohen Funde), umgesetzt:
+- M2: Stellen gehören zu einer Zone. Neue Stellen nur in der aktuellen Zone, Stellen einer anderen Zone fallen weg (Reise, Sandsturm).
+- M1 (Teil): Die erste Stelle gibt wie früher immer "Gewöhnlich" (kein legendärer Start, Starterpaket wie bisher).
+- L1: Neue Stellen nur in Zellen, die der Spieler noch nicht angestochen hat (`Sand.dugAt`).
+- L2: Zone ohne Fundchance: Stiche ändern die Stellen nicht, keine erste Stelle.
+- L3: Kein Zustand mehr nach PlayerRemoving.
+- Offen für Ü10/A1: Mit allen Stellen ausgegraben liegt die Fundrate bei etwa 1,5× der alten (0,25 Grundchance + 1/40 Stellen). Auto-Dig bekommt nur die Grundchance (0,25×). Volltank sperrt das Ausgraben (Stelle kann ablaufen). Genaue Lage geht an den Client (wichtig erst, wenn Nebel oder "Kornprobe" Stellen verstecken sollen).
+
+## Ü4 Gefühl beim Stechen (Überarbeitung)
+
+Plan "Plan Ü4: Gefühl beim Stechen". Rechnung in `Logic/StabFeel`, Zahlen in `Data/StabFeel` und `Data/StabSounds`, Tests in `tests/stabfeel.spec.luau`. Nur Anzeige auf dem Client, der Server schickt bei Funden aus Fundstellen zusätzlich deren Lage mit (`Notify` "find", Feld `at`).
+
+- [x] [Lune] Arm-Kurve beginnt und endet in Ruhe, ganz unten nach dem Einstechen, steigt erst und fällt dann. Ein Stich dauert genau einen Takt, für jedes Werkzeug.
+- [x] [Lune] Der Stich ersetzt die gleichmäßige Grabbewegung; ohne Stich (Auto-Dig) bleibt sie.
+- [x] [Lune] Takt-Ring: voll direkt nach dem Stich, klein beim nächsten Takt, nie außerhalb 0 bis 1.
+- [x] [Lune] Kamera-Ruck: stärker je Schicht, gedeckelt, auf "minimal" aus. Verlauf 0 am Anfang und Ende.
+- [x] [Lune] Sandwurf: Bogen vom Loch zum Eimer, dunkler je Schicht, nie mehr als `maxActive` Klumpen gleichzeitig, am Handy weniger, auf "minimal" keine.
+- [x] [Lune] Eimer-Sand hüpft kurz und kommt zur Ruhe.
+- [x] [Lune] Ton-Wahl: richtige Schicht, Tonhöhe in ±5 %, leere ID spielt nichts.
+- [x] [Lune] DataCheck prüft `Data/StabFeel` und `Data/StabSounds`.
+- [ ] [Studio] 2 Minuten im Dünenmeer mit Hand und Schaufel graben: jeder Stich ist zu sehen und zu spüren (mit Ton-IDs auch zu hören), es fühlt sich satt an.
+- [ ] [Studio] Im Takt klicken: der Ring leuchtet grün, wenn der Server den Stich sauber nennt. Halten: Arme stechen im Takt, ohne Grün.
+- [ ] [Studio] Sandklumpen fliegen in den Eimer, der Eimer-Sand hüpft.
+- [ ] [Studio] Fund an einer Fundstelle steigt genau dort mit Sandstoß aus dem Sand. Zufallsfund: wie bisher vor dem Charakter.
+- [ ] [Studio] Verkaufen: Münzen fliegen zum Münzzähler.
+- [ ] [Studio] Handy-Emulator: kein Ruckeln, weniger Klumpen; Grafikstufe "minimal" ohne Kamera-Ruck und ohne Klumpen.
+
+Hinweise: Der Kamera-Ruck kommt sofort beim Klick und nutzt die Schicht des letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck). Ein sauberer Stich zeigt sich deshalb über den grünen Ring, den hellen Ton und den Staubstoß, nicht über einen stärkeren Ruck. Die Kamera wird nur verschoben, nicht gedreht, damit die Blickrichtung nicht wandert. Ton-IDs und die Arm-Animation fehlen noch (Waltuh, ChatGPT).

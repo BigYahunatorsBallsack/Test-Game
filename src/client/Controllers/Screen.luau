@@ -44,6 +44,8 @@ local function loadShared(folder: string, name: string): any
 end
 local ScreenLayout = loadShared("Logic", "ScreenLayout")
 local ScreenData = loadShared("Data", "Screen")
+local FeatureRules = loadShared("Logic", "Features")
+local FeatureData = loadShared("Data", "Features")
 
 local Screen = {}
 
@@ -207,8 +209,49 @@ function Screen.onLayoutChanged(listener: (any) -> ()): () -> ()
     end
 end
 
+-- Fenster "Shop" (Überarbeitung Ü1): Kisten, Gems und Ausrüstung stehen als Zeilen darin statt als
+-- eigene Knöpfe in der Leiste. Der Leistenknopf "Shop" ist nur sichtbar, solange mindestens eine Zeile
+-- sichtbar ist. Eine Zeile öffnet das Fenster ihres Controllers (das schließt den Shop).
+local shopWindow: Window? = nil
+local shopBarButton: TextButton? = nil
+local shopMembers: { TextButton } = {}
+
+local function refreshShopButton()
+    local bar = shopBarButton
+    if bar == nil then
+        return
+    end
+    local any = false
+    for _, member in shopMembers do
+        if member.Visible then
+            any = true
+            break
+        end
+    end
+    bar.Visible = any
+end
+
+local function addShopMember(button: TextButton, order: number)
+    if shopWindow == nil then
+        local shop = FeatureData.shop
+        shopWindow = Screen.createWindow({ name = "ShopWindow", title = shop.title })
+        shopBarButton = Screen.addMenuButton(shop.buttonId, shop.title, order)
+        local bar = shopBarButton :: TextButton
+        local window = shopWindow :: Window
+        bar.Activated:Connect(window.toggle)
+    end
+    local window = shopWindow :: Window
+    button.LayoutOrder = order
+    button.Size = UDim2.new(1, 0, 0, ScreenData.controls.rowButtonH)
+    button.Parent = window.body
+    table.insert(shopMembers, button)
+    button:GetPropertyChangedSignal("Visible"):Connect(refreshShopButton)
+    refreshShopButton()
+end
+
 -- Knopf in der Menüleiste. `order` bestimmt die Reihenfolge (klein = zuerst). Der Controller darf
 -- Text, Farbe und Sichtbarkeit ändern: ein unsichtbarer Knopf nimmt keinen Platz in der Leiste.
+-- Knöpfe aus Data/Features `shop.members` landen als Zeile im Fenster "Shop" (Überarbeitung Ü1).
 function Screen.addMenuButton(id: string, text: string, order: number): TextButton
     ensure()
     local gui = menuGui :: ScreenGui
@@ -233,6 +276,10 @@ function Screen.addMenuButton(id: string, text: string, order: number): TextButt
     padding.PaddingTop = UDim.new(0, 2)
     padding.PaddingBottom = UDim.new(0, 2)
     padding.Parent = button
+    if FeatureRules.inShop(id) then
+        addShopMember(button, order)
+        return button
+    end
     table.insert(menuEntries, { id = id, order = order, button = button })
     button:GetPropertyChangedSignal("Visible"):Connect(queueRelayout)
     relayout()
