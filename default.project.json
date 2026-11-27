@@ -4,6 +4,13 @@
     "$className": "DataModel",
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
+      "Assets": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "ViewArms": {
+          "$path": "assets/models/view_arms/ViewArms.rbxm"
+        }
+      },
       "Shared": {
         "$path": "src/shared"
       }

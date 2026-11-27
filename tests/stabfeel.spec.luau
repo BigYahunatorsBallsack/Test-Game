@@ -56,6 +56,20 @@ T.describe("StabFeel: Daten", function()
 end)
 
 T.describe("StabFeel: Arme", function()
+    T.it("spielt den 0,5-s-Clip in genau einem Werkzeugtakt ab", function()
+        T.expect(StabFeel.animationSpeed(Deposits.stabSeconds("hand"))).toBe(1)
+        T.expect(StabFeel.animationSpeed(Deposits.stabSeconds("shovel"))).toBeCloseTo(10 / 9, 1e-9)
+        T.expect(StabFeel.animationSpeed(Deposits.stabSeconds("vacuum_robot"))).toBeCloseTo(10 / 7, 1e-9)
+        for _, interval in DepositData.stab.secondsByTool do
+            T.expect(Data.arm.animationSeconds / StabFeel.animationSpeed(interval)).toBeCloseTo(interval, 1e-9)
+        end
+    end)
+
+    T.it("verwendet Originaltempo bei ungültigem Takt", function()
+        for _, interval in { 0, -1, math.huge, 0 / 0 } do
+            T.expect(StabFeel.animationSpeed(interval)).toBe(1)
+        end
+    end)
     T.it("Kurve beginnt und endet in Ruhe, ganz unten nach dem Einstechen", function()
         T.expect(StabFeel.armStroke(0)).toBe(0)
         T.expect(StabFeel.armStroke(1)).toBe(0)
@@ -219,8 +233,11 @@ T.describe("StabFeel: Töne", function()
     end)
 
     T.it("leere ID spielt nichts, kein Fehler", function()
-        T.expect(StabFeel.pickSound("empty", nil, 0.5, filled)).toBeNil()
-        T.expect(StabFeel.pickSound("layer", 1, 0.5, Sounds) == nil or Sounds.layers[1].soundId ~= "").toBe(true)
+        local silent = copy(filled)
+        silent.empty.soundId = ""
+        silent.layers[1].soundId = ""
+        T.expect(StabFeel.pickSound("empty", nil, 0.5, silent)).toBeNil()
+        T.expect(StabFeel.pickSound("layer", 1, 0.5, silent)).toBeNil()
         T.expect(StabFeel.pickSound("gibt_es_nicht", nil, 0.5, filled)).toBeNil()
     end)
 end)

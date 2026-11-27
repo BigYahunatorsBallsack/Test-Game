@@ -1,6 +1,6 @@
 --!strict
--- Töne beim Stechen (Überarbeitung Ü4). Die IDs sind leer, bis Waltuh Töne aus dem Creator Store
--- aussucht (Lizenz prüfen). Leere ID = stumm, kein Fehler. Gültig sind "" oder "rbxassetid://" plus
+-- Töne beim Stechen (Überarbeitung Ü4). Quellen in docs/testfaelle.md unter „Ü4 Nachtrag“.
+-- Leere ID = stumm, kein Fehler. Gültig sind "" oder "rbxassetid://" plus
 -- Ziffern (DataCheck). Die Tonhöhe schwankt je Ton um ±pitchJitter, damit es nicht nach Maschine klingt.
 
 export type Cue = {
@@ -13,11 +13,11 @@ return {
     pitchJitter = 0.05,
     -- Stich je Schicht (Index = Schicht aus Data/Deposits: Oberfläche, feuchter Sand, Kern).
     layers = {
-        { soundId = "", volume = 0.5, pitch = 1.05 },
-        { soundId = "", volume = 0.55, pitch = 1 },
-        { soundId = "", volume = 0.6, pitch = 0.92 },
+        { soundId = "rbxassetid://139482312225716", volume = 0.5, pitch = 1.05 },
+        { soundId = "rbxassetid://111562355410998", volume = 0.55, pitch = 1 },
+        { soundId = "rbxassetid://9118598279", volume = 0.6, pitch = 0.92 },
     } :: { Cue },
-    clean = { soundId = "", volume = 0.45, pitch = 1 } :: Cue, -- zusätzlich beim sauberen Stich
-    empty = { soundId = "", volume = 0.5, pitch = 1 } :: Cue, -- Zelle leer
-    full = { soundId = "", volume = 0.5, pitch = 1 } :: Cue, -- Tank voll
+    clean = { soundId = "rbxassetid://117342687478220", volume = 0.45, pitch = 1 } :: Cue, -- zusätzlich beim sauberen Stich
+    empty = { soundId = "rbxassetid://9116190442", volume = 0.5, pitch = 1 } :: Cue, -- Zelle leer
+    full = { soundId = "rbxassetid://9119349447", volume = 0.5, pitch = 1 } :: Cue, -- Tank voll
 }

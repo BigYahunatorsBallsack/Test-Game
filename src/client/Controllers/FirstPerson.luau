@@ -1,8 +1,8 @@
 --!strict
 -- FirstPerson-Controller: Ego-Perspektive mit Händen im Bild.
 -- * Kamera: Roblox-Modus LockFirstPerson, Sichtfeld und Kamera-Versatz aus Data/FirstPerson.
--- * Hände (Viewmodel): Zwei Gruppen aus einfachen Teilen hängen an der Kamera, nur auf diesem
---   Client (Ordner unter workspace.CurrentCamera). Rechts die Hand mit dem Werkzeug (Schaufel, bei
+-- * Hände (Viewmodel): Das animierte ViewArms-Rig oder zwei Gruppen aus einfachen Teilen hängen
+--   lokal unter workspace.CurrentCamera. Rechts die Hand mit dem Werkzeug (Schaufel, bei
 --   Maschinen die Fernsteuerung), links die Hand mit dem Eimer. Der Sand im Eimer zeigt den Tank.
 --   Beim Sammeln sticht die Schaufel, beim Laufen wippen die Hände, beim Umsehen ziehen sie nach.
 --   Die Rechnung steht im reinen Modul Logic/FirstPerson, die Teile in Data/FirstPerson.
@@ -64,6 +64,17 @@ local FirstPerson = {}
 
 type Piece = { part: BasePart, cf: CFrame, paint: string? }
 type Group = { pieces: { Piece } }
+type ViewRig = {
+    model: Model,
+    root: BasePart,
+    grip: Attachment,
+    bucketGrip: Attachment,
+    rightShoulder: Motor6D,
+    leftShoulder: Motor6D,
+    rightRest: CFrame,
+    leftRest: CFrame,
+    track: AnimationTrack,
+}
 
 local player = Players.LocalPlayer
 local cursorToggled = false
@@ -75,9 +86,14 @@ local fadeSet: { [string]: boolean } = {}
 local model: Model? = nil
 local rightGroup: Group = { pieces = {} }
 local leftGroup: Group = { pieces = {} }
+local bucketPieces: { Piece } = {}
 local itemPieces: { Piece } = {}
 local itemId = ""
 local fillPart: BasePart? = nil
+local fillWeld: Weld? = nil
+local rig: ViewRig? = nil
+local pendingRig: ViewRig? = nil
+local triedRig: Instance? = nil
 local skinColor: Color3? = nil
 local nextSkinRefresh = 0
 local sway = { yaw = 0, pitch = 0 }
@@ -85,7 +101,7 @@ local lastYaw: number? = nil
 local lastPitch: number? = nil
 -- Stich (Ü4)
 local stabAt: number? = nil
-local stabInterval = 0.5
+local stabInterval = FeelData.arm.animationSeconds
 local nextStabAt: number? = nil
 local stabLayer = 1
 local cleanAt = -math.huge
@@ -156,6 +172,103 @@ local function destroyPieces(list: { Piece })
     table.clear(list)
 end
 
+local function attachToGrip(part: BasePart, grip: Attachment, offset: CFrame): Weld
+    local weld = Instance.new("Weld")
+    weld.Part0 = grip.Parent :: BasePart
+    weld.Part1 = part
+    weld.C0 = grip.CFrame * offset
+    part.CFrame = grip.WorldCFrame * offset
+    weld.Parent = part
+    part.Anchored = false
+    return weld
+end
+
+local function loadRig(template: Model, parent: Model): ViewRig?
+    local clone = template:Clone()
+    if clone == nil then
+        return nil
+    end
+    local root = clone.PrimaryPart
+    local rightHand = clone:FindFirstChild("RightHand")
+    local leftHand = clone:FindFirstChild("LeftHand")
+    local grip = if rightHand and rightHand:IsA("BasePart") then rightHand:FindFirstChild("Grip") else nil
+    local bucketGrip = if leftHand and leftHand:IsA("BasePart") then leftHand:FindFirstChild("BucketGrip") else nil
+    local rightShoulder = if root then root:FindFirstChild("RightShoulder") else nil
+    local leftShoulder = if root then root:FindFirstChild("LeftShoulder") else nil
+    local controller = clone:FindFirstChildOfClass("AnimationController")
+    local animator = if controller then controller:FindFirstChildOfClass("Animator") else nil
+    if not root or root.Name ~= "CameraRoot" or not grip or not grip:IsA("Attachment")
+        or not bucketGrip or not bucketGrip:IsA("Attachment") or not animator
+        or not rightShoulder or not rightShoulder:IsA("Motor6D")
+        or not leftShoulder or not leftShoulder:IsA("Motor6D") then
+        clone:Destroy()
+        return nil
+    end
+
+    -- Die Blöcke bleiben sichtbar, bis Roblox den Clip zur Wiedergabe geladen hat.
+    for _, part in clone:GetDescendants() do
+        if part:IsA("BasePart") then
+            part.LocalTransparencyModifier = 1
+        end
+    end
+    clone.Parent = parent
+    local animation = Instance.new("Animation")
+    animation.AnimationId = FeelData.arm.animationId
+    animation.Parent = controller
+    local ok, track = pcall(function()
+        return animator:LoadAnimation(animation)
+    end)
+    if not ok then
+        clone:Destroy()
+        return nil
+    end
+    track.Looped = false
+    track.Priority = Enum.AnimationPriority.Action
+    return {
+        model = clone, root = root, grip = grip, bucketGrip = bucketGrip,
+        rightShoulder = rightShoulder, leftShoulder = leftShoulder,
+        rightRest = rightShoulder.C0, leftRest = leftShoulder.C0, track = track,
+    }
+end
+
+local function updateRig(canSwitch: boolean)
+    local m = model
+    if not m or rig or FeelData.arm.animationId == "" then
+        return
+    end
+    if not pendingRig then
+        local assets = ReplicatedStorage:FindFirstChild("Assets")
+        local template = if assets then assets:FindFirstChild("ViewArms") else nil
+        if not template or not template:IsA("Model") or template == triedRig then
+            return
+        end
+        triedRig = template
+        pendingRig = loadRig(template, m)
+    end
+    local ready = pendingRig
+    if not ready or ready.track.Length <= 0 or not canSwitch then
+        return
+    end
+    rig, pendingRig = ready, nil
+    destroyPieces(rightGroup.pieces)
+    destroyPieces(leftGroup.pieces)
+    for _, part in ready.model:GetDescendants() do
+        if part:IsA("BasePart") then
+            part.LocalTransparencyModifier = 0
+        end
+    end
+    for _, piece in bucketPieces do
+        attachToGrip(piece.part, ready.bucketGrip, piece.cf)
+    end
+    for _, piece in itemPieces do
+        attachToGrip(piece.part, ready.grip, piece.cf)
+    end
+    local fill = fillPart
+    if fill then
+        fillWeld = attachToGrip(fill, ready.bucketGrip, CFrame.identity)
+    end
+end
+
 local function buildViewmodel(camera: Camera)
     if model ~= nil then
         model:Destroy()
@@ -165,12 +278,14 @@ local function buildViewmodel(camera: Camera)
     model = m
     rightGroup = { pieces = {} }
     leftGroup = { pieces = {} }
+    table.clear(bucketPieces)
     table.clear(itemPieces)
     itemId = ""
+    rig, pendingRig, triedRig, fillWeld = nil, nil, nil, nil
     local vm = Data.viewmodel
     addPieces(rightGroup.pieces, vm.rightArm)
     addPieces(leftGroup.pieces, vm.leftArm)
-    addPieces(leftGroup.pieces, vm.bucket)
+    addPieces(bucketPieces, vm.bucket)
     local fill = vm.fill
     fillPart = newPart("Fill", "Cylinder", Vector3.new(fill.minHeight, fill.diameter, fill.diameter), colorOf(fill.colorHex), materialOf(fill.material))
     m.Parent = camera
@@ -186,6 +301,12 @@ local function ensureItem(view: any)
     local item = Data.viewmodel.items[view.item]
     if item ~= nil then
         addPieces(itemPieces, item.parts)
+        local activeRig = rig
+        if activeRig then
+            for _, piece in itemPieces do
+                attachToGrip(piece.part, activeRig.grip, piece.cf)
+            end
+        end
     end
 end
 
@@ -343,8 +464,10 @@ local function onRender(dt: number)
         camera.CFrame = camera.CFrame * CFrame.new(0, -kick.studs * envelope, 0)
     end
     local phase = StabFeel.phase(now, stabAt, stabInterval)
+    updateRig(phase == nil)
+    local activeRig = rig
     local stabbing = sinceStab < stabInterval * FeelData.ring.idleAfterTakts
-    local stabStroke: number? = if phase ~= nil then StabFeel.armStroke(phase, FeelData) elseif stabbing then 0 else nil
+    local stabStroke: number? = if activeRig then nil elseif phase ~= nil then StabFeel.armStroke(phase, FeelData) elseif stabbing then 0 else nil
 
     -- Nachziehen beim Umsehen.
     local camCF = camera.CFrame
@@ -368,36 +491,49 @@ local function onRender(dt: number)
     }, Data)
 
     local vm = Data.viewmodel
-    local function groupFrame(anchor: any, groupPose: any): CFrame
+    local function groupFrame(anchor: CFrame, groupPose: any): CFrame
         local m, t = groupPose.move, groupPose.turn
-        return base * localFrame(anchor) * CFrame.new(m.x, m.y, m.z) * angles(t)
+        return anchor * CFrame.new(m.x, m.y, m.z) * angles(t)
     end
-    local rightCF = groupFrame(vm.right, pose.right)
-    local leftCF = groupFrame(vm.left, pose.left)
+    local rightRest, leftRest = localFrame(vm.right), localFrame(vm.left)
+    local rightPose, leftPose = groupFrame(rightRest, pose.right), groupFrame(leftRest, pose.left)
 
     local parts: { BasePart } = {}
     local frames: { CFrame } = {}
-    for _, piece in rightGroup.pieces do
-        table.insert(parts, piece.part)
-        table.insert(frames, rightCF * piece.cf)
-    end
-    for _, piece in itemPieces do
-        table.insert(parts, piece.part)
-        table.insert(frames, rightCF * piece.cf)
-    end
-    for _, piece in leftGroup.pieces do
-        table.insert(parts, piece.part)
-        table.insert(frames, leftCF * piece.cf)
+    if activeRig then
+        activeRig.root.CFrame = base
+        -- Wippen und Auto-Dig verschieben die Schulterbasis. Der Animator steuert die Motor-Transforms.
+        activeRig.rightShoulder.C0 = rightPose * rightRest:Inverse() * activeRig.rightRest
+        activeRig.leftShoulder.C0 = leftPose * leftRest:Inverse() * activeRig.leftRest
+    else
+        local function movePieces(pieces: { Piece }, frame: CFrame)
+            for _, piece in pieces do
+                table.insert(parts, piece.part)
+                table.insert(frames, frame * piece.cf)
+            end
+        end
+        movePieces(rightGroup.pieces, base * rightPose)
+        movePieces(itemPieces, base * rightPose)
+        movePieces(leftGroup.pieces, base * leftPose)
+        movePieces(bucketPieces, base * leftPose)
     end
     local fp = fillPart
     if fp ~= nil then
         local fill = Logic.bucketFill(tankRatio(), Data)
         local bump = StabFeel.bucketBump(sinceStab, FeelData)
         fp.Size = Vector3.new(fill.height, vm.fill.diameter, vm.fill.diameter)
-        table.insert(parts, fp)
-        table.insert(frames, leftCF * CFrame.new(0, fill.centerY + bump, 0) * CFrame.Angles(0, 0, math.rad(90)))
+        local offset = CFrame.new(0, fill.centerY + bump, 0) * CFrame.Angles(0, 0, math.rad(90))
+        local weld = fillWeld
+        if activeRig and weld then
+            weld.C0 = activeRig.bucketGrip.CFrame * offset
+        else
+            table.insert(parts, fp)
+            table.insert(frames, base * leftPose * offset)
+        end
     end
-    workspace:BulkMoveTo(parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
+    if #parts > 0 then
+        workspace:BulkMoveTo(parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
+    end
 
     updateWorldTool(camera, character, toolId, view)
     hideOwnItems()
@@ -476,9 +612,18 @@ end
 
 -- Ein Stich beginnt (Controllers/Dig, Ü4). `interval` = Takt des Werkzeugs, `nextAt` = nächster Takt.
 function FirstPerson.onStab(interval: number, nextAt: number)
+    local m = model
+    if m and m.Parent then
+        updateRig(true)
+        local activeRig = rig
+        if activeRig then
+            activeRig.track:Play(0, 1, StabFeel.animationSpeed(interval, FeelData))
+            activeRig.track.TimePosition = 0
+        end
+    end
     local now = os.clock()
     stabAt = now
-    stabInterval = if interval > 0 then interval else 0.5
+    stabInterval = if interval > 0 then interval else FeelData.arm.animationSeconds
     nextStabAt = nextAt
     kick = StabFeel.cameraKick(stabLayer, Graphics.level(), FeelData)
 end

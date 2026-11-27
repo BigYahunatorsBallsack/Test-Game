@@ -837,7 +837,27 @@ Plan "Plan Ü4: Gefühl beim Stechen". Rechnung in `Logic/StabFeel`, Zahlen in `
 - [ ] [Studio] Verkaufen: Münzen fliegen zum Münzzähler.
 - [ ] [Studio] Handy-Emulator: kein Ruckeln, weniger Klumpen; Grafikstufe "minimal" ohne Kamera-Ruck und ohne Klumpen.
 
-Hinweise: Der Kamera-Ruck kommt sofort beim Klick und nutzt die Schicht des letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck). Ein sauberer Stich zeigt sich deshalb über den grünen Ring, den hellen Ton und den Staubstoß, nicht über einen stärkeren Ruck. Die Kamera wird nur verschoben, nicht gedreht, damit die Blickrichtung nicht wandert. Ton-IDs und die Arm-Animation fehlen noch (Waltuh, ChatGPT).
+Hinweise: Der Kamera-Ruck kommt sofort beim Klick und nutzt die Schicht des letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck). Ein sauberer Stich zeigt sich deshalb über den grünen Ring, den hellen Ton und den Staubstoß, nicht über einen stärkeren Ruck. Die Kamera wird nur verschoben, nicht gedreht, damit die Blickrichtung nicht wandert.
+
+### Ü4 Nachtrag
+
+- [x] [Lune] Hand (`0,50 s`), Schaufel (`0,45 s`) und schnellstes Werkzeug (`0,35 s`) spielen den `0,50 s` langen Clip in genau einem Takt. Ein ungültiger Takt ergibt Originaltempo.
+- [x] [Studio] Veröffentlichter Clip lädt als `KeyframeSequence` mit Priorität `Action`, ohne Loop und mit Schlüsseln bei `0,00`, `0,09`, `0,15` und `0,50 s`.
+- [ ] [Studio] Beide Arme sind sichtbar. Die Schaufel folgt `Grip`. Der Eimer samt Sand folgt `BucketGrip`. Werkzeuge wechseln und beim Laufen sowie Umsehen auf festen Sitz prüfen.
+- [ ] [Studio] Hand und Schaufel einzeln und wiederholt stechen lassen. Rechts geht es abwärts, es folgt eine kurze Haltephase und dann der Wurf nach links. Links federt der Eimer. Die Arme landen bei jedem Stich wieder in derselben Ruhepose. Auch bei `0,35 s` prüfen.
+- [ ] [Studio] Je Schicht graben, dann einen sauberen Stich, eine leere Stelle und einen vollen Tank auslösen. Jeder Ton ist zu hören. Beim sauberen Stich laufen Schicht-Ton und Klingeln zusammen.
+- [ ] [Studio] In einer lokalen Kopie einzeln das Rig entfernen, `animationId` leeren und eine nicht ladbare ID setzen. Bei jedem Neustart sind Blockarme und Stichkurve sichtbar. Mit leeren `soundId`-Feldern bleibt Graben stumm möglich.
+
+Animation und Modell liegen in [assets/models/view_arms](../assets/models/view_arms). Rojo bindet `ViewArms.rbxm` unter `ReplicatedStorage.Assets.ViewArms` ein. Die Keyframe-Datei `ViewArmsStab.rbxm` enthält den bearbeitbaren Clip.
+
+Alle sechs Effekte waren im Creator Store kostenlos verfügbar und ließen sich in Studio laden. Die Verwendung in Roblox-Experiences richtet sich nach den Roblox-Audio-Nutzungsbedingungen. Die Zeiten sind die in Studio gemessenen Originaldauern. [Roblox Creator Hub – Audio-Assets](https://create.roblox.com/docs/audio/assets)
+
+- Oberfläche · Sand Footstep 3, MaxedPerfection, 0,446 s. [Creator Store](https://create.roblox.com/store/asset/139482312225716)
+- Feuchter Sand · Dirt Footstep 2, MaxedPerfection, 0,236 s. [Creator Store](https://create.roblox.com/store/asset/111562355410998)
+- Kern · Rock Hit Dirt Impact 14, ProSoundEffects, 0,375 s. [Creator Store](https://create.roblox.com/store/asset/9118598279)
+- Sauberer Stich · glass clink, SmilinSphere, 0,436 s. [Creator Store](https://create.roblox.com/store/asset/117342687478220)
+- Leere Stelle · Knife Fast Scraping Draws Pull Out 9, ProSoundEffects, 0,238 s. [Creator Store](https://create.roblox.com/store/asset/9116190442)
+- Tank voll · Soccer Header 1, ProSoundEffects, 0,227 s. [Creator Store](https://create.roblox.com/store/asset/9119349447)
 
 ## Ü5 Ein Look für die Oberfläche (Überarbeitung)
 
