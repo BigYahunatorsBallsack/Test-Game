@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Darstellung
 local MENU_ORDER = 1 -- Platz in der Menüleiste (Zonen zuerst)
+local MIN_ZONES_FOR_BUTTON = 2 -- Knopf erst ab der zweiten freien Zone (Überarbeitung Ü1)
 local ROW_HEIGHT = 64
 local FOOTER_HEIGHT = 30
 local MESSAGE_SECONDS = 3
@@ -251,6 +252,14 @@ function ZoneMenu.Start()
     end
 
     refresh = function(snapshot: any?)
+        -- Überarbeitung Ü1: Der Knopf erscheint erst, wenn es eine zweite Zone gibt, wohin man reisen kann.
+        local openCount = 0
+        for _, zone in Zones.list do
+            if isUnlocked(snapshot, zone.id) then
+                openCount += 1
+            end
+        end
+        openButton.Visible = openCount >= MIN_ZONES_FOR_BUTTON
         for _, zone in allZones do
             local row = rows[zone.id]
             local open = isUnlocked(snapshot, zone.id)

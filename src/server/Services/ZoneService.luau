@@ -12,6 +12,8 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 
 -- Wie oft der Server die Zone jedes Spielers prüft (Sekunden).
 local TICK_SECONDS = 0.25
@@ -108,6 +110,14 @@ end
 -- Platzhalter-Sandfelder (Paket 1.4 und 2.5): je Zone ein Feld im Terrain-Material ihrer Sandsorte.
 -- Nur wenn es in den Daten eingeschaltet ist und an der Mitte der Oberseite noch kein Terrain liegt.
 -- Löcher gräbt später nur der Client, der Server ändert dieses Terrain danach nicht mehr.
+-- Überarbeitung Ü1: Platzhalter nur in Studio. Im veröffentlichten Place meldet der Server einen roten
+-- Fehler im Server-Log, statt still einen Platzhalter hinzustellen (der Server läuft weiter).
+local IS_STUDIO = RunService:IsStudio()
+
+local function reportMissing(text: string)
+    task.spawn(error, `[Welt] FEHLT im Place: {text}`, 0)
+end
+
 local function setupFields()
     if not TerrainData.placeholderField.enabled then
         return
@@ -127,6 +137,10 @@ local function setupFields()
         if fieldOccupied(center, size) then
             continue
         end
+        if not IS_STUDIO then
+            reportMissing(`Sandfeld der Zone {area.id} (kein Terrain an x={c.x}, z={c.z})`)
+            continue
+        end
         terrain:FillBlock(CFrame.new(center), size, material)
         terrain:SetMaterialColor(material, Color3.fromHex(sandType.colorHex))
         warn(`[Zonen] Kein Terrain am Platzhalter-Feld von {area.id}: Feld angelegt (bis Phase 3)`)
@@ -135,10 +149,23 @@ end
 
 -- Tor-Anzeigen an der Grenze zu jeder Zone außer der ersten (nur Optik, siehe Kopfkommentar).
 -- Der Client färbt sie je nach Freischaltung und blendet das Schild ein.
+local function hasTaggedGate(zoneId: string): boolean
+    for _, part in CollectionService:GetTagged(World.gateTag) do
+        if part:GetAttribute("ZoneId") == zoneId then
+            return true
+        end
+    end
+    return false
+end
+
 local function setupGates()
     for _, area in World.zones do
         local gate = area.gate
-        if gate == nil then
+        if gate == nil or hasTaggedGate(area.id) then
+            continue
+        end
+        if not IS_STUDIO then
+            reportMissing(`Tor zur Zone {area.id} (Teil mit Tag "{World.gateTag}" und Attribut ZoneId = "{area.id}")`)
             continue
         end
         local length = gate.maxZ - gate.minZ

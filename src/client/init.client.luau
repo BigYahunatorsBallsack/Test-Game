@@ -8,11 +8,16 @@ type Controller = {
     Start: () -> (),
 }
 
-print("[Client] Dune Baron startet")
+print("[Client] Every Last Grain startet")
+
+-- Überarbeitung Ü1: Controller ausgeschalteter Systeme (Data/Features) werden gar nicht geladen.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Features = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Logic"):WaitForChild("Features") :: ModuleScript) :: any
+local ACTIVE_NAMES: { string } = Features.activeControllers(CONTROLLER_NAMES)
 
 local controllersFolder = script:WaitForChild("Controllers")
 local controllers: { Controller } = {}
-for _, name in CONTROLLER_NAMES do
+for _, name in ACTIVE_NAMES do
     local module = controllersFolder:WaitForChild(name) :: ModuleScript
     table.insert(controllers, require(module) :: Controller)
 end
@@ -22,14 +27,14 @@ end
 for index, controller in controllers do
     local ok, err = pcall(controller.Init)
     if not ok then
-        warn(`[Client] Init von {CONTROLLER_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
+        warn(`[Client] Init von {ACTIVE_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
     end
 end
 for index, controller in controllers do
     local ok, err = pcall(controller.Start)
     if not ok then
-        warn(`[Client] Start von {CONTROLLER_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
+        warn(`[Client] Start von {ACTIVE_NAMES[index]} fehlgeschlagen: {tostring(err)}`)
     end
 end
 
-print("[Client] Dune Baron läuft")
+print("[Client] Every Last Grain läuft")

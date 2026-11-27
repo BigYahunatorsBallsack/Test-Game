@@ -13,6 +13,7 @@ local Zones = require("../Data/Zones")
 local WorldData = require("../Data/World")
 local TreeEffects = require("./TreeEffects")
 local Seasons = require("./Seasons")
+local Features = require("./Features")
 
 export type Vec3 = { x: number, y: number, z: number }
 
@@ -41,6 +42,10 @@ function Zone.isUnlocked(profile: any, zoneId: string, unixNow: number?): boolea
         return false
     end
     if Zones.eventById[zoneId] ~= nil then
+        -- Überarbeitung Ü1: Ist die Event-Zone in Data/Features aus, ist sie immer zu.
+        if not Features.on("eventZone") then
+            return false
+        end
         return unixNow ~= nil and Zone.requirementMet(profile, zoneId) and Seasons.zoneOpen(unixNow, zoneId)
     end
     local stored = profile.zones

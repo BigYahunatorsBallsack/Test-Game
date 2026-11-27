@@ -20,6 +20,8 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local IS_STUDIO = RunService:IsStudio() -- Platzhalter-Stände nur in Studio (Überarbeitung Ü1)
 
 -- Wie oft der Server laufendes Sammeln abrechnet und den Tank an den Client schickt (s).
 local TICK_SECONDS = 0.25
@@ -407,7 +409,10 @@ local function setupSellStands()
                 end
             end
         end
-        if not nearby then
+        if not nearby and not IS_STUDIO then
+            -- Überarbeitung Ü1: im veröffentlichten Place kein grauer Block, sondern ein roter Fehler im Log.
+            task.spawn(error, `[Welt] FEHLT im Place: Händlerstand der Zone {area.id} (Teil mit Tag "{tag}" nahe x={pos.x}, z={pos.z})`, 0)
+        elseif not nearby then
             local part = Instance.new("Part")
             part.Name = `SellStand_Platzhalter_{area.id}`
             part.Anchored = true
@@ -416,7 +421,7 @@ local function setupSellStands()
             part.Position = Vector3.new(pos.x, pos.y, pos.z)
             part:AddTag(tag)
             part.Parent = workspace
-            warn(`[Sand] Kein Händlerstand für Zone {area.id}: Platzhalter angelegt (bis Phase 3)`)
+            warn(`[Sand] Kein Händlerstand für Zone {area.id}: Platzhalter angelegt (nur in Studio)`)
         end
     end
     for _, stand in CollectionService:GetTagged(tag) do

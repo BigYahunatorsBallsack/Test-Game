@@ -737,3 +737,21 @@ Entscheidung (Waltuh: "was du am besten hältst", Koordinator-Empfehlung): L2 un
 - [x] [Lune] `worth`: kleine Schwelle wahr, große falsch, nur bei möglichem Sturm, ohne sichtbaren Knoten wahr, kaputte Schwelle nutzt 180 s, Lauf-Anfang ohne Hinweis.
 - [x] [Lune] DataCheck meldet fehlendes oder falsches `worthSeconds` (0, negativ, über 3600, NaN, unendlich).
 - [ ] [Studio] Sturm-Fenster: Hinweis "Jetzt lohnt sich ein Sturm." erscheint, wenn der nächste Knoten weit weg ist, und nicht zu Beginn eines Laufs.
+
+## Ü1 Aufräumen und Schalter (Überarbeitung)
+
+Plan: docs/overhaul-plan.md, Abschnitt 5.3, und das Plan-Dokument zu Ü1 und Ü2 (freigegeben am 27.11.2026). Neues Datenmodul `Data/Features` mit Regeln in `Logic/Features`. Ein ausgeschalteter Service bekommt Init, statt Start nur `StartDisabled`; Remotes ausgeschalteter Systeme bekommen keinen Handler; Controller ausgeschalteter Systeme werden nicht geladen. Kisten, Gems und Ausrüstung stehen im Fenster "Shop". Der Knopf "Zonen" erscheint ab der zweiten freien Zone. Platzhalter (Stand, Sandfeld, Tor) gibt es nur noch in Studio. Offline aus heißt: kein Ertrag beim Laden; `lastSeen` setzt das Speichern weiter, beim Wiederanschalten zählt also nur die Zeit seit dem letzten Speichern.
+
+- [x] [Lune] `Features`: jeder Schalter ist ein Wahrheitswert, DataCheck meldet nichts, kaputte Einträge werden gemeldet, unbekannte Systeme gelten als aus (`tests/features.spec.luau`).
+- [x] [Lune] Kern (Werkstatt, Sammlung, Sandsturm, Shop) ist an, Angebote, Daily, Codes, Saison-Pass, Event-Zone, Koloss, Social und Offline sind aus.
+- [x] [Lune] Services, Controller und Remotes in der Tabelle gibt es wirklich.
+- [x] [Lune] Aktive Remote-Liste: Remotes ausgeschalteter Systeme sind nicht aktiv, Kern-Remotes immer.
+- [x] [Lune] Kauf-Handler: Jeder ausschaltbare Service mit `registerProduct` registriert in Init oder StartDisabled (Offers, SeasonPasses).
+- [x] [Lune] `activeControllers` lässt ausgeschaltete weg, kein aktiver Controller lädt einen ausgeschalteten.
+- [x] [Lune] Event-Zone ausgeschaltet: nie offen, zu keiner Zeit. `tests/seasonpoints.spec.luau` schaltet sie für die alten Tests an.
+- [ ] [Studio] Spielstart: Menüleiste zeigt nur Sammlung und Shop (Sandsturm ab Canyon-Knoten, Zonen ab der zweiten Zone), dazu der Baum-Knopf. Kein Daily-Fenster, kein Angebots-Hinweis, keine Koloss-Leiste, keine Willkommen-zurück-Karte.
+- [ ] [Studio] Shop-Fenster: Zeilen Kisten, Gems und Ausrüstung öffnen ihr Fenster. Mit gesperrten Zufallsitems fehlt die Zeile Kisten, der Shop-Knopf bleibt.
+- [ ] [Studio] Zonenmenü: Event-Zone nicht wählbar.
+- [ ] [Studio] Verkaufen, Werkstatt, Sammlung, Sandsturm, Kistenkauf und Gem-Kauf funktionieren wie vorher. Testkauf `DebugPurchase "starter_pack"` wird trotz ausgeschalteter Angebote gutgeschrieben.
+- [ ] [Studio] Server-Ausgabe: "Ausgeschaltet (Data/Features): Offers, Daily, ..." und "Every Last Grain läuft".
+- [ ] [Studio] Place ohne Händlerstand: In Studio erscheint der Platzhalter mit Warnung. Im veröffentlichten Testserver steht "[Welt] FEHLT im Place: ..." rot im Server-Log (Entwicklerkonsole, Reiter Server).

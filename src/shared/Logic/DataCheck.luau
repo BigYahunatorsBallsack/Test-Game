@@ -10,6 +10,8 @@ local Equipment = require("./Equipment")
 local DirectShop = require("./DirectShop")
 local Seasons = require("./Seasons")
 local SeasonPass = require("./SeasonPass")
+local FeatureRules = require("./Features")
+local RemoteSpec = require("../Net/RemoteSpec")
 
 local QUOTA_TOTAL = 10000 -- 100 % in Hundertstel-Prozent
 local GEM_BONUS_TOLERANCE = 1 -- Prozentpunkte
@@ -111,6 +113,7 @@ export type DataSet = {
     Koloss: any,
     Social: any,
     Analytics: any,
+    Features: any?, -- Überarbeitung Ü1; fehlt sie in einem Test-Datensatz, wird sie nicht geprüft
 }
 
 local DataCheck = {}
@@ -147,6 +150,7 @@ function DataCheck.defaults(): DataSet
         Koloss = require("../Data/Koloss"),
         Social = require("../Data/Social"),
         Analytics = require("../Data/Analytics"),
+        Features = require("../Data/Features"),
     }
 end
 
@@ -3224,6 +3228,22 @@ local function checkAnalytics(errors: { string }, data: DataSet)
 end
 
 -- Prüft alle Tabellen. Ohne Argument die echten Datenmodule. Leere Liste = alles in Ordnung.
+-- System-Schalter (Überarbeitung Ü1): Form der Tabelle und nur Remotes, die es in RemoteSpec gibt.
+local function checkFeatures(errors: { string }, data: DataSet)
+    if data.Features == nil then
+        return
+    end
+    local remoteNames: { string } = {}
+    for _, def in RemoteSpec.list do
+        if def.direction == "ClientToServer" then
+            table.insert(remoteNames, def.name)
+        end
+    end
+    for _, message in FeatureRules.check(data.Features, { remotes = remoteNames }) do
+        table.insert(errors, message)
+    end
+end
+
 function DataCheck.run(dataSet: DataSet?): { string }
     local data = dataSet or DataCheck.defaults()
     local errors: { string } = {}
@@ -3264,6 +3284,7 @@ function DataCheck.run(dataSet: DataSet?): { string }
     checkTerrain(errors, data)
     checkTankChain(errors, data)
     checkTutorial(errors, data)
+    checkFeatures(errors, data)
     return errors
 end
 

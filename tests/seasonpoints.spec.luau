@@ -22,6 +22,11 @@ local CrateItems = require("../src/shared/Data/CrateItems")
 local Crates = require("../src/shared/Data/Crates")
 local Rarities = require("../src/shared/Data/Rarities")
 local RemoteSpec = require("../src/shared/Net/RemoteSpec")
+local FeatureData = require("../src/shared/Data/Features")
+
+-- Überarbeitung Ü1: Die Event-Zone ist in Data/Features ausgeschaltet. Diese Tests prüfen ihr Verhalten
+-- für die Zeit, in der sie wieder an ist (tests/features.spec.luau prüft den ausgeschalteten Fall).
+FeatureData.systems.eventZone = true
 
 local ZONE_ID = "season_camp"
 local SEASON_ID = "season_1"

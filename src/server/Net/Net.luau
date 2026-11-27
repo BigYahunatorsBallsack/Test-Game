@@ -16,6 +16,7 @@ local function loadShared(folder: string, name: string): any
 end
 
 local RemoteSpec = loadShared("Net", "RemoteSpec")
+local Features = loadShared("Logic", "Features")
 local Validate = loadShared("Logic", "Validate")
 local RateLimiter = loadShared("Logic", "RateLimiter")
 
@@ -142,6 +143,12 @@ end
 -- Bei RemoteFunctions ist der Rückgabewert die Antwort an den Client.
 function Net.on(name: string, handler: (player: Player, ...any) -> any)
     RemoteSpec.assertRegistrable(name)
+    if not Features.remoteActive(name) then
+        -- System ist in Data/Features aus: kein Handler. Events werden verworfen, Functions antworten
+        -- "nicht verfügbar" (siehe Net.init).
+        print(`[Net] {name} nicht registriert: System ist ausgeschaltet (Data/Features)`)
+        return
+    end
     if handlers[name] ~= nil then
         error(`Net.on: für Remote "{name}" ist schon ein Handler registriert`)
     end
