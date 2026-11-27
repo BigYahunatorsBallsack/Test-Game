@@ -183,6 +183,19 @@ local function attachToGrip(part: BasePart, grip: Attachment, offset: CFrame): W
     return weld
 end
 
+local function attachItem(grip: Attachment)
+    local item = Data.viewmodel.items[itemId]
+    local gripSpec = if item then item.rigGrip else nil
+    local adjustment = CFrame.identity
+    if gripSpec then
+        local pivot = localFrame(gripSpec)
+        adjustment = pivot * CFrame.Angles(0, 0, math.rad(gripSpec.roll)) * pivot:Inverse()
+    end
+    for _, piece in itemPieces do
+        attachToGrip(piece.part, grip, adjustment * piece.cf)
+    end
+end
+
 local function loadRig(template: Model, parent: Model): ViewRig?
     local clone = template:Clone()
     if clone == nil then
@@ -260,9 +273,7 @@ local function updateRig(canSwitch: boolean)
     for _, piece in bucketPieces do
         attachToGrip(piece.part, ready.bucketGrip, piece.cf)
     end
-    for _, piece in itemPieces do
-        attachToGrip(piece.part, ready.grip, piece.cf)
-    end
+    attachItem(ready.grip)
     local fill = fillPart
     if fill then
         fillWeld = attachToGrip(fill, ready.bucketGrip, CFrame.identity)
@@ -303,9 +314,7 @@ local function ensureItem(view: any)
         addPieces(itemPieces, item.parts)
         local activeRig = rig
         if activeRig then
-            for _, piece in itemPieces do
-                attachToGrip(piece.part, activeRig.grip, piece.cf)
-            end
+            attachItem(activeRig.grip)
         end
     end
 end

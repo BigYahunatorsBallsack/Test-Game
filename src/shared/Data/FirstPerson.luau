@@ -27,7 +27,10 @@ export type Part = {
     paint: string?,
 }
 
-export type Item = { parts: { Part } }
+export type Item = {
+    parts: { Part },
+    rigGrip: { offset: Vec, rotation: Vec, roll: number }?,
+}
 
 export type DigStyle = {
     move: Vec, -- Ausschlag der rechten Gruppe beim Graben (Studs)
@@ -50,6 +53,8 @@ local WOOD = "#8B5A2B"
 local METAL = "#4A5C8C"
 local BUCKET = "#3D5A9E"
 local SAND = "#E6C875"
+local SHOVEL_GRIP_OFFSET = { x = 0.05, y = 0, z = 0.3 }
+local SHOVEL_GRIP_ROTATION = { x = 0, y = 10, z = 0 }
 
 return {
     enabled = true,
@@ -110,9 +115,10 @@ return {
             none = { parts = {} },
             -- Schaufel: Stiel schräg von der Hand nach vorn zur Bildmitte, Blatt vorn nach unten geneigt.
             shovel = {
+                rigGrip = { offset = SHOVEL_GRIP_OFFSET, rotation = SHOVEL_GRIP_ROTATION, roll = 180 },
                 parts = {
                     { name = "Shaft", shape = "Block", size = { x = 0.14, y = 0.14, z = 2.4 }, offset = { x = -0.17, y = 0, z = -0.98 }, rotation = { x = 0, y = 10, z = 0 }, colorHex = WOOD, material = "Wood" },
-                    { name = "Grip", shape = "Block", size = { x = 0.18, y = 0.18, z = 0.4 }, offset = { x = 0.05, y = 0, z = 0.3 }, rotation = { x = 0, y = 10, z = 0 }, colorHex = METAL, material = "Metal" },
+                    { name = "Grip", shape = "Block", size = { x = 0.18, y = 0.18, z = 0.4 }, offset = SHOVEL_GRIP_OFFSET, rotation = SHOVEL_GRIP_ROTATION, colorHex = METAL, material = "Metal" },
                     { name = "Neck", shape = "Block", size = { x = 0.22, y = 0.12, z = 0.35 }, offset = { x = -0.4, y = -0.03, z = -2.29 }, rotation = { x = -20, y = 10, z = 0 }, colorHex = METAL, material = "Metal" },
                     { name = "Blade", shape = "Block", size = { x = 0.85, y = 0.06, z = 1 }, offset = { x = -0.48, y = -0.15, z = -2.71 }, rotation = { x = -25, y = 10, z = 0 }, colorHex = METAL, material = "Metal" },
                 },
