@@ -6,6 +6,11 @@
 --   Maschinen die Fernsteuerung), links die Hand mit dem Eimer. Der Sand im Eimer zeigt den Tank.
 --   Beim Sammeln sticht die Schaufel, beim Laufen wippen die Hände, beim Umsehen ziehen sie nach.
 --   Die Rechnung steht im reinen Modul Logic/FirstPerson, die Teile in Data/FirstPerson.
+-- * Stich (Überarbeitung Ü4): Controllers/Dig meldet jeden Stich (FirstPerson.onStab) und sein
+--   Ergebnis (FirstPerson.onStabResult). Die Hand sticht dann einmal je Stich, die Kamera sinkt kurz,
+--   der Eimer-Sand hüpft, ein Ring am Fadenkreuz zeigt den Takt und leuchtet bei sauberem Stich grün.
+--   Zahlen in Data/StabFeel, Rechnung in Logic/StabFeel. Ohne Stiche (Auto-Dig) bleibt die
+--   gleichmäßige Grabbewegung.
 -- * Eigene Maschine: Hält die Hand das Werkzeug schon (Hand, Schaufel), wird das Weltmodell vor dem
 --   eigenen Charakter ausgeblendet. Bei Maschinen werden nur die Teile direkt vor den Augen
 --   durchscheinend. Umhang und Schärpe des eigenen Skins werden ausgeblendet. Andere Spieler sehen
@@ -26,6 +31,8 @@ local CROSSHAIR_STROKE_COLOR = Color3.fromRGB(40, 32, 24)
 local HINT_COLOR = Color3.fromRGB(255, 248, 230)
 local HINT_TEXT_SIZE = 14
 local HINT_OFFSET_Y = 18 -- Pixel unter dem Fadenkreuz
+local RING_COLOR = Color3.fromRGB(255, 248, 230)
+local RING_CLEAN_COLOR = Color3.fromRGB(120, 230, 120)
 local SKIN_REFRESH_SECONDS = 1 -- so oft wird die Hautfarbe vom Avatar übernommen
 local RENDER_STEP_NAME = "DuneBaronFirstPerson"
 local VIEWMODEL_NAME = "DuneBaronViewmodel"
@@ -40,12 +47,15 @@ local function loadShared(folder: string, name: string): any
     return require(shared:WaitForChild(folder):WaitForChild(name) :: ModuleScript)
 end
 local Data = loadShared("Data", "FirstPerson")
+local FeelData = loadShared("Data", "StabFeel")
+local StabFeel = loadShared("Logic", "StabFeel")
 local Logic = loadShared("Logic", "FirstPerson")
 local ToolLook = loadShared("Logic", "ToolLook")
 local BigNum = loadShared("Logic", "BigNum")
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Input = require(script.Parent:WaitForChild("Input") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local Graphics = require(script.Parent:WaitForChild("Graphics") :: ModuleScript) :: any
 
 local FirstPerson = {}
 
@@ -70,6 +80,13 @@ local nextSkinRefresh = 0
 local sway = { yaw = 0, pitch = 0 }
 local lastYaw: number? = nil
 local lastPitch: number? = nil
+-- Stich (Ü4)
+local stabAt: number? = nil
+local stabInterval = 0.5
+local nextStabAt: number? = nil
+local stabLayer = 1
+local cleanAt = -math.huge
+local kick = { studs = 0, degrees = 0 }
 
 local function colorOf(hex: string): Color3
     local r = tonumber(string.sub(hex, 2, 3), 16) or 255
@@ -316,6 +333,16 @@ local function onRender(dt: number)
     local view = Logic.toolView(toolId, Data)
     ensureItem(view)
 
+    -- Stich (Ü4): Kamera sinkt kurz, die Hand sticht einmal.
+    local sinceStab = if stabAt ~= nil then now - stabAt else math.huge
+    local envelope = StabFeel.kickEnvelope(sinceStab, FeelData)
+    if envelope > 0 and kick.studs > 0 then
+        camera.CFrame = camera.CFrame * CFrame.new(0, -kick.studs * envelope, 0)
+    end
+    local phase = StabFeel.phase(now, stabAt, stabInterval)
+    local stabbing = sinceStab < stabInterval * FeelData.ring.idleAfterTakts
+    local stabStroke: number? = if phase ~= nil then StabFeel.armStroke(phase, FeelData) elseif stabbing then 0 else nil
+
     -- Nachziehen beim Umsehen.
     local camCF = camera.CFrame
     local look = camCF.LookVector
@@ -325,13 +352,15 @@ local function onRender(dt: number)
     local pitchDelta = if lastPitch ~= nil then pitch - lastPitch else 0
     lastYaw, lastPitch = yaw, pitch
     sway = Logic.swayStep(sway, yawDelta, pitchDelta, dt, Data)
-    local base = camCF * CFrame.Angles(math.rad(sway.pitch), math.rad(sway.yaw), 0)
+    local base = camCF * CFrame.Angles(math.rad(sway.pitch - kick.degrees * envelope), math.rad(sway.yaw), 0)
 
     local root = character:FindFirstChild("HumanoidRootPart")
     local velocity = if root ~= nil and root:IsA("BasePart") then root.AssemblyLinearVelocity else Vector3.zero
     local pose = Logic.viewPose(toolId, {
         t = now,
-        collecting = player:GetAttribute("Collecting") == true or Input.isHolding(),
+        -- Gleichmäßig nur ohne Stiche (Auto-Dig); beim Stechen zählt der Stich.
+        collecting = player:GetAttribute("Collecting") == true and not stabbing,
+        stab = stabStroke,
         speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude,
     }, Data)
 
@@ -360,9 +389,10 @@ local function onRender(dt: number)
     local fp = fillPart
     if fp ~= nil then
         local fill = Logic.bucketFill(tankRatio(), Data)
+        local bump = StabFeel.bucketBump(sinceStab, FeelData)
         fp.Size = Vector3.new(fill.height, vm.fill.diameter, vm.fill.diameter)
         table.insert(parts, fp)
-        table.insert(frames, leftCF * CFrame.new(0, fill.centerY, 0) * CFrame.Angles(0, 0, math.rad(90)))
+        table.insert(frames, leftCF * CFrame.new(0, fill.centerY + bump, 0) * CFrame.Angles(0, 0, math.rad(90)))
     end
     workspace:BulkMoveTo(parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
 
@@ -370,7 +400,7 @@ local function onRender(dt: number)
     hideOwnItems()
 end
 
-local function buildGui(): (TextButton, Frame, TextLabel)
+local function buildGui(): (TextButton, Frame, TextLabel, Frame, UIStroke)
     local gui = Instance.new("ScreenGui")
     gui.Name = "DuneBaronFirstPerson"
     gui.ResetOnSpawn = false
@@ -419,8 +449,47 @@ local function buildGui(): (TextButton, Frame, TextLabel)
     hint.Visible = false
     hint.Parent = gui
 
+    -- Takt-Ring (Ü4): zieht sich bis zum nächsten Takt zusammen.
+    local ring = Instance.new("Frame")
+    ring.Name = "BeatRing"
+    ring.AnchorPoint = Vector2.new(0.5, 0.5)
+    ring.Position = UDim2.fromScale(0.5, 0.5)
+    ring.Size = UDim2.fromOffset(FeelData.ring.maxSize, FeelData.ring.maxSize)
+    ring.BackgroundTransparency = 1
+    ring.Visible = false
+    ring.Parent = gui
+    local ringCorner = Instance.new("UICorner")
+    ringCorner.CornerRadius = UDim.new(1, 0)
+    ringCorner.Parent = ring
+    local ringStroke = Instance.new("UIStroke")
+    ringStroke.Color = RING_COLOR
+    ringStroke.Thickness = FeelData.ring.thickness
+    ringStroke.Transparency = FeelData.ring.transparency
+    ringStroke.Parent = ring
+
     gui.Parent = player:WaitForChild("PlayerGui")
-    return modal, crosshair, hint
+    return modal, crosshair, hint, ring, ringStroke
+end
+
+-- Ein Stich beginnt (Controllers/Dig, Ü4). `interval` = Takt des Werkzeugs, `nextAt` = nächster Takt.
+function FirstPerson.onStab(interval: number, nextAt: number)
+    local now = os.clock()
+    stabAt = now
+    stabInterval = if interval > 0 then interval else 0.5
+    nextStabAt = nextAt
+    kick = StabFeel.cameraKick(stabLayer, Graphics.level(), FeelData)
+end
+
+-- Ergebnis eines Stichs vom Server (Controllers/Dig, Ü4): Schicht für den nächsten Ruck, grünes
+-- Aufleuchten bei sauberem Stich. Der Ruck selbst kommt sofort beim Klick, also mit der Schicht des
+-- letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck).
+function FirstPerson.onStabResult(layer: number?, clean: boolean)
+    if type(layer) == "number" then
+        stabLayer = layer
+    end
+    if clean then
+        cleanAt = os.clock()
+    end
 end
 
 function FirstPerson.isCursorFree(): boolean
@@ -448,7 +517,7 @@ function FirstPerson.Start()
     applyCamera()
     workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(applyCamera)
 
-    local modal, crosshair, hint = buildGui()
+    local modal, crosshair, hint, ring, ringStroke = buildGui()
     local hintUntil = 0
     local function onCharacter(character: Model)
         nextSkinRefresh = 0
@@ -494,6 +563,14 @@ function FirstPerson.Start()
         modal.Visible = cursorFree
         crosshair.Visible = not cursorFree
         hint.Visible = not cursorFree and os.clock() < hintUntil
+        local t = os.clock()
+        local active = stabAt ~= nil and t - (stabAt :: number) < stabInterval * FeelData.ring.idleAfterTakts
+        ring.Visible = not cursorFree and active
+        if ring.Visible then
+            local size = StabFeel.ringSize(StabFeel.ringFraction(t, stabAt, nextStabAt), FeelData)
+            ring.Size = UDim2.fromOffset(size, size)
+            ringStroke.Color = if t - cleanAt < FeelData.ring.cleanFlashSeconds then RING_CLEAN_COLOR else RING_COLOR
+        end
         local ok, err = pcall(onRender, dt)
         if not ok then
             warn("[FirstPerson] " .. tostring(err))

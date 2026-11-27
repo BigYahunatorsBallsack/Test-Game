@@ -12,6 +12,9 @@ export type ViewPose = { right: GroupPose, left: GroupPose }
 export type MotionState = {
     t: number, -- Zeit in Sekunden
     collecting: boolean,
+    -- Überarbeitung Ü4: Ausschlag des laufenden Stichs (Logic/StabFeel.armStroke, negativ beim
+    -- Ausholen). Ist er gesetzt, ersetzt er die gleichmäßige Grabbewegung.
+    stab: number?,
     speed: number, -- Laufgeschwindigkeit in Studs pro Sekunde
 }
 export type Sway = { yaw: number, pitch: number }
@@ -56,10 +59,11 @@ function FirstPerson.viewPose(toolId: string?, state: MotionState, data: any?): 
     local right: GroupPose = { move = zero(), turn = zero() }
     local left: GroupPose = { move = zero(), turn = zero() }
 
-    if state.collecting then
+    local stab = if isFinite(state.stab) then state.stab else nil
+    if state.collecting or stab ~= nil then
         local dig = d.digStyles[view.dig]
         if dig ~= nil and dig.period > 0 then
-            local stroke = math.max(0, math.sin(TAU * t / dig.period))
+            local stroke = if stab ~= nil then stab else math.max(0, math.sin(TAU * t / dig.period))
             right.move = { x = dig.move.x * stroke, y = dig.move.y * stroke, z = dig.move.z * stroke }
             right.turn = { x = dig.turn.x * stroke, y = dig.turn.y * stroke, z = dig.turn.z * stroke }
             left.move.y += dig.move.y * dig.leftFactor * stroke

@@ -4,6 +4,7 @@
 -- Alle Werte kommen vom Server (State). Zahlen erscheinen über BigNum.format (K, M, B, T ...).
 -- Maße und Plätze kommen aus Data/Screen je Größenklasse (Paket 3.6): am Handy ein kleineres Panel,
 -- damit Tutorial-Banner, Menüspalte und Steuerung Platz haben.
+-- Überarbeitung Ü4: Beim Verkaufen fliegen Münzen zum Münzzähler (Interface/SaleFeedback).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,6 +38,7 @@ local Zones = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Dat
 local Tools = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild("Tools") :: ModuleScript) :: any
 local State = require(script.Parent:WaitForChild("State") :: ModuleScript) :: any
 local Screen = require(script.Parent:WaitForChild("Screen") :: ModuleScript) :: any
+local SaleFeedback = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("SaleFeedback") :: ModuleScript) :: any
 
 local TOAST_HEIGHT = 36
 
@@ -172,6 +174,12 @@ function Hud.Start()
     Screen.onLayoutChanged(applyLayout)
 
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    -- Ü4: Münzflug beim Verkauf. Fällt er aus, bleibt die kurze Meldung.
+    local okSale, saleFeedback = pcall(SaleFeedback.Mount, Players.LocalPlayer:WaitForChild("PlayerGui"))
+    if not okSale then
+        warn(`[Hud] Münzflug nicht verfügbar: {tostring(saleFeedback)}`)
+        saleFeedback = nil
+    end
 
     -- Zeile "Pässe und Boost". Die Restzeit kommt vom Server (seine Uhr), der Client zählt nur von
     -- dort lokal herunter, bis der nächste Snapshot kommt.
@@ -248,7 +256,11 @@ function Hud.Start()
 
     State.onNotify(function(payload: any)
         if payload.kind == "sold" and type(payload.earned) == "table" then
-            showToast(`+{display(payload.earned)} Münzen`)
+            if saleFeedback ~= nil then
+                saleFeedback.Show(display(payload.earned), coinsLabel)
+            else
+                showToast(`+{display(payload.earned)} Münzen`)
+            end
         elseif payload.kind == "zoneUnlocked" and Zones.byId[payload.zoneId] ~= nil then
             showToast(`Neue Zone: {Zones.byId[payload.zoneId].name}`)
         elseif payload.kind == "zoneEntered" and Zones.byId[payload.zoneId] ~= nil then

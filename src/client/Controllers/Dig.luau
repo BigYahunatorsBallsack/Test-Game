@@ -13,6 +13,9 @@
 -- vor dem Takt wird gemerkt und beim Takt gestochen. Halten sticht weiter im Takt (ohne Bonus).
 -- Das Ergebnis (StabResult) färbt den Staub: tiefere Schicht = dunkler, sauberer Stich = mehr Staub.
 --
+-- Überarbeitung Ü4: Jeder Stich wirft Sandklumpen in den Eimer, spielt den Ton seiner Schicht und meldet
+-- sich bei FirstPerson (Arme, Kamera, Takt-Ring). Zahlen in Data/StabFeel und Data/StabSounds.
+--
 -- Modi: "full" verformt das Terrain. "fallback" (schwaches Gerät, Logic/PerfGuard) lässt das
 -- Terrain in Ruhe und zeigt nur eine sinkende Sandscheibe und Partikel.
 -- Zum Testen in der Client-Befehlszeile:
@@ -23,6 +26,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
 
 -- Partikel
 local PARTICLE_COUNT_FALLBACK = 14
@@ -56,9 +61,8 @@ local OVERLAY_TEXT_COLOR = Color3.fromRGB(255, 248, 230)
 local DIG_MODE_ATTRIBUTE = "DigMode"
 local TOOL_MODELS_FOLDER = "ToolModels" -- Ordner von Controllers/ToolVisual, Teile blockieren den Strahl nicht
 local DEFAULT_SAND_COLOR = Color3.fromRGB(230, 200, 117)
--- Stich (Ü2): so viel dunkler wird der Staub je Schicht unter der Oberfläche, so viel mehr Staub bei
--- einem sauberen Stich, und so lange nach dem letzten Stich gilt der Grabpunkt noch (in Takten).
-local LAYER_DARKEN_STEP = 0.18
+-- Stich (Ü2): so viel mehr Staub bei einem sauberen Stich, und so lange nach dem letzten Stich gilt der
+-- Grabpunkt noch (in Takten). Wie viel dunkler je Schicht, steht seit Ü4 in Data/StabFeel (throw).
 local CLEAN_DUST_FACTOR = 2.5
 local AIM_HOLD_TAKTS = 1.5
 -- Ein Druck wird nur gemerkt, wenn er höchstens so kurz vor dem Takt kommt. Frühere Drücke verfallen,
@@ -84,6 +88,9 @@ local FirstPerson = require(script.Parent:WaitForChild("FirstPerson") :: ModuleS
 local DigAim = loadShared("Logic", "DigAim")
 local Deposits = loadShared("Logic", "Deposits")
 local FirstPersonData = loadShared("Data", "FirstPerson")
+local FeelData = loadShared("Data", "StabFeel")
+local StabSounds = loadShared("Data", "StabSounds")
+local StabFeel = loadShared("Logic", "StabFeel")
 
 local VOXEL = TerrainData.voxelSize
 local CHUNK = TerrainData.chunkSize
@@ -179,6 +186,36 @@ local lastStabHit: Vector3? = nil
 local pressesServed = 0
 local lastLayer = 1 -- Schicht des letzten Ergebnisses vom Server
 local stabRemote: RemoteEvent? = nil
+-- Sandklumpen auf dem Weg in den Eimer (Ü4).
+type Clump = { part: BasePart, from: Vector3, startedAt: number }
+local clumps: { Clump } = {}
+local clumpFolder: Folder? = nil
+local soundRandom = Random.new()
+
+-- Spielt einen Ton aus Data/StabSounds ("layer", "clean", "empty", "full"). Leere ID = stumm.
+local function playStabSound(kind: string, layer: number?)
+    local pick = StabFeel.pickSound(kind, layer, soundRandom:NextNumber(), StabSounds)
+    if pick == nil then
+        return
+    end
+    local sound = Instance.new("Sound")
+    sound.SoundId = pick.soundId
+    sound.Volume = pick.volume
+    sound.PlaybackSpeed = pick.pitch
+    sound.Parent = SoundService
+    sound:Play()
+    Debris:AddItem(sound, 3)
+end
+
+-- Ziel der Klumpen: der Eimer in der linken Hand (Anker aus Data/FirstPerson).
+local function bucketPoint(): Vector3?
+    local camera = workspace.CurrentCamera
+    if camera == nil then
+        return nil
+    end
+    local o = FirstPersonData.viewmodel.left.offset
+    return (camera.CFrame * CFrame.new(o.x, o.y + 0.3, o.z)).Position
+end
 
 local function rayParams(): RaycastParams
     local params = RaycastParams.new()
@@ -254,9 +291,58 @@ local function emitParticles(position: Vector3, count: number, toolId: string?)
         NumberSequenceKeypoint.new(1, size * PARTICLE_SIZE_END_FACTOR),
     })
     emitterAttachment.WorldPosition = position
-    local darken = math.clamp((lastLayer - 1) * LAYER_DARKEN_STEP, 0, 0.8)
+    local darken = StabFeel.darken(lastLayer, FeelData)
     emitter.Color = ColorSequence.new(sandColor():Lerp(Color3.new(0, 0, 0), darken))
     emitter:Emit(count)
+end
+
+-- Wirft Sandklumpen vom Loch in den Eimer (Ü4). Anzahl nach Grafikstufe, höchstens maxActive.
+local function throwSand(from: Vector3)
+    local count = StabFeel.throwCount(Graphics.level(), #clumps, FeelData)
+    if count <= 0 or clumpFolder == nil then
+        return
+    end
+    local color = sandColor():Lerp(Color3.new(0, 0, 0), StabFeel.darken(lastLayer, FeelData))
+    local size = FeelData.throw.size
+    local now = os.clock()
+    for i = 1, count do
+        local part = Instance.new("Part")
+        part.Name = "SandClump"
+        part.Shape = Enum.PartType.Ball
+        part.Anchored = true
+        part.CanCollide = false
+        part.CanQuery = false
+        part.CanTouch = false
+        part.CastShadow = false
+        part.Material = Enum.Material.Sand
+        part.Color = color
+        part.Size = Vector3.new(size, size, size) * (0.7 + 0.15 * i)
+        local jitter = Vector3.new(soundRandom:NextNumber(-0.3, 0.3), 0.1, soundRandom:NextNumber(-0.3, 0.3))
+        part.Position = from + jitter
+        part.Parent = clumpFolder
+        -- leicht versetzt, damit die Klumpen nicht als ein Ball fliegen
+        table.insert(clumps, { part = part, from = from + jitter, startedAt = now + (i - 1) * 0.04 })
+    end
+end
+
+-- Bewegt die Klumpen auf ihrem Bogen und räumt angekommene weg.
+local function updateClumps(now: number)
+    if #clumps == 0 then
+        return
+    end
+    local target = bucketPoint()
+    for index = #clumps, 1, -1 do
+        local clump = clumps[index]
+        local t = (now - clump.startedAt) / FeelData.throw.seconds
+        if t >= 1 or target == nil then
+            clump.part:Destroy()
+            table.remove(clumps, index)
+        elseif t > 0 then
+            local f = clump.from
+            local p = StabFeel.throwPoint({ x = f.X, y = f.Y, z = f.Z }, { x = target.X, y = target.Y, z = target.Z }, t, FeelData)
+            clump.part.Position = Vector3.new(p.x, p.y, p.z)
+        end
+    end
 end
 
 local function digTerrain(now: number, hit: RaycastResult, toolId: string?, zoneId: string?)
@@ -457,16 +543,33 @@ function Dig.Start()
     readForcedMode()
     player:GetAttributeChangedSignal(DIG_MODE_ATTRIBUTE):Connect(readForcedMode)
     createEffects()
+    local folder = Instance.new("Folder")
+    folder.Name = "SandClumps"
+    folder.Parent = workspace
+    clumpFolder = folder
 
     local remotes = ReplicatedStorage:WaitForChild("Remotes")
     stabRemote = remotes:WaitForChild("Stab") :: RemoteEvent
     local stabResult = remotes:WaitForChild("StabResult") :: RemoteEvent
     stabResult.OnClientEvent:Connect(function(result: any)
-        if type(result) ~= "table" or result.ok ~= true then
+        if type(result) ~= "table" then
+            return
+        end
+        if result.ok ~= true then
+            -- Ü4: dumpfer Ton bei leerer Zelle oder vollem Tank.
+            if result.reason == "empty" then
+                playStabSound("empty", nil)
+            elseif result.reason == "full" then
+                playStabSound("full", nil)
+            end
             return
         end
         if type(result.layer) == "number" then
             lastLayer = result.layer
+        end
+        FirstPerson.onStabResult(lastLayer, result.clean == true)
+        if result.clean == true then
+            playStabSound("clean", nil)
         end
         -- Sauberer Stich: ein zweiter, kräftiger Staubstoß an der Stelle.
         if result.clean == true and lastStabHit ~= nil then
@@ -509,6 +612,10 @@ function Dig.Start()
                     nextStabAt = t + interval
                     lastStabAt = t
                     lastStabHit = hit.Position
+                    -- Ü4: Arme, Kamera, Ring, Ton und Sandwurf sofort beim Stich.
+                    FirstPerson.onStab(interval, nextStabAt)
+                    playStabSound("layer", lastLayer)
+                    throwSand(hit.Position)
                     if stabRemote ~= nil then
                         -- Durch Halten, wenn kein neuer Druck dahintersteht (dann nie sauber).
                         stabRemote:FireServer(hit.Position.X, hit.Position.Y, hit.Position.Z, not pressed)
@@ -522,6 +629,7 @@ function Dig.Start()
                     pressesServed = Input.presses() -- Klick ins Leere: verwerfen
                 end
             end
+            updateClumps(t)
             currentAim = if t < lastStabAt + interval * AIM_HOLD_TAKTS then lastStabHit else nil
         end)
         if not ok and errorsShown < MAX_ERRORS_SHOWN then

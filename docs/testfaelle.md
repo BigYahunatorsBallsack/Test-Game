@@ -817,3 +817,24 @@ Security-Review Ü3 (keine kritischen oder hohen Funde), umgesetzt:
 - L2: Zone ohne Fundchance: Stiche ändern die Stellen nicht, keine erste Stelle.
 - L3: Kein Zustand mehr nach PlayerRemoving.
 - Offen für Ü10/A1: Mit allen Stellen ausgegraben liegt die Fundrate bei etwa 1,5× der alten (0,25 Grundchance + 1/40 Stellen). Auto-Dig bekommt nur die Grundchance (0,25×). Volltank sperrt das Ausgraben (Stelle kann ablaufen). Genaue Lage geht an den Client (wichtig erst, wenn Nebel oder "Kornprobe" Stellen verstecken sollen).
+
+## Ü4 Gefühl beim Stechen (Überarbeitung)
+
+Plan "Plan Ü4: Gefühl beim Stechen". Rechnung in `Logic/StabFeel`, Zahlen in `Data/StabFeel` und `Data/StabSounds`, Tests in `tests/stabfeel.spec.luau`. Nur Anzeige auf dem Client, der Server schickt bei Funden aus Fundstellen zusätzlich deren Lage mit (`Notify` "find", Feld `at`).
+
+- [x] [Lune] Arm-Kurve beginnt und endet in Ruhe, ganz unten nach dem Einstechen, steigt erst und fällt dann. Ein Stich dauert genau einen Takt, für jedes Werkzeug.
+- [x] [Lune] Der Stich ersetzt die gleichmäßige Grabbewegung; ohne Stich (Auto-Dig) bleibt sie.
+- [x] [Lune] Takt-Ring: voll direkt nach dem Stich, klein beim nächsten Takt, nie außerhalb 0 bis 1.
+- [x] [Lune] Kamera-Ruck: stärker je Schicht, gedeckelt, auf "minimal" aus. Verlauf 0 am Anfang und Ende.
+- [x] [Lune] Sandwurf: Bogen vom Loch zum Eimer, dunkler je Schicht, nie mehr als `maxActive` Klumpen gleichzeitig, am Handy weniger, auf "minimal" keine.
+- [x] [Lune] Eimer-Sand hüpft kurz und kommt zur Ruhe.
+- [x] [Lune] Ton-Wahl: richtige Schicht, Tonhöhe in ±5 %, leere ID spielt nichts.
+- [x] [Lune] DataCheck prüft `Data/StabFeel` und `Data/StabSounds`.
+- [ ] [Studio] 2 Minuten im Dünenmeer mit Hand und Schaufel graben: jeder Stich ist zu sehen und zu spüren (mit Ton-IDs auch zu hören), es fühlt sich satt an.
+- [ ] [Studio] Im Takt klicken: der Ring leuchtet grün, wenn der Server den Stich sauber nennt. Halten: Arme stechen im Takt, ohne Grün.
+- [ ] [Studio] Sandklumpen fliegen in den Eimer, der Eimer-Sand hüpft.
+- [ ] [Studio] Fund an einer Fundstelle steigt genau dort mit Sandstoß aus dem Sand. Zufallsfund: wie bisher vor dem Charakter.
+- [ ] [Studio] Verkaufen: Münzen fliegen zum Münzzähler.
+- [ ] [Studio] Handy-Emulator: kein Ruckeln, weniger Klumpen; Grafikstufe "minimal" ohne Kamera-Ruck und ohne Klumpen.
+
+Hinweise: Der Kamera-Ruck kommt sofort beim Klick und nutzt die Schicht des letzten Ergebnisses (die Antwort des Servers käme mitten im Ruck). Ein sauberer Stich zeigt sich deshalb über den grünen Ring, den hellen Ton und den Staubstoß, nicht über einen stärkeren Ruck. Die Kamera wird nur verschoben, nicht gedreht, damit die Blickrichtung nicht wandert. Ton-IDs und die Arm-Animation fehlen noch (Waltuh, ChatGPT).

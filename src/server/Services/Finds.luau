@@ -103,8 +103,9 @@ local function notifyListeners(player: Player, profile: any, info: FindInfo)
     end
 end
 
--- Bucht einen Fund und meldet ihn dem Spieler.
-local function award(player: Player, profile: any, roll: any, zoneId: string)
+-- Bucht einen Fund und meldet ihn dem Spieler. `at` = Lage der Fundstelle (Ü4: das Fundstück steigt
+-- dort aus dem Sand), nil bei Zufallsfunden.
+local function award(player: Player, profile: any, roll: any, zoneId: string, at: { x: number, y: number, z: number }?)
     local recorded = Collection.record(profile, roll.find.id, roll.value)
     if recorded == nil then
         return
@@ -112,6 +113,7 @@ local function award(player: Player, profile: any, roll: any, zoneId: string)
     Net.fire(player, "Notify", {
         kind = "find",
         findId = recorded.findId,
+        at = at,
         zoneId = zoneId,
         rarityId = recorded.rarityId,
         isNew = recorded.isNew,
@@ -176,7 +178,8 @@ local function onStab(player: Player, profile: any, info: any)
                 return random:NextNumber()
             end)
         if roll ~= nil then
-            award(player, profile, roll, info.zoneId)
+            local spot = outcome.found
+            award(player, profile, roll, info.zoneId, { x = spot.x, y = spot.y, z = spot.z })
         end
     end
     if outcome.changed then
