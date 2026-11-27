@@ -33,10 +33,14 @@ local BUTTON_MAX_TEXT = 20
 local BUTTON_MIN_TEXT = 11
 local BUTTON_TRANSPARENCY = 0.25
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local CLOSE_COLOR = Color3.fromRGB(80, 66, 52)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local CLOSE_COLOR = UI.danger
+local TEXT_COLOR = UI.text
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -259,13 +263,13 @@ function Screen.addMenuButton(id: string, text: string, order: number): TextButt
     button.Name = id
     button.BackgroundColor3 = PANEL_COLOR
     button.BackgroundTransparency = BUTTON_TRANSPARENCY
-    button.Font = Enum.Font.GothamBold
+    button.Font = Theme.font.bold
     button.TextColor3 = TEXT_COLOR
     button.TextScaled = true
     button.TextWrapped = true
     button.Text = text
     button.Parent = gui
-    Instance.new("UICorner").Parent = button
+    Kit.button(button, "normal")
     local constraint = Instance.new("UITextSizeConstraint")
     constraint.MaxTextSize = BUTTON_MAX_TEXT
     constraint.MinTextSize = BUTTON_MIN_TEXT
@@ -331,19 +335,20 @@ function Screen.createWindow(spec: WindowSpec): Window
     frame.Active = true -- Tipps auf das Fenster erreichen nicht die Welt dahinter
     frame.Visible = false
     frame.Parent = gui
-    Instance.new("UICorner").Parent = frame
+    Kit.window(frame)
 
     local title = Instance.new("TextLabel")
     title.Name = "Title"
     title.BackgroundTransparency = 1
     title.Position = UDim2.fromOffset(16, 0)
     title.Size = UDim2.new(1, -(controls.closeButton + 32), 0, controls.headerH)
-    title.Font = Enum.Font.GothamBold
+    title.Font = Theme.font.bold
     title.TextColor3 = TEXT_COLOR
     title.TextScaled = true
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Text = spec.title
     title.Parent = frame
+    Kit.title(title)
     local titleConstraint = Instance.new("UITextSizeConstraint")
     titleConstraint.MaxTextSize = TITLE_MAX_TEXT
     titleConstraint.Parent = title
@@ -358,12 +363,12 @@ function Screen.createWindow(spec: WindowSpec): Window
     closeButton.Position = UDim2.new(1, -8, 0, (controls.headerH - controls.closeButton) / 2)
     closeButton.Size = UDim2.fromOffset(controls.closeButton, controls.closeButton)
     closeButton.BackgroundColor3 = CLOSE_COLOR
-    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Font = Theme.font.bold
     closeButton.TextColor3 = TEXT_COLOR
     closeButton.TextScaled = true
     closeButton.Text = "X"
     closeButton.Parent = frame
-    Instance.new("UICorner").Parent = closeButton
+    Kit.button(closeButton, "close")
     local closePadding = Instance.new("UIPadding")
     closePadding.PaddingTop = UDim.new(0, 8)
     closePadding.PaddingBottom = UDim.new(0, 8)

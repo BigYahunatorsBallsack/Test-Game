@@ -16,21 +16,27 @@ local MENU_ORDER = 2 -- Platz in der Menüleiste (nach den Zonen)
 local TAB_WIDTH = 112
 local TAB_GAP = 6
 local FOOTER_HEIGHT = 58
-local SET_ROW_HEIGHT = 78
+local SET_ROW_HEIGHT = 118 -- Ü5: Platz für die Fund-Bilder
 local SLOT_GAP = 6
 local SLOT_MIN_TEXT = 11
-local SLOT_MAX_TEXT = 16
+local SLOT_MAX_TEXT = 13
 local TAB_SCROLL_MARGIN = 8
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local SLOT_COLOR = Color3.fromRGB(50, 41, 31)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local TAB_ACTIVE_COLOR = Color3.fromRGB(230, 200, 117)
-local TAB_COLOR = Color3.fromRGB(80, 66, 52)
-local DONE_COLOR = Color3.fromRGB(150, 220, 120)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+local Icons = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Icons") :: ModuleScript) :: any
+local ICON_SHARE = 0.62 -- Anteil der Platzhöhe für das Bild (Ü5)
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local SLOT_COLOR = UI.slot
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local TAB_ACTIVE_COLOR = UI.accent
+local TAB_COLOR = UI.button
+local DONE_COLOR = UI.good
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local function loadShared(folder: string, name: string): any
@@ -107,9 +113,9 @@ function CollectionBook.Start()
     local openButton = Screen.addMenuButton("CollectionButton", "Sammlung", MENU_ORDER)
 
     -- Gesamtbonus und Zonenbuch im festen Fuß, damit sie beim Scrollen der Sets stehen bleiben.
-    local bonusLabel = newText(window.footer, UDim2.new(0, 12, 0, 2), UDim2.new(1, -24, 0, 22), Enum.Font.GothamBold, DONE_COLOR, "")
+    local bonusLabel = newText(window.footer, UDim2.new(0, 12, 0, 2), UDim2.new(1, -24, 0, 22), Theme.font.bold, DONE_COLOR, "")
     bonusLabel.Name = "Bonus"
-    local bookLabel = newText(window.footer, UDim2.new(0, 12, 0, 26), UDim2.new(1, -24, 0, 30), Enum.Font.GothamBold, MUTED_COLOR, "")
+    local bookLabel = newText(window.footer, UDim2.new(0, 12, 0, 26), UDim2.new(1, -24, 0, 30), Theme.font.bold, MUTED_COLOR, "")
     bookLabel.Name = "Book"
     bookLabel.TextWrapped = true
 
@@ -137,11 +143,12 @@ function CollectionBook.Start()
 
     for index, zone in Zones.list do
         local tab = Instance.new("TextButton")
+        Kit.flat(tab)
         tab.Name = zone.id
         tab.LayoutOrder = index
         tab.Size = UDim2.fromOffset(TAB_WIDTH, controls.tabH)
         tab.BackgroundColor3 = TAB_COLOR
-        tab.Font = Enum.Font.GothamBold
+        tab.Font = Theme.font.bold
         tab.TextColor3 = TEXT_COLOR
         tab.TextScaled = true
         tab.Text = zone.name
@@ -164,8 +171,8 @@ function CollectionBook.Start()
         frame.BackgroundTransparency = 0.2
         frame.Parent = scroll
         Instance.new("UICorner").Parent = frame
-        local label = newText(frame, UDim2.new(0, 10, 0, 4), UDim2.new(0.5, -10, 0, 20), Enum.Font.GothamBold, TEXT_COLOR, "")
-        local bonus = newText(frame, UDim2.new(0.5, 0, 0, 4), UDim2.new(0.5, -10, 0, 20), Enum.Font.GothamBold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
+        local label = newText(frame, UDim2.new(0, 10, 0, 4), UDim2.new(0.5, -10, 0, 20), Theme.font.bold, TEXT_COLOR, "")
+        local bonus = newText(frame, UDim2.new(0.5, 0, 0, 4), UDim2.new(0.5, -10, 0, 20), Theme.font.bold, MUTED_COLOR, "", Enum.TextXAlignment.Right)
         local slotHolder = Instance.new("Frame")
         slotHolder.BackgroundTransparency = 1
         slotHolder.Position = UDim2.new(0, 8, 0, 28)
@@ -185,14 +192,23 @@ function CollectionBook.Start()
             local stroke = Instance.new("UIStroke")
             stroke.Thickness = 2
             stroke.Parent = slotFrame
-            local name = newText(slotFrame, UDim2.new(0, 3, 0, 2), UDim2.new(1, -6, 1, -4), Enum.Font.GothamBold, TEXT_COLOR, "?", Enum.TextXAlignment.Center)
+            -- Ü5: Bild des Fundstücks (Atlas), fehlende als dunkle Silhouette; Name darunter.
+            local picture = Instance.new("ImageLabel")
+            picture.Name = "Icon"
+            picture.BackgroundTransparency = 1
+            picture.AnchorPoint = Vector2.new(0.5, 0)
+            picture.Position = UDim2.new(0.5, 0, 0, 2)
+            picture.Size = UDim2.new(1, -6, ICON_SHARE, -2)
+            picture.ScaleType = Enum.ScaleType.Fit
+            picture.Parent = slotFrame
+            local name = newText(slotFrame, UDim2.new(0, 3, ICON_SHARE, 0), UDim2.new(1, -6, 1 - ICON_SHARE, -2), Theme.font.bold, TEXT_COLOR, "?", Enum.TextXAlignment.Center)
             -- Lange Namen brechen auf zwei Zeilen um und werden nicht winzig.
             name.TextWrapped = true
             local nameConstraint = Instance.new("UITextSizeConstraint")
             nameConstraint.MinTextSize = SLOT_MIN_TEXT
             nameConstraint.MaxTextSize = SLOT_MAX_TEXT
             nameConstraint.Parent = name
-            slots[slot] = { frame = slotFrame, name = name, stroke = stroke }
+            slots[slot] = { frame = slotFrame, name = name, stroke = stroke, picture = picture }
         end
         setRows[index] = { frame = frame, label = label, bonus = bonus, slots = slots }
     end
@@ -227,6 +243,14 @@ function CollectionBook.Start()
                     slotRow.stroke.Color = color
                     local count = if find ~= nil then counts[find.id] else nil
                     local found = type(count) == "number" and count > 0
+                    if find ~= nil and type(find.icon) == "string" then
+                        pcall(Icons.Set, slotRow.picture, find.icon)
+                        slotRow.picture.Visible = true
+                        slotRow.picture.ImageColor3 = if found then UI.white else UI.black
+                        slotRow.picture.ImageTransparency = if found then 0 else 0.45
+                    else
+                        slotRow.picture.Visible = false
+                    end
                     if found then
                         have += 1
                         slotRow.name.Text = find.name

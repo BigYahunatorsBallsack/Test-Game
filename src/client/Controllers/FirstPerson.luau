@@ -26,13 +26,16 @@ local UserInputService = game:GetService("UserInputService")
 
 -- Darstellung
 local GUI_DISPLAY_ORDER = 2 -- unter Graben-Knopf (3), Menüleiste (4) und Fenstern (6)
-local CROSSHAIR_COLOR = Color3.fromRGB(255, 248, 230)
-local CROSSHAIR_STROKE_COLOR = Color3.fromRGB(40, 32, 24)
-local HINT_COLOR = Color3.fromRGB(255, 248, 230)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+
+local CROSSHAIR_COLOR = UI.text
+local CROSSHAIR_STROKE_COLOR = UI.ink
+local HINT_COLOR = UI.text
 local HINT_TEXT_SIZE = 14
 local HINT_OFFSET_Y = 18 -- Pixel unter dem Fadenkreuz
-local RING_COLOR = Color3.fromRGB(255, 248, 230)
-local RING_CLEAN_COLOR = Color3.fromRGB(120, 230, 120)
+local RING_COLOR = UI.text
+local RING_CLEAN_COLOR = UI.good
 local SKIN_REFRESH_SECONDS = 1 -- so oft wird die Hautfarbe vom Avatar übernommen
 local RENDER_STEP_NAME = "DuneBaronFirstPerson"
 local VIEWMODEL_NAME = "DuneBaronViewmodel"
@@ -441,7 +444,7 @@ local function buildGui(): (TextButton, Frame, TextLabel, Frame, UIStroke)
     hint.Position = UDim2.new(0.5, 0, 0.5, HINT_OFFSET_Y)
     hint.Size = UDim2.fromOffset(200, HINT_TEXT_SIZE + 6)
     hint.BackgroundTransparency = 1
-    hint.Font = Enum.Font.GothamBold
+    hint.Font = Theme.font.bold
     hint.TextSize = HINT_TEXT_SIZE
     hint.TextColor3 = HINT_COLOR
     hint.TextStrokeTransparency = 0.5

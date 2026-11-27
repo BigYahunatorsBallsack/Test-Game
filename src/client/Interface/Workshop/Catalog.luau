@@ -1,5 +1,8 @@
 --!strict
 -- UI catalogue. Game purchases still use Shared/Data/UpgradeTree.
+-- Überarbeitung Ü5: Ohne `options.drafts` zeigt die Werkstatt nur die echten Knoten aus UpgradeTree
+-- (Namen, Preise, Voraussetzungen). Die Entwürfe (Gerätebäume aus Devices.json, Zusatzknoten aus
+-- Support.json) haben eigene Preise und gibt es im Spiel noch nicht; sie kommen mit Ü7 zurück.
 local devices = require(script.Parent.Devices)
 local support = require(script.Parent.Support)
 local Catalog = {}
@@ -32,8 +35,13 @@ local function deltaText(effect)
         .. effect.unit
 end
 
-function Catalog.build(baseNodes)
-    local catalog = { tabs = {}, byId = {}, byTab = {}, families = {}, devices = devices }
+function Catalog.build(baseNodes, options)
+    local drafts = options ~= nil and options.drafts == true
+    local catalog = { tabs = {}, byId = {}, byTab = {}, families = {}, devices = if drafts then devices else {} }
+    local toolIcons = {}
+    for _, device in devices do
+        toolIcons[device.id] = "icon_node_collect_" .. device.core
+    end
     local function tier(id, family)
         local nodes = catalog.families[family] or {}
         catalog.families[family] = nodes
@@ -54,7 +62,7 @@ function Catalog.build(baseNodes)
         table.insert(page.nodes, node)
         return node.id
     end
-    for _, device in devices do
+    for _, device in (if drafts then devices else {}) do
         local page =
             tab(device.id, device.name, "icon_node_collect_" .. device.core, device.atlasRow)
         page.gate = device.gate
@@ -276,8 +284,8 @@ function Catalog.build(baseNodes)
             local col = if key == "collect" and n.effect.kind == "setTool" then 2 else 1
             lanes[col] += 1
             local icon = core[key]
-            if n.effect.kind == "setTool" and catalog.byTab[n.effect.toolId] then
-                icon = catalog.byTab[n.effect.toolId].icon
+            if n.effect.kind == "setTool" and toolIcons[n.effect.toolId] then
+                icon = toolIcons[n.effect.toolId]
             end
             add(page, {
                 id = n.id,
@@ -298,7 +306,7 @@ function Catalog.build(baseNodes)
             })
             tier(n.id, key .. "_lauf_" .. col)
         end
-        local extras = support[key] or {}
+        local extras = if drafts then support[key] or {} else {}
         local span = if #extras == 6 then 3 else 4
         for i, n in extras do
             local isLeft = i <= span

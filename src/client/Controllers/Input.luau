@@ -26,9 +26,13 @@ local SELL_PROMPT_ATTRIBUTE = "SellPrompt"
 -- Graben-Knopf am Handy
 local DIG_DISPLAY_ORDER = 3 -- unter Menüleiste (4) und Baum (5)
 local DIG_BUTTON_TEXT = "Graben"
-local DIG_BUTTON_COLOR = Color3.fromRGB(230, 200, 117)
-local DIG_BUTTON_HELD_COLOR = Color3.fromRGB(255, 232, 150)
-local DIG_BUTTON_TEXT_COLOR = Color3.fromRGB(40, 32, 24)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+local DIG_BUTTON_COLOR = UI.accent
+local DIG_BUTTON_HELD_COLOR = UI.good
+local DIG_BUTTON_TEXT_COLOR = UI.ink
 local DIG_BUTTON_TRANSPARENCY = 0.15
 local DIG_BUTTON_HELD_TRANSPARENCY = 0
 
@@ -99,11 +103,13 @@ local function createDigButton()
     gui.DisplayOrder = DIG_DISPLAY_ORDER
 
     local button = Instance.new("TextButton")
+
+    Kit.flat(button)
     button.Name = "DigButton"
     button.AutoButtonColor = false
     button.BackgroundColor3 = DIG_BUTTON_COLOR
     button.BackgroundTransparency = DIG_BUTTON_TRANSPARENCY
-    button.Font = Enum.Font.GothamBold
+    button.Font = Theme.font.bold
     button.TextColor3 = DIG_BUTTON_TEXT_COLOR
     button.TextScaled = true
     button.Text = DIG_BUTTON_TEXT

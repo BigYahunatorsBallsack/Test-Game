@@ -34,7 +34,7 @@ function TrialPanel.mount(root, config)
     bounds.MaxSize = Vector2.new(530, if config.trialOnly then 365 else 453)
     bounds.Parent = panel
     local title = Art.text(panel, "Titel", "Probelauf", 25, C.bright, true)
-    title.Font = Enum.Font.Antique
+    title.Font = Art.font.title
     title.Position = UDim2.fromOffset(14, 6)
     title.Size = UDim2.new(1, -74, 0, 47)
     local close = Art.button(panel, "Schliessen", "×")

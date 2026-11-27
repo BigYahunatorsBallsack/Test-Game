@@ -51,24 +51,27 @@ local BREATH_SECONDS = 1.6
 local FEEDBACK_VISIBLE_SECONDS = 2
 local FOG_TOP_TRANSPARENCY = 0.15
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local BACKDROP_COLOR = Color3.fromRGB(34, 27, 20)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+
+-- Farben aus Interface/Theme (Ü5)
+local BACKDROP_COLOR = UI.backdrop
 local BACKDROP_TRANSPARENCY = 0.08
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local BUTTON_COLOR = Color3.fromRGB(96, 78, 44)
-local BUTTON_DIM_COLOR = Color3.fromRGB(58, 52, 46)
-local HIGHLIGHT_COLOR = Color3.fromRGB(255, 220, 120)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local TEXT_DIM_COLOR = Color3.fromRGB(170, 160, 145)
-local LINE_LIT_COLOR = Color3.fromRGB(255, 236, 190)
-local LINE_DIM_COLOR = Color3.fromRGB(120, 108, 90)
-local FOG_COLOR = Color3.fromRGB(214, 198, 170)
-local SILHOUETTE_COLOR = Color3.fromRGB(46, 40, 34)
-local EXPENSIVE_COLOR = Color3.fromRGB(70, 62, 52)
-local STROKE_OWNED_COLOR = Color3.fromRGB(255, 244, 214)
-local STROKE_AFFORD_COLOR = Color3.fromRGB(255, 230, 150)
-local STROKE_DIM_COLOR = Color3.fromRGB(92, 82, 70)
-local SELECT_COLOR = Color3.fromRGB(255, 255, 255)
+local PANEL_COLOR = UI.panel
+local BUTTON_COLOR = UI.button
+local BUTTON_DIM_COLOR = UI.slot
+local HIGHLIGHT_COLOR = UI.accent
+local TEXT_COLOR = UI.text
+local TEXT_DIM_COLOR = UI.muted
+local LINE_LIT_COLOR = UI.accent
+local LINE_DIM_COLOR = UI.button
+local FOG_COLOR = UI.muted
+local SILHOUETTE_COLOR = UI.slot
+local EXPENSIVE_COLOR = UI.row
+local STROKE_OWNED_COLOR = UI.white
+local STROKE_AFFORD_COLOR = UI.accent
+local STROKE_DIM_COLOR = UI.button
+local SELECT_COLOR = UI.white
 
 -- Texte
 local OPEN_TEXT = "Baum"
@@ -154,7 +157,7 @@ local function roundButton(parent: Instance, name: string, text: string, size: U
     button.Name = name
     button.AutoButtonColor = true
     button.Text = text
-    button.Font = Enum.Font.GothamBold
+    button.Font = Theme.font.bold
     button.TextScaled = true
     button.TextColor3 = TEXT_COLOR
     button.BackgroundColor3 = BUTTON_COLOR
@@ -220,7 +223,7 @@ function SkillTree.Start()
     badge.Size = UDim2.fromOffset(BADGE_SIZE, BADGE_SIZE)
     badge.BackgroundColor3 = HIGHLIGHT_COLOR
     badge.TextColor3 = PANEL_COLOR
-    badge.Font = Enum.Font.GothamBold
+    badge.Font = Theme.font.bold
     badge.TextScaled = true
     badge.Visible = false
     badge.Parent = openButton
@@ -291,10 +294,10 @@ function SkillTree.Start()
     nodeFolder.Parent = world
 
     -- Kopfzeile: Titel, Münzen, Schließen
-    local title = label(overlay, "Title", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN), UDim2.fromOffset(220, 26), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
+    local title = label(overlay, "Title", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN), UDim2.fromOffset(220, 26), Theme.font.bold, Enum.TextXAlignment.Left)
     title.Text = TITLE_TEXT
     title.ZIndex = 20
-    local coinsLabel = label(overlay, "Coins", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN + 28), UDim2.fromOffset(240, 20), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local coinsLabel = label(overlay, "Coins", UDim2.new(0, EDGE_MARGIN, 0, EDGE_MARGIN + 28), UDim2.fromOffset(240, 20), Theme.font.body, Enum.TextXAlignment.Left)
     coinsLabel.TextColor3 = TEXT_DIM_COLOR
     coinsLabel.ZIndex = 20
     local closeButton = roundButton(overlay, "Close", CLOSE_TEXT, UDim2.fromOffset(ICON_BUTTON_SIZE, ICON_BUTTON_SIZE))
@@ -335,16 +338,16 @@ function SkillTree.Start()
     cardStroke.Color = STROKE_DIM_COLOR
     cardStroke.Thickness = 2
     cardStroke.Parent = card
-    local cardName = label(card, "Name", UDim2.new(0, 14, 0, 8), UDim2.new(1, -28, 0, 26), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
+    local cardName = label(card, "Name", UDim2.new(0, 14, 0, 8), UDim2.new(1, -28, 0, 26), Theme.font.bold, Enum.TextXAlignment.Left)
     cardName.ZIndex = 31
-    local cardDescription = label(card, "Description", UDim2.new(0, 14, 0, 38), UDim2.new(1, -28, 0, 32), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardDescription = label(card, "Description", UDim2.new(0, 14, 0, 38), UDim2.new(1, -28, 0, 32), Theme.font.body, Enum.TextXAlignment.Left)
     cardDescription.TextWrapped = true -- zwei Zeilen statt winziger Schrift bei langen Texten
     cardDescription.TextColor3 = TEXT_DIM_COLOR
     cardDescription.ZIndex = 31
-    local cardNeeds = label(card, "Needs", UDim2.new(0, 14, 0, 72), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardNeeds = label(card, "Needs", UDim2.new(0, 14, 0, 72), UDim2.new(1, -28, 0, 18), Theme.font.body, Enum.TextXAlignment.Left)
     cardNeeds.TextColor3 = HIGHLIGHT_COLOR
     cardNeeds.ZIndex = 31
-    local cardFeedback = label(card, "Feedback", UDim2.new(0, 14, 0, 92), UDim2.new(1, -28, 0, 18), Enum.Font.Gotham, Enum.TextXAlignment.Left)
+    local cardFeedback = label(card, "Feedback", UDim2.new(0, 14, 0, 92), UDim2.new(1, -28, 0, 18), Theme.font.body, Enum.TextXAlignment.Left)
     cardFeedback.TextTransparency = 1
     cardFeedback.ZIndex = 31
     local buyButton = roundButton(card, "Buy", BUY_TEXT, UDim2.new(1, -28, 0, BUY_BUTTON_HEIGHT))
@@ -463,10 +466,10 @@ function SkillTree.Start()
         stroke.Thickness = NODE_STROKE
         stroke.Parent = frame
 
-        local glyph = label(frame, "Glyph", UDim2.new(0, 8, 0, 6), UDim2.new(1, -16, 1, -PRICE_HEIGHT - 12), Enum.Font.GothamBold, Enum.TextXAlignment.Center)
+        local glyph = label(frame, "Glyph", UDim2.new(0, 8, 0, 6), UDim2.new(1, -16, 1, -PRICE_HEIGHT - 12), Theme.font.bold, Enum.TextXAlignment.Center)
         glyph.Text = look.glyph
         glyph.ZIndex = 14
-        local price = label(frame, "Price", UDim2.new(0, 4, 1, -PRICE_HEIGHT - 4), UDim2.new(1, -8, 0, PRICE_HEIGHT), Enum.Font.GothamBold, Enum.TextXAlignment.Center)
+        local price = label(frame, "Price", UDim2.new(0, 4, 1, -PRICE_HEIGHT - 4), UDim2.new(1, -8, 0, PRICE_HEIGHT), Theme.font.bold, Enum.TextXAlignment.Center)
         price.ZIndex = 14
 
         -- Leuchtring für den Knoten des Tutorial-Schritts
@@ -656,7 +659,7 @@ function SkillTree.Start()
                 rule.BorderSizePixel = 0
                 rule.ZIndex = 11
                 rule.Parent = bandFolder
-                local name = label(rule, "Name", UDim2.new(0, 6, 0, -BAND_LABEL_HEIGHT - 1), UDim2.fromOffset(220, BAND_LABEL_HEIGHT), Enum.Font.GothamBold, Enum.TextXAlignment.Left)
+                local name = label(rule, "Name", UDim2.new(0, 6, 0, -BAND_LABEL_HEIGHT - 1), UDim2.fromOffset(220, BAND_LABEL_HEIGHT), Theme.font.bold, Enum.TextXAlignment.Left)
                 name.TextColor3 = TEXT_DIM_COLOR
                 name.ZIndex = 11
                 local tool = if band.toolId ~= nil then UpgradeTree.byId[band.toolId] else nil

@@ -46,14 +46,14 @@ local colors = {
     owned = C.brass,
     active = C.leaf,
     ready = C.bright,
-    dear = Color3.fromRGB(208, 145, 103),
+    dear = C.warn,
     locked = C.lock,
     grant = C.leaf,
 }
 local function stateTextColor(state)
     return if state == "locked" then C.mute else colors[state]
 end
-local alternative = Color3.fromRGB(216, 159, 89)
+local alternative = C.warn
 local directions = {
     [Enum.KeyCode.Left] = Vector2.new(-1, 0),
     [Enum.KeyCode.Right] = Vector2.new(1, 0),
@@ -122,7 +122,7 @@ function Workshop.mount(gui, config)
     root.Size = UDim2.fromScale(1, 1)
     root.Visible = false
     root.Active = true
-    local header = Art.box(root, "Messingleiste", Color3.new(1, 1, 1), 101)
+    local header = Art.box(root, "Messingleiste", C.white, 101)
     Art.gradient(header, C.wood, C.dark)
     Art.surface(header, "wood", 0.27)
     local headerEdge = Art.box(header, "Fassung", C.wood, 102)
@@ -143,12 +143,13 @@ function Workshop.mount(gui, config)
     end
     local title = Art.text(header, "Title", "WERKSTATT", 30, C.bright, true)
     title.ZIndex = 103
-    title.Font = Enum.Font.Antique
+    title.Font = Art.font.title
     local controlsHint = Art.text(header, "Tasten", "", 12, C.mute, false)
     controlsHint.TextXAlignment = Enum.TextXAlignment.Center
     local wallet = Art.text(header, "Wallet", "", 15, C.ivory, true)
     wallet.TextXAlignment = Enum.TextXAlignment.Right
     local mode = Art.button(header, "Mode", "Probelauf")
+    mode.Visible = false -- Ü5: ohne Gerätebäume kein Probelauf mit Testmünzen (kommt mit Ü7)
     local exit = Art.button(header, "Close", "×")
     exit.Modal = true
     exit.TextSize = 26
@@ -201,7 +202,7 @@ function Workshop.mount(gui, config)
     handle.TextXAlignment = Enum.TextXAlignment.Center
     local audio = Audio.mount(root)
     local tabs, entries, edges, shortcutStates = {}, {}, {}, {}
-    local selected, page = nil, book.byTab.hand
+    local selected, page = nil, book.byTab.hand or book.tabs[1] -- Ü5: ohne Gerätebäume die erste Seite
     local owned, coins, walletText = {}, 0, "0"
     local gates = {}
     for _, device in book.devices do
@@ -603,7 +604,7 @@ function Workshop.mount(gui, config)
                 true
             )
             local heading = caption("Knoten", goal.name, 40, 24, C.bright, true)
-            heading.Font = Enum.Font.Antique
+            heading.Font = Art.font.title
             if not plan or #plan.steps == 0 then
                 caption(
                     "PlanStatus",
@@ -662,7 +663,7 @@ function Workshop.mount(gui, config)
         end
         if overview then
             local heading = caption("Knoten", page.name, 38, 25, C.bright, true)
-            heading.Font = Enum.Font.Antique
+            heading.Font = Art.font.title
             addDeviceActions()
             button(
                 "Lernplan",
@@ -726,7 +727,7 @@ function Workshop.mount(gui, config)
             true
         )
         local name = caption("Knoten", n.name, 48, 25, C.bright, true)
-        name.Font = Enum.Font.Antique
+        name.Font = Art.font.title
         addDeviceActions()
         local siblings = book.families[n.family]
         if siblings and #siblings > 1 then
@@ -867,8 +868,8 @@ function Workshop.mount(gui, config)
             e.mark.Text = if id == pin then "◆" else marks[state]
             e.mark.TextColor3 = colors[state]
             e.icon.ImageColor3 = if state == "locked"
-                then Color3.fromRGB(150, 164, 156)
-                else Color3.new(1, 1, 1)
+                then C.mute
+                else C.white
             e.button.Interactable = not overview
             e.button.Selectable = not overview
             if state == "owned" or state == "active" then

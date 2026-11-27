@@ -40,16 +40,21 @@ local BANNER_FADE_SECONDS = 0.3
 -- Sounds (Paket 3.5). Leer = kein Ton.
 local SOUND_IDS = { storm = "" }
 
--- Farben (vorläufig bis zum Stil-Guide, Paket 0.4)
-local PANEL_COLOR = Color3.fromRGB(40, 32, 24)
-local ROW_COLOR = Color3.fromRGB(64, 52, 40)
-local TEXT_COLOR = Color3.fromRGB(255, 248, 230)
-local MUTED_COLOR = Color3.fromRGB(190, 175, 150)
-local GOOD_COLOR = Color3.fromRGB(150, 220, 120)
-local WARN_COLOR = Color3.fromRGB(235, 150, 90)
-local BUTTON_COLOR = Color3.fromRGB(80, 66, 52)
-local READY_COLOR = Color3.fromRGB(230, 200, 117)
-local WALL_COLOR = Color3.fromRGB(214, 178, 112)
+local Theme = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Theme") :: ModuleScript) :: any -- Ü5: ein Stil
+local UI = Theme.ui
+local SandstormResultUi = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("SandstormResult") :: ModuleScript) :: any
+local Kit = require(script.Parent.Parent:WaitForChild("Interface"):WaitForChild("Kit") :: ModuleScript) :: any
+
+-- Farben aus Interface/Theme (Ü5)
+local PANEL_COLOR = UI.panel
+local ROW_COLOR = UI.row
+local TEXT_COLOR = UI.text
+local MUTED_COLOR = UI.muted
+local GOOD_COLOR = UI.good
+local WARN_COLOR = UI.warn
+local BUTTON_COLOR = UI.button
+local READY_COLOR = UI.accent
+local WALL_COLOR = UI.accent
 
 local REASONS: { [string]: string } = {
     requires = "Der Sandsturm ist noch nicht möglich.",
@@ -149,7 +154,7 @@ function Sandstorm.Start()
     local controls = Screen.controls()
     local resetConfirm: () -> () = function() end
     local refresh: () -> () = function() end
-    local messageLabel = newText(gui, "Message", UDim2.new(0, 16, 0, 2), UDim2.new(1, -32, 0, 22), Enum.Font.GothamBold, WARN_COLOR, "")
+    local messageLabel = newText(gui, "Message", UDim2.new(0, 16, 0, 2), UDim2.new(1, -32, 0, 22), Theme.font.bold, WARN_COLOR, "")
     local window = Screen.createWindow({
         name = "SandstormWindow",
         title = "Sandsturm",
@@ -191,21 +196,23 @@ function Sandstorm.Start()
     previewList.SortOrder = Enum.SortOrder.LayoutOrder
     previewList.Padding = UDim.new(0, 6)
     previewList.Parent = previewBox
-    local gainLabel = autoText(previewBox, "Gain", 1, Enum.Font.GothamBold, TEXT_SIZE_BIG, GOOD_COLOR, "")
-    local bonusLabel = autoText(previewBox, "Bonus", 2, Enum.Font.GothamBold, TEXT_SIZE_NORMAL, TEXT_COLOR, "")
-    local earnedLabel = autoText(previewBox, "Earned", 3, Enum.Font.Gotham, TEXT_SIZE_SMALL, MUTED_COLOR, "")
-    local stormsLabel = autoText(previewBox, "Storms", 4, Enum.Font.Gotham, TEXT_SIZE_SMALL, MUTED_COLOR, "")
+    local gainLabel = autoText(previewBox, "Gain", 1, Theme.font.bold, TEXT_SIZE_BIG, GOOD_COLOR, "")
+    local bonusLabel = autoText(previewBox, "Bonus", 2, Theme.font.bold, TEXT_SIZE_NORMAL, TEXT_COLOR, "")
+    local earnedLabel = autoText(previewBox, "Earned", 3, Theme.font.body, TEXT_SIZE_SMALL, MUTED_COLOR, "")
+    local stormsLabel = autoText(previewBox, "Storms", 4, Theme.font.body, TEXT_SIZE_SMALL, MUTED_COLOR, "")
 
-    autoText(window.body, "Reset", 2, Enum.Font.Gotham, TEXT_SIZE_NORMAL, WARN_COLOR, RESET_TEXT)
-    autoText(window.body, "Keep", 3, Enum.Font.Gotham, TEXT_SIZE_NORMAL, GOOD_COLOR, KEEP_TEXT)
+    autoText(window.body, "Reset", 2, Theme.font.body, TEXT_SIZE_NORMAL, WARN_COLOR, RESET_TEXT)
+    autoText(window.body, "Keep", 3, Theme.font.body, TEXT_SIZE_NORMAL, GOOD_COLOR, KEEP_TEXT)
 
     local goButton = Instance.new("TextButton")
+
+    Kit.flat(goButton)
     goButton.Name = "Go"
     goButton.AnchorPoint = Vector2.new(0.5, 1)
     goButton.Position = UDim2.new(0.5, 0, 1, -8)
     goButton.Size = UDim2.new(1, -32, 0, math.max(GO_BUTTON_HEIGHT, controls.rowButtonH))
     goButton.BackgroundColor3 = READY_COLOR
-    goButton.Font = Enum.Font.GothamBold
+    goButton.Font = Theme.font.bold
     goButton.TextColor3 = PANEL_COLOR
     goButton.TextScaled = true
     goButton.Text = "Sturm auslösen"
@@ -228,7 +235,7 @@ function Sandstorm.Start()
     wall.ZIndex = 20
     wall.Parent = gui
 
-    local banner = newText(gui, "Banner", UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 90), Enum.Font.GothamBold, TEXT_COLOR, "")
+    local banner = newText(gui, "Banner", UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 90), Theme.font.bold, TEXT_COLOR, "")
     banner.AnchorPoint = Vector2.new(0.5, 0)
     banner.TextXAlignment = Enum.TextXAlignment.Center
     banner.TextTransparency = 1
@@ -340,6 +347,11 @@ function Sandstorm.Start()
 
     -- Animation: Wand von links, Halten, Wand nach rechts, dazu das Banner.
     local playing = false
+    local okResult, mountedResult = pcall(SandstormResultUi.Mount, player:WaitForChild("PlayerGui"))
+    local stormResult: any = if okResult then mountedResult else nil
+    if not okResult then
+        warn(`[Sandstorm] Ergebniskarte nicht verfügbar: {tostring(mountedResult)}`)
+    end
     playStorm = function(payload: any)
         if playing then
             return
@@ -358,16 +370,24 @@ function Sandstorm.Start()
         task.wait(WALL_HOLD_SECONDS) -- unter der Wand setzt der Server den Charakter zurück
         local wallOut = TweenService:Create(wall, TweenInfo.new(WALL_OUT_SECONDS, WALL_EASING, Enum.EasingDirection.In), { Position = UDim2.fromScale(1, 0) })
         wallOut:Play()
-        banner.Text = `+{numberText(payload.crystals)} Windkristalle · Bonus +{percentText(payload.bonusBp)} %`
-        if payload.first == true then
-            banner.Text ..= "\nDie Ruinenkarte öffnet die Ruinenstadt."
+        -- Ü5: Ergebniskarte im Stil aus Interface/SandstormResult; ohne sie das alte Banner.
+        local shown = stormResult ~= nil and pcall(stormResult.Show, {
+            windCrystals = numberText(payload.crystals),
+            unit = `Windkristalle · Bonus +{percentText(payload.bonusBp)} %`,
+            ruinsUnlocked = payload.first == true,
+        })
+        if not shown then
+            banner.Text = `+{numberText(payload.crystals)} Windkristalle · Bonus +{percentText(payload.bonusBp)} %`
+            if payload.first == true then
+                banner.Text ..= "\nDie Ruinenkarte öffnet die Ruinenstadt."
+            end
+            TweenService:Create(banner, TweenInfo.new(BANNER_FADE_SECONDS), { TextTransparency = 0, TextStrokeTransparency = 0.4 }):Play()
+            task.delay(BANNER_SECONDS + WALL_OUT_SECONDS, function()
+                TweenService:Create(banner, TweenInfo.new(BANNER_FADE_SECONDS), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+            end)
         end
-        TweenService:Create(banner, TweenInfo.new(BANNER_FADE_SECONDS), { TextTransparency = 0, TextStrokeTransparency = 0.4 }):Play()
         wallOut.Completed:Wait()
         wall.Visible = false
-        task.delay(BANNER_SECONDS, function()
-            TweenService:Create(banner, TweenInfo.new(BANNER_FADE_SECONDS), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-        end)
         playing = false
     end
 

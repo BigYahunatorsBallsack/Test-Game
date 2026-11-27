@@ -30,6 +30,35 @@ Theme.finds = {
     mythic=Theme.clay,
 } :: {[string]: Swatch}
 
+-- Flache Farben für alle Menüs (Überarbeitung Ü5: ein Stil). Controller setzen keine eigenen Farben,
+-- sie nehmen diese hier (Prüfung in tests/uitheme.spec.luau).
+Theme.ui = {
+    backdrop = rgb(14,22,29), -- abgedunkelter Hintergrund hinter Fenstern
+    panel = rgb(28,50,61), -- Fenster und Karten
+    row = rgb(45,74,88), -- Zeilen in einem Fenster
+    slot = rgb(23,36,47), -- leere Plätze, Spuren
+    button = rgb(60,88,103), -- normaler Knopf
+    text = Theme.text,
+    muted = rgb(190,212,212), -- Nebentext
+    accent = rgb(255,222,108), -- Gold: Hauptaktion, Münzen, aktiver Reiter
+    accentText = Theme.ink, -- Text auf Gold
+    teal = rgb(25,166,157), -- Navigation, Auswahl
+    good = rgb(153,224,104), -- fertig, Bonus, sauber
+    warn = rgb(250,150,90), -- Hinweis, Kosten
+    danger = rgb(250,109,74), -- voll, Fehler, Schließen
+    gem = rgb(130,214,255), -- Edelsteine
+    ink = Theme.ink, -- Konturen, Schatten
+    white = rgb(255,255,255),
+    black = rgb(0,0,0),
+}
+
+-- Schriften: Überschriften und Knöpfe rund und kräftig, Fließtext gut lesbar.
+Theme.font = {
+    title = Enum.Font.FredokaOne,
+    bold = Enum.Font.FredokaOne, -- Knöpfe, Namen, Zahlen
+    body = Enum.Font.Gotham, -- längerer Text (Beschreibungen, Quoten)
+}
+
 function Theme.Paint(item: GuiObject, color: Swatch, thickness: number?): UIStroke
     item.BackgroundColor3 = Color3.new(1, 1, 1)
     item.BorderSizePixel = 0
